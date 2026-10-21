@@ -20,6 +20,7 @@
 #include "gzip-compressor.h"
 #include "heap.h"
 #include "logger.h"
+#include "progress.h"
 #include "sequtil.h"
 #include "set.h"
 #include "strbuf.h"
@@ -37,6 +38,7 @@
   "Test options (default: run all tests):\n"\
   " -s : test string utilities and string buffer\n"\
   " -a : test argument parsing\n"\
+  " -o : test progress display\n"\
   " -z : test gzip compressor\n"\
   " -b : test bit operations and bloom filter\n"\
   " -e : test set\n"\
@@ -173,6 +175,7 @@ typedef struct {
 static test_group_t test_groups[] = {
   {'s', "string utilities", strutils_test, false},
   {'a', "argument parsing", argparse_test, false},
+  {'o', "progress display", progress_test, false},
   {'z', "gzip compressor", run_gzip_compressor_test, false},
   {'b', "bit operations and bloom filter", bits_test, false},
   {'e', "set", set_test, false},
