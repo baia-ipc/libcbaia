@@ -1,5 +1,8 @@
 /* (c) 2026 Giorgio Gonnella */
 
+/* version of libcbaia */
+#define VERSION "0.1.0"
+
 #include <assert.h>
 #include <errno.h>
 #include <stdbool.h>
@@ -33,6 +36,7 @@
   "\n"\
   "Test options (default: run all tests):\n"\
   " -s : test string utilities and string buffer\n"\
+  " -a : test argument parsing\n"\
   " -z : test gzip compressor\n"\
   " -b : test bit operations and bloom filter\n"\
   " -e : test set\n"\
@@ -51,7 +55,7 @@ static const char *tmpdir = DEFAULT_TMPDIR;
 
 static void strutils_test(void) {
   char *s = strcat_alloc("abc", "de");
-  test_assert(strcmp(s, "abcde") == 0);
+  test_eq_str(s, "abcde");
   free(s);
   strbuf_t buf;
   strbuf_init(&buf);
@@ -65,6 +69,17 @@ static void strutils_test(void) {
     strbuf_append(&buf, "abc", 3);
   test_eq_size(buf.len, 30000);
   strbuf_free(&buf);
+}
+
+static void argparse_test(void) {
+  long value;
+  test_assert(argparse_long("42", &value));
+  test_eq_long(value, 42L);
+  test_assert(argparse_long("-3", &value));
+  test_eq_long(value, -3L);
+  test_assert(!argparse_long("3abc", &value));
+  test_assert(!argparse_long("", &value));
+  test_assert(!argparse_long("99999999999999999999", &value));
 }
 
 static void bits_test(void) {
@@ -176,6 +191,7 @@ typedef struct {
 
 static test_group_t test_groups[] = {
   {'s', "string utilities", strutils_test, false},
+  {'a', "argument parsing", argparse_test, false},
   {'z', "gzip compressor", run_gzip_compressor_test, false},
   {'b', "bit operations and bloom filter", bits_test, false},
   {'e', "set", set_test, false},

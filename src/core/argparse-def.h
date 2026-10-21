@@ -1,6 +1,22 @@
-/* (c) 2017-2021 Giorgio Gonnella */
+/* (c) 2017-2026 Giorgio Gonnella */
 
-#define VERSION "0.1.0"
+#ifndef ARGPARSE_DEF_H
+#define ARGPARSE_DEF_H
+
+#include <assert.h>
+#include <errno.h>
+#include <stdbool.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include "logger.h"
+
+/* version of the program, output by the -V option; a program defines it
+   before including this header */
+#ifndef VERSION
+#define VERSION "unknown"
+#endif
 
 #define STR(S) #S
 #define XSTR(S) STR(S)
@@ -27,7 +43,8 @@
   Option reserved:
     -V --> version
     -h --> help
-    -q, -v, -d, -l --> logger
+    -q, -v, -D --> verbosity
+    -g --> log file (the letter can be changed, see LOGFILE_OPT)
 
   Put this in the options section of the help, after an empty line:
   COMMON_OPTS_HELP
@@ -92,32 +109,47 @@
 #define ARG_ERR(N, FMT, ...) \
   PARSE_ERR("Positional argument %i: " FMT, N, ##__VA_ARGS__)
 
+/* parse a decimal integer (the whole string); false if invalid */
+static inline bool argparse_long(const char *s, long *value) {
+  char *end;
+  errno = 0;
+  *value = strtol(s, &end, 10);
+  return *s != '\0' && *end == '\0' && errno == 0;
+}
+
 #define PARSE_INTEGER_OPT_MIN(C, DESTPTR, MINVALUE) { \
     long argvalue; \
-    int sscanf_retval = sscanf(optarg, "%ld", &argvalue); \
-    if (sscanf_retval != 1 || argvalue < (MINVALUE)) \
-      OPT_ERR(C, "argument must be an integer >= %d (%s found)",\
-        (MINVALUE), optarg); \
+    if (!argparse_long(optarg, &argvalue) || argvalue < (MINVALUE)) \
+      OPT_ERR(C, "argument must be an integer >= %ld (%s found)",\
+        (long)(MINVALUE), optarg); \
     *(DESTPTR) = argvalue;\
 }
 
 #define PARSE_INTEGER_OPT_MIN_MAX(C, DESTPTR, MINVALUE, MAXVALUE) { \
     long argvalue; \
-    int sscanf_retval = sscanf(optarg, "%ld", &argvalue); \
-    if (sscanf_retval != 1 || argvalue < (MINVALUE) || argvalue > (MAXVALUE)) \
-      OPT_ERR(C, "argument must be an integer >= %d and <= %d (%s found)",\
-        (MINVALUE), (MAXVALUE), optarg); \
+    if (!argparse_long(optarg, &argvalue) || argvalue < (MINVALUE) || \
+        argvalue > (MAXVALUE)) \
+      OPT_ERR(C, "argument must be an integer >= %ld and <= %ld "\
+        "(%s found)", (long)(MINVALUE), (long)(MAXVALUE), optarg); \
     *(DESTPTR) = argvalue;\
 }
 
 #define PARSE_INTEGER_ARG_MIN(N, DESTPTR, MINVALUE) { \
     long argvalue; \
-    int sscanf_retval = sscanf(argv[optind + N], "%ld", &argvalue); \
-    if (sscanf_retval != 1 || argvalue < (MINVALUE)) \
-      ARG_ERR(N+1, "argument must be an integer >= %d (%s found)",\
-        (MINVALUE), argv[optind + N]); \
+    if (!argparse_long(argv[optind + (N)], &argvalue) || \
+        argvalue < (MINVALUE)) \
+      ARG_ERR((N)+1, "argument must be an integer >= %ld (%s found)",\
+        (long)(MINVALUE), argv[optind + (N)]); \
     *(DESTPTR) = argvalue;\
 }
+
+/* option for the log file; a program can define these macros before
+   including this header, if it needs the letter for another option */
+#ifndef LOGFILE_OPT
+#define LOGFILE_OPT 'g'
+#define LOGFILE_OPT_STR "g:"
+#define LOGFILE_OPT_HELP "-g"
+#endif
 
 #define LOGGER_OPTS_HELP \
   "Verbosity options: (only one can be used)\n"\
@@ -125,7 +157,8 @@
   "   -q          quiet: suppress success messages\n"\
   "   -v          verbose: show additional info messages\n"\
   "   -D          debug: show some debug information\n"\
-  "   -g <fname>  print messages to file (default: stderr)\n"
+  "   " LOGFILE_OPT_HELP " <fname>  print messages to file "\
+  "(default: stderr)\n"
 
 #define COMMON_OPTS_HELP \
   LOGGER_OPTS_HELP \
@@ -134,7 +167,7 @@
   "   -h      show this help message and exit\n"\
   "   -V      output version and exit\n"
 
-#define LOGGER_OPTS_STR "qvDg:"
+#define LOGGER_OPTS_STR "qvD" LOGFILE_OPT_STR
 
 #define COMMON_OPTS_STR LOGGER_OPTS_STR "hV"
 
@@ -155,10 +188,10 @@
     LOGGER_OPTS_CHKMULTI; \
     debug = true; \
     break;\
-  case 'g': \
+  case LOGFILE_OPT: \
     logfile = fopen(optarg, "w");\
     if (logfile == NULL)\
-      OPT_ERR('g', "Opening log file '%s' failed, %s",\
+      OPT_ERR(LOGFILE_OPT, "Opening log file '%s' failed, %s",\
           optarg, strerror(errno));\
     break;
 
@@ -208,3 +241,5 @@
 
 #define PARSE_LOG_N(FMT, ...) \
   lnprintf(parse_logger, LOG_PARAM, FMT, ##__VA_ARGS__);
+
+#endif
