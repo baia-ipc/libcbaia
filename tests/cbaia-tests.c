@@ -36,7 +36,7 @@
   " -z : test gzip compressor\n"\
   " -b : test bit operations and bloom filter\n"\
   " -e : test set\n"\
-  " -q : test priority queue\n"\
+  " -p : test priority queue\n"\
   " -f : test file sorting and merging\n"\
   " -u : test sequence utilities\n"\
   " -r : test FASTQ reader\n"\
@@ -127,8 +127,9 @@ static void write_line(FILE *file, char *line, Logger *logger) {
   fputs(line, file);
 }
 
+/* the merger compares pointers to the elements (char **) */
 static int cmp_line_ptrs(const void *a, const void *b) {
-  return strcmp(**(char *const *const *)a, **(char *const *const *)b);
+  return strcmp(*(char *const *)a, *(char *const *)b);
 }
 
 static void file_sorter_test(void) {
@@ -178,7 +179,7 @@ static test_group_t test_groups[] = {
   {'z', "gzip compressor", run_gzip_compressor_test, false},
   {'b', "bit operations and bloom filter", bits_test, false},
   {'e', "set", set_test, false},
-  {'q', "priority queue", priorityqueue_test, false},
+  {'p', "priority queue", priorityqueue_test, false},
   {'f', "file sorting and merging", file_sorter_test, false},
   {'u', "sequence utilities", sequtil_test, false},
   {'r', "FASTQ reader", run_fastq_reader_test, false},
@@ -194,6 +195,8 @@ void parseargs(int argc, char *argv[],
   char optstring[64] = COMMON_OPTS_STR "T:";
   for (size_t i = 0; i < N_TEST_GROUPS; i++) {
     size_t len = strlen(optstring);
+    /* the test options must not be used by other options */
+    assert(strchr(optstring, test_groups[i].option) == NULL);
     optstring[len] = test_groups[i].option;
     optstring[len + 1] = '\0';
   }
