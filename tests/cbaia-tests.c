@@ -18,7 +18,7 @@
 #include "file-merger.h"
 #include "file-sorter.h"
 #include "gzip-compressor.h"
-#include "priorityqueue.h"
+#include "heap.h"
 #include "logger.h"
 #include "sequtil.h"
 #include "set.h"
@@ -40,7 +40,7 @@
   " -z : test gzip compressor\n"\
   " -b : test bit operations and bloom filter\n"\
   " -e : test set\n"\
-  " -p : test priority queue\n"\
+  " -p : test heap\n"\
   " -f : test file sorting and merging\n"\
   " -u : test sequence utilities\n"\
   " -r : test FASTQ reader\n"\
@@ -92,26 +92,6 @@ static void bits_test(void) {
   UNSET_BIT(x, 40);
   test_assert(x == 1);
   bloom_filter_test();
-}
-
-static int cmp_ints(const void *a, const void *b) {
-  int x = *(const int *)a, y = *(const int *)b;
-  return (x > y) - (x < y);
-}
-
-static void priorityqueue_test(void) {
-  int values[] = {5, 3, 9, 1, 7, 3};
-  GtPriorityQueue *pq = gt_priority_queue_new(cmp_ints, 6);
-  test_assert(gt_priority_queue_is_empty(pq));
-  for (size_t i = 0; i < 6; i++)
-    gt_priority_queue_add(pq, values + i);
-  test_assert(gt_priority_queue_is_full(pq));
-  int expected[] = {1, 3, 3, 5, 7, 9};
-  for (size_t i = 0; i < 6; i++)
-    test_eq(*(int *)gt_priority_queue_extract_min(pq), expected[i], int,
-            "%d");
-  test_assert(gt_priority_queue_is_empty(pq));
-  gt_priority_queue_delete(pq);
 }
 
 /* elements of the sorting test: lines of SORT_LINE_LEN characters */
@@ -195,7 +175,7 @@ static test_group_t test_groups[] = {
   {'z', "gzip compressor", run_gzip_compressor_test, false},
   {'b', "bit operations and bloom filter", bits_test, false},
   {'e', "set", set_test, false},
-  {'p', "priority queue", priorityqueue_test, false},
+  {'p', "heap", heap_test, false},
   {'f', "file sorting and merging", file_sorter_test, false},
   {'u', "sequence utilities", sequtil_test, false},
   {'r', "FASTQ reader", run_fastq_reader_test, false},

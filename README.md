@@ -21,7 +21,7 @@ Data structures and algorithms:
 
 - `bitwise.h`: bit operations;
 - `bloom-filter.h`, `set.h`: Bloom filter and set of integers;
-- `priorityqueue.h`: priority queue;
+- `heap.h`: binary heap (priority queue);
 - `file-sorter.h`, `file-merger.h`: external sorting of large files;
 - `gzip-compressor.h`: compression of blocks as gzip members (zlib).
 

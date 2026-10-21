@@ -11,14 +11,14 @@
 #include "alloc.h"
 #include "strutils.h"
 #include "file.h"
-#include "priorityqueue.h"
+#include "heap.h"
 #include "file-merger.h"
 
 static
 void get_elem_and_add_to_queue(char **elems, size_t *elem_sizes, FILE **files,
     size_t f,
     bool getelem(char **elem, size_t *elemsize, FILE *file, Logger *logger),
-    size_t *n_open_files, GtPriorityQueue *queue, Logger *logger)
+    size_t *n_open_files, heap_t *queue, Logger *logger)
 {
   bool has_elem;
   assert(files[f] != NULL);
@@ -30,7 +30,7 @@ void get_elem_and_add_to_queue(char **elems, size_t *elem_sizes, FILE **files,
     files[f] = NULL;
   }
   else
-    gt_priority_queue_add(queue, elems + f);
+    heap_push(queue, elems + f);
 }
 
 static
@@ -44,7 +44,7 @@ void merge_n_files_at_once(size_t nfiles, size_t offset,
   char *partial_fname = NULL;
   char **filenames;
   FILE **files, *out;
-  GtPriorityQueue *queue;
+  heap_t *queue;
   char **elems, **min_elem;
   size_t f, min_index, n_open_files, *elem_sizes;
 
@@ -54,7 +54,7 @@ void merge_n_files_at_once(size_t nfiles, size_t offset,
   } else {
     out = use_stdout ? stdout : xfopen(basename, sfx, "w", NULL, logger);
   }
-  queue = gt_priority_queue_new(cmpelems, nfiles);
+  queue = heap_new(cmpelems, nfiles);
   XMALLOC(filenames, nfiles * sizeof(*filenames));
   XMALLOC(files, nfiles * sizeof(*files));
   XMALLOC(elems, nfiles * sizeof(*elems));
@@ -71,14 +71,14 @@ void merge_n_files_at_once(size_t nfiles, size_t offset,
   }
   while (n_open_files > 0)
   {
-    min_elem = gt_priority_queue_extract_min(queue);
+    min_elem = heap_pop(queue);
     min_index = min_elem - elems;
     writeelem(out, *min_elem, logger);
     if (files[min_index] != NULL)
       get_elem_and_add_to_queue(elems, elem_sizes, files, min_index,
           getelem, &n_open_files, queue, logger);
   }
-  gt_priority_queue_delete(queue);
+  heap_delete(queue);
   for (f = 0; f < nfiles; f++)
   {
     assert(files[f] == NULL);
