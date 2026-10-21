@@ -17,6 +17,20 @@ HEADERS=$(wildcard $(addsuffix /*.h,$(COMPONENT_DIRS)))
 INCLUDES=$(addprefix -I,$(COMPONENT_DIRS))
 
 LIB = $(LIBDIR)/libcbaia.a
+
+# zlib: vendored (default; compiled into a separate library) or the system
+# library (make SYSTEM_LIBS=1)
+ZLIBDIR = ext/zlib
+ifeq ($(SYSTEM_LIBS),1)
+ZLIB =
+ZLIB_LDLIBS = -lz
+else
+ZLIB = $(LIBDIR)/libcbaia-zlib.a
+ZLIB_LDLIBS = $(ZLIB)
+ZLIB_OBJS = $(patsubst $(ZLIBDIR)/%.c,$(OBJDIR)/zlib/%.o,\
+              $(wildcard $(ZLIBDIR)/*.c))
+INCLUDES += -I$(ZLIBDIR)
+endif
 TESTS = $(BINDIR)/cbaia-tests
 
 PREFIX ?= /usr/local
@@ -25,10 +39,10 @@ PREFIX ?= /usr/local
 
 default: lib
 
-lib: $(LIB)
+lib: $(LIB) $(ZLIB)
 
 CFLAGS += -Wall -Wextra -std=gnu11 $(INCLUDES)
-LDLIBS += -lz -lm
+LDLIBS += $(ZLIB_LDLIBS) -lm
 
 DEBUGFLAGS_DEBUG = -gdwarf-3 -g3 -O0
 DEBUGFLAGS_NDEBUG = -O3 -DNDEBUG
@@ -63,7 +77,17 @@ $(LIB): $(OBJS)
 	rm -f $@
 	$(AR) rcs $@ $^
 
-$(BINDIR)/%: $(TESTDIR)/%.c $(LIB) $(HEADERS)
+ZLIB_CFLAGS = -O3 -DHAVE_UNISTD_H -DHAVE_STDARG_H -D_LARGEFILE64_SOURCE=1
+
+$(OBJDIR)/zlib/%.o: $(ZLIBDIR)/%.c
+	@mkdir -p $(OBJDIR)/zlib
+	$(CC) $(ZLIB_CFLAGS) -c -o $@ $<
+
+$(LIBDIR)/libcbaia-zlib.a: $(ZLIB_OBJS)
+	rm -f $@
+	$(AR) rcs $@ $^
+
+$(BINDIR)/%: $(TESTDIR)/%.c $(LIB) $(ZLIB) $(HEADERS)
 	$(CC) $(CFLAGS) $(DEBUGFLAGS) -o $@ $< $(LIB) $(LDLIBS)
 
 VALGRIND = valgrind --error-exitcode=1 -q --leak-check=full \
@@ -72,13 +96,14 @@ VALGRIND = valgrind --error-exitcode=1 -q --leak-check=full \
 test: $(TESTS)
 	$(VALGRIND) $(BINDIR)/cbaia-tests -q
 
-install: $(LIB)
+install: $(LIB) $(ZLIB)
 	mkdir -p $(DESTDIR)$(PREFIX)/lib $(DESTDIR)$(PREFIX)/include/cbaia
-	cp $(LIB) $(DESTDIR)$(PREFIX)/lib/
+	cp $(LIB) $(ZLIB) $(DESTDIR)$(PREFIX)/lib/
 	cp $(HEADERS) $(DESTDIR)$(PREFIX)/include/cbaia/
 
 uninstall:
-	rm -f $(DESTDIR)$(PREFIX)/lib/libcbaia.a
+	rm -f $(DESTDIR)$(PREFIX)/lib/libcbaia.a \
+	  $(DESTDIR)$(PREFIX)/lib/libcbaia-zlib.a
 	rm -rf $(DESTDIR)$(PREFIX)/include/cbaia
 
 cleanup: clean

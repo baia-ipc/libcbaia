@@ -25,16 +25,21 @@ sorting, compression) and `seq` (biological sequences).
 
 # Installation
 
-libcbaia is implemented in C (C11 with GNU extensions). To compile it, a C
-compiler and zlib (including the header files, e.g. the `zlib1g-dev`
-package in Debian/Ubuntu) are required. The library is compiled using the
-provided Makefile:
+libcbaia is implemented in C (C11 with GNU extensions). To compile it,
+only a C compiler and `make` are required: zlib, used by the modules for
+compressed files, is included in the repository (directory `ext/zlib`).
+The library is compiled using the provided Makefile:
 
 ```
 make
 ```
 
-which creates the static library `lib/libcbaia.a`. The unit tests can be
+which creates the static libraries `lib/libcbaia.a` and
+`lib/libcbaia-zlib.a` (zlib). To use the zlib library of the system
+instead (e.g. to profit from its security updates, or when packaging the
+library for a distribution), use `make SYSTEM_LIBS=1`; the zlib header
+files are then required (e.g. the `zlib1g-dev` package in
+Debian/Ubuntu). The unit tests can be
 run using:
 
 ```
@@ -62,8 +67,8 @@ make install PREFIX=/usr/local
 The headers are installed in the directory `include/cbaia` (under the
 given prefix) and the library in the directory `lib`. Programs then
 include the headers, e.g. `#include "cbaia/logger.h"` and link with
-`-lcbaia` (and `-lz -lm`, if the modules of the `io` and `seq` components
-are used). The installation can be removed using `make uninstall`.
+`-lcbaia -lcbaia-zlib -lm` (or `-lcbaia -lz -lm`, if the library was
+compiled with the system zlib). The installation can be removed using `make uninstall`.
 
 ## Vendoring the library
 
