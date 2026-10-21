@@ -78,6 +78,11 @@ $(LIB): $(OBJS)
 	$(AR) rcs $@ $^
 
 ZLIB_CFLAGS = -O3 -DHAVE_UNISTD_H -DHAVE_STDARG_H -D_LARGEFILE64_SOURCE=1
+# faster deflate (about 2 times, for level 6) on the architectures allowing
+# unaligned memory accesses, as in the zlib packages of Debian/Ubuntu
+ifneq ($(filter x86_64 i386 i686 aarch64 arm64,$(shell uname -m)),)
+ZLIB_CFLAGS += -DUNALIGNED_OK
+endif
 
 $(OBJDIR)/zlib/%.o: $(ZLIBDIR)/%.c
 	@mkdir -p $(OBJDIR)/zlib
