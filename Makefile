@@ -77,7 +77,10 @@ $(LIB): $(OBJS)
 	rm -f $@
 	$(AR) rcs $@ $^
 
-ZLIB_CFLAGS = -O3 -DHAVE_UNISTD_H -DHAVE_STDARG_H -D_LARGEFILE64_SOURCE=1
+ZLIB_CFLAGS = -O3 -DHAVE_UNISTD_H -DHAVE_STDARG_H
+ifeq ($(shell uname -s),Linux)
+ZLIB_CFLAGS += -D_LARGEFILE64_SOURCE=1
+endif
 # faster deflate (about 2 times, for level 6) on the architectures allowing
 # unaligned memory accesses, as in the zlib packages of Debian/Ubuntu
 ifneq ($(filter x86_64 i386 i686 aarch64 arm64,$(shell uname -m)),)
@@ -95,8 +98,9 @@ $(LIBDIR)/libcbaia-zlib.a: $(ZLIB_OBJS)
 $(BINDIR)/%: $(TESTDIR)/%.c $(LIB) $(ZLIB) $(HEADERS)
 	$(CC) $(CFLAGS) $(DEBUGFLAGS) -o $@ $< $(LIB) $(LDLIBS)
 
-VALGRIND = valgrind --error-exitcode=1 -q --leak-check=full \
-           --errors-for-leak-kinds=definite
+# the tests are run under valgrind, if available (e.g. not on recent macOS)
+VALGRIND = $(if $(shell command -v valgrind),valgrind --error-exitcode=1 -q \
+           --leak-check=full --errors-for-leak-kinds=definite)
 
 test: $(TESTS)
 	$(VALGRIND) $(BINDIR)/cbaia-tests -q

@@ -156,6 +156,10 @@ void lnprintf(Logger *logger, LoggingLevel level, const char *fmt, ...) {
 void __showmem(Logger *logger, const char *file, int line) {
   struct rusage r_usage;
   getrusage(RUSAGE_SELF,&r_usage);
+#ifdef __APPLE__
+  /* in bytes on macOS, in kilobytes on Linux */
+  r_usage.ru_maxrss /= 1024;
+#endif
   __lprintf(logger, LOG_MEM, file, line,
       "Memory usage (HWM): max=%ld kilobytes\n",
       r_usage.ru_maxrss);

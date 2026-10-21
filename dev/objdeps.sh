@@ -6,12 +6,14 @@
 #
 # Usage: dev/objdeps.sh <srcdir> <objdir> <program.c>
 #
+# (compatible with bash 3, e.g. on macOS)
+#
 
 SRCDIR=$1
 OBJDIR=$2
 PROG=$3
 
-declare -A seen
+seen=" "
 queue=("$PROG")
 objs=()
 
@@ -19,8 +21,10 @@ while [ ${#queue[@]} -gt 0 ]; do
   file=${queue[0]}
   queue=("${queue[@]:1}")
   for header in $(sed -n 's/^#include "\(.*\)"/\1/p' "$file"); do
-    [ -n "${seen[$header]}" ] && continue
-    seen[$header]=1
+    case "$seen" in
+      *" $header "*) continue ;;
+    esac
+    seen="$seen$header "
     [ -e "$SRCDIR/$header" ] && queue+=("$SRCDIR/$header")
     module=${header%.h}
     if [ "$module" != "$header" ] && [ -e "$SRCDIR/$module.c" ]; then
@@ -30,4 +34,4 @@ while [ ${#queue[@]} -gt 0 ]; do
   done
 done
 
-echo "${objs[@]}"
+echo "${objs[@]+"${objs[@]}"}"
