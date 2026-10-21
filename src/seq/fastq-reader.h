@@ -4,9 +4,10 @@
    Reading of FASTQ files (optionally gzip-compressed) in batches of
    records.
 
-   The records must consist of four lines (title, sequence, "+" line,
-   qualities); the title line is kept as it is (except trailing
-   whitespace), as in the Biopython FastqGeneralIterator.
+   The parsing follows the Biopython FastqGeneralIterator: the title line is
+   kept as it is (except trailing whitespace); sequences and qualities can
+   span several lines; the title on the "+" line is optional, but must be
+   equal to the title of the record, if present.
 */
 
 #ifndef FASTQ_READER_H

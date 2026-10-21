@@ -22,6 +22,9 @@ struct fastq_reader_t {
   size_t buf_pos, buf_len;
   bool eof;
   size_t lineno;
+  /* current line: the title line of the next record, once read */
+  strbuf_t line;
+  bool started, done;
 };
 
 fastq_reader_t* fastq_reader_new(const char *filename, Logger *logger) {
@@ -42,6 +45,9 @@ fastq_reader_t* fastq_reader_new(const char *filename, Logger *logger) {
   self->buf_len = 0;
   self->eof = false;
   self->lineno = 0;
+  strbuf_init(&self->line);
+  self->started = false;
+  self->done = false;
   lprintf(logger, LOG_INFO, "Reading %s\n", filename);
   return self;
 }
@@ -51,6 +57,7 @@ void fastq_reader_delete(fastq_reader_t *self) {
     return;
   gzclose(self->file);
   free(self->buf);
+  strbuf_free(&self->line);
   free(self->filename);
   free(self);
 }
@@ -113,9 +120,9 @@ static bool read_line(fastq_reader_t *self, strbuf_t *out) {
   return any;
 }
 
+/* whitespace, as for the Python str.rstrip() (ASCII characters) */
 static inline bool is_space(char c) {
-  return c == ' ' || c == '\t' || c == '\n' || c == '\r' || c == '\v' ||
-         c == '\f';
+  return c == ' ' || (c >= '\t' && c <= '\r') || (c >= '\x1c' && c <= '\x1f');
 }
 
 /* remove trailing whitespace from data[from..] */
@@ -137,6 +144,29 @@ static void format_error(const fastq_reader_t *self, const char *fmt, ...) {
   exit(EXIT_FAILURE);
 }
 
+/* read the next line into self->line; false at the end of the file */
+static bool next_line(fastq_reader_t *self) {
+  strbuf_clear(&self->line);
+  return read_line(self, &self->line);
+}
+
+static inline char first_char(const strbuf_t *line) {
+  return line->len > 0 ? line->s[0] : '\n';
+}
+
+/* append the current line from position <from> to the data, removing
+   trailing whitespace */
+static void append_line(fastq_reader_t *self, size_t from, strbuf_t *data) {
+  size_t piece_from = data->len;
+  strbuf_append(data, self->line.s + from, self->line.len - from);
+  rstrip(data, piece_from);
+}
+
+/*
+   The parsing follows the Biopython FastqGeneralIterator: sequence and
+   qualities can span several lines; a line starting with '@' ends the
+   qualities, if they are at least as long as the sequence
+*/
 size_t fastq_reader_read_batch(fastq_reader_t *self, fastq_batch_t *batch,
     size_t max_records) {
   assert(self != NULL);
@@ -144,42 +174,65 @@ size_t fastq_reader_read_batch(fastq_reader_t *self, fastq_batch_t *batch,
   strbuf_clear(&batch->data);
   batch->n_records = 0;
   strbuf_t *data = &batch->data;
-  while (batch->n_records < max_records) {
-    size_t from = data->len;
-    /* title line (blank lines are skipped) */
-    do {
-      data->len = from;
-      if (!read_line(self, data))
-        return batch->n_records;
-    } while (rstrip(data, from) == 0);
-    if (data->s[from] != '@')
-      format_error(self, "records must start with '@'");
+  if (!self->started) {
+    self->started = true;
+    if (!next_line(self))
+      self->done = true;
+  }
+  while (!self->done && batch->n_records < max_records) {
+    if (first_char(&self->line) != '@')
+      format_error(self, "records in FASTQ files should start with '@'");
     XCHECKSPACEINCPERC(batch->records, &batch->records_cap,
                        (batch->n_records + 1) * sizeof(fastq_record_t), 50);
     fastq_record_t *rec = batch->records + batch->n_records;
-    rec->title_from = from + 1;
-    rec->title_len = data->len - from - 1;
-    /* sequence */
+    /* title */
+    rec->title_from = data->len;
+    append_line(self, 1, data);
+    rec->title_len = data->len - rec->title_from;
+    /* sequence, until the "+" line */
     rec->seq_from = data->len;
-    if (!read_line(self, data))
-      format_error(self, "end of file without sequence");
-    rec->seq_len = rstrip(data, rec->seq_from);
-    for (size_t i = rec->seq_from; i < data->len; i++)
+    while (true) {
+      if (!next_line(self))
+        format_error(self, data->len > rec->seq_from ?
+                     "end of file without quality information" :
+                     "unexpected end of file");
+      if (first_char(&self->line) == '+')
+        break;
+      append_line(self, 0, data);
+    }
+    rec->seq_len = data->len - rec->seq_from;
+    /* the title of the "+" line is optional, but must match */
+    size_t plus_title = data->len;
+    append_line(self, 1, data);
+    if (data->len > plus_title &&
+        (data->len - plus_title != rec->title_len ||
+         memcmp(data->s + plus_title, data->s + rec->title_from,
+                rec->title_len) != 0))
+      format_error(self, "sequence and quality captions differ");
+    data->len = plus_title;
+    for (size_t i = rec->seq_from; i < rec->seq_from + rec->seq_len; i++)
       if (data->s[i] == ' ' || data->s[i] == '\t')
         format_error(self, "whitespace is not allowed in the sequence");
-    /* "+" line */
-    size_t plus_from = data->len;
-    if (!read_line(self, data))
-      format_error(self, "end of file without quality");
-    if (data->len == plus_from || data->s[plus_from] != '+')
-      format_error(self, "expected a line starting with '+'");
-    data->len = plus_from;
-    /* qualities */
+    /* qualities, until the title of the next record or the end of file */
     rec->qual_from = data->len;
-    if (!read_line(self, data))
-      format_error(self, "end of file without quality");
-    if (rstrip(data, rec->qual_from) != rec->seq_len)
-      format_error(self, "lengths of sequence and quality values differ");
+    bool any = false;
+    while (true) {
+      if (!next_line(self)) {
+        if (!any)
+          format_error(self, "unexpected end of file");
+        self->done = true;
+        break;
+      }
+      any = true;
+      if (first_char(&self->line) == '@' &&
+          data->len - rec->qual_from >= rec->seq_len)
+        break;
+      append_line(self, 0, data);
+    }
+    if (data->len - rec->qual_from != rec->seq_len)
+      format_error(self, "lengths of sequence and quality values differ "
+                   "(%zu and %zu)", rec->seq_len,
+                   data->len - rec->qual_from);
     batch->n_records++;
   }
   return batch->n_records;
@@ -209,6 +262,22 @@ void fastq_reader_test(const char *tmpdir) {
   test_eq_size(fastq_reader_read_batch(reader, &batch, 2), 1);
   test_eq_size(batch.records[0].seq_len, 1);
   test_eq_size(fastq_reader_read_batch(reader, &batch, 2), 0);
+  fastq_reader_delete(reader);
+  /* multi-line records; quality lines starting with '@' */
+  f = gzopen(path, "wb");
+  test_assert(f != NULL);
+  gzputs(f, "@r1\nACG\nTA\n+\n@I\nIII\n@r2\nAC\n+\n@@\n@r3\nA\n+\nI\n");
+  gzclose(f);
+  reader = fastq_reader_new(path, NULL);
+  test_eq_size(fastq_reader_read_batch(reader, &batch, 10), 3);
+  r = batch.records;
+  test_eq_size(r->seq_len, 5);
+  test_assert(strncmp(batch.data.s + r->seq_from, "ACGTA", 5) == 0);
+  test_assert(strncmp(batch.data.s + r->qual_from, "@IIII", 5) == 0);
+  r = batch.records + 1;
+  test_assert(strncmp(batch.data.s + r->title_from, "r2", 2) == 0);
+  test_assert(strncmp(batch.data.s + r->qual_from, "@@", 2) == 0);
+  test_eq_size(fastq_reader_read_batch(reader, &batch, 10), 0);
   fastq_reader_delete(reader);
   fastq_batch_free(&batch);
   unlink(path);
