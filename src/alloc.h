@@ -11,51 +11,55 @@
 
 /* Allocate a buffer of the given size, exit program if failed. */
 #define XMALLOC(PTR, BUFSIZE) {\
-  PTR = malloc(BUFSIZE); \
+  PTR = malloc((BUFSIZE)); \
   if (PTR == NULL) { \
-    fatal_printf("Failed allocating %lu bytes\n", (size_t)BUFSIZE); \
+    fatal_printf("Failed allocating %lu bytes\n", (size_t)(BUFSIZE)); \
   }\
   DEBUG_TRACE("Allocated %lu bytes for %s\n",\
-         (size_t)BUFSIZE, #PTR);\
+         (size_t)(BUFSIZE), #PTR);\
 }
 
 /* Allocate and initialize buffer of the given size, exit program if failed. */
 #define XCALLOC(PTR, NITEMS, ITMSIZE) {\
-  PTR = calloc(NITEMS, ITMSIZE); \
+  PTR = calloc((NITEMS), (ITMSIZE)); \
   if (PTR == NULL) { \
-    fatal_printf("Failed allocating %lu bytes\n", (size_t)ITMSIZE*NITEMS); \
+    fatal_printf("Failed allocating %lu bytes\n", (size_t)(ITMSIZE)*(NITEMS)); \
   }\
   DEBUG_TRACE("Allocated %lu bytes for %s\n",\
-        (size_t)NITEMS * ITMSIZE, #PTR);\
+        (size_t)(NITEMS) * (ITMSIZE), #PTR);\
 }
 
 /* Reallocate buffer of the given size, exit program if failed. */
 #define XREALLOC(PTR, REQSIZE) { \
-  PTR = realloc(PTR, REQSIZE);\
+  PTR = realloc(PTR, (REQSIZE));\
   if (PTR == NULL) { \
-    fatal_printf("Failed allocating %lu bytes\n", (size_t)REQSIZE); \
+    fatal_printf("Failed allocating %lu bytes\n", (size_t)(REQSIZE)); \
   }\
   DEBUG_TRACE( "Re-allocated %s to %lu bytes\n",\
-         #PTR, (size_t)REQSIZE);\
+         #PTR, (size_t)(REQSIZE));\
 }
 
-/* Reallocate a buffer if there is not enough space. */
+/* Reallocate a buffer if there is not enough space (to exactly the required
+   size, in bytes). Note: PTRPTR is a pointer to the buffer pointer, while
+   the other XCHECKSPACE* macros take the buffer pointer itself. */
 #define XCHECKSPACE(PTRPTR, SIZEPTR, REQSIZE) { \
   if ((REQSIZE) > *(SIZEPTR)) {\
-    XREALLOC((*PTRPTR), REQSIZE);\
-    (*SIZEPTR) = REQSIZE;\
+    XREALLOC((*(PTRPTR)), (REQSIZE));\
+    (*(SIZEPTR)) = (REQSIZE);\
   }\
 }
 
-/* Reallocate a buffer if there is not enough space. */
+/* Reallocate a buffer if there is not enough space (to the required size
+   plus INC bytes). */
 #define XCHECKSPACEINC(PTR, SIZEPTR, REQSIZE, INC) { \
   if ((REQSIZE) > *(SIZEPTR)) {\
     XREALLOC(PTR, (REQSIZE) + (INC));\
-    (*SIZEPTR) = (REQSIZE) + (INC);\
+    (*(SIZEPTR)) = (REQSIZE) + (INC);\
   }\
 }
 
-/* Reallocate a buffer if there is not enough space. */
+/* Reallocate a buffer if there is not enough space (to the required size
+   plus INCPERC percent of it, for amortized constant time appends). */
 #define XCHECKSPACEINCPERC(PTR, SIZEPTR, REQSIZE, INCPERC) { \
   XCHECKSPACEINC(PTR, SIZEPTR, REQSIZE, (((INCPERC)*(REQSIZE))/100));\
 }

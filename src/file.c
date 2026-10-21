@@ -207,6 +207,8 @@ size_t read_lines_in_buffer(FILE *file, char *buffer, const size_t bufsize,
   nitemsread = fread(buffer, 1, bufsize-2, file);
   LCHECK(nitemsread == bufsize-2 || feof(file), logger,
       "IO Error during file read access\n");
+  if (nitemsread == 0)
+    return 0;
   if (feof(file) && buffer[nitemsread-1] != '\n')
   {
     buffer[nitemsread] = '\n';
@@ -214,14 +216,15 @@ size_t read_lines_in_buffer(FILE *file, char *buffer, const size_t bufsize,
   }
   lastnewline = nitemsread;
   nlines = 0;
-  XCHECKSPACE(lines, linesbufsize, sizeof(char*));
+  XCHECKSPACEINCPERC(*lines, linesbufsize, 2*sizeof(char*), 50);
   (*lines)[0] = buffer;
   for (i = 0; i < nitemsread; i++)
   {
     if (buffer[i] == '\n')
     {
       lastnewline = i;
-      XCHECKSPACE(lines, linesbufsize, (nlines+2)*sizeof(char*));
+      XCHECKSPACEINCPERC(*lines, linesbufsize, (nlines+2)*sizeof(char*),
+                         50);
       (*lines)[nlines+1] = buffer + i + 1;
       nlines++;
     }
