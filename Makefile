@@ -59,7 +59,8 @@ $(LIB): $(OBJS)
 $(BINDIR)/%: $(TESTDIR)/%.c $(LIB) $(HEADERS)
 	$(CC) $(CFLAGS) $(DEBUGFLAGS) -I$(SRCDIR) -o $@ $< $(LIB) $(LDLIBS)
 
-VALGRIND = valgrind --error-exitcode=1 -q
+VALGRIND = valgrind --error-exitcode=1 -q --leak-check=full \
+           --errors-for-leak-kinds=definite
 
 test: $(TESTS)
 	$(VALGRIND) $(BINDIR)/cbaia-tests -q
