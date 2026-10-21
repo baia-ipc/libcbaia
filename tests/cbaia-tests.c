@@ -10,7 +10,11 @@
 #include "argparse-def.h"
 #include "bitwise.h"
 #include "bloom-filter.h"
+#include "file.h"
+#include "file-merger.h"
+#include "file-sorter.h"
 #include "gzip-compressor.h"
+#include "priorityqueue.h"
 #include "logger.h"
 #include "set.h"
 #include "strbuf.h"
@@ -30,6 +34,8 @@
   " -z : test gzip compressor\n"\
   " -b : test bit operations and bloom filter\n"\
   " -e : test set\n"\
+  " -q : test priority queue\n"\
+  " -f : test file sorting and merging\n"\
   "\n"\
   "Other options:\n"\
   " -T <dir> : directory for temporary files (default: " DEFAULT_TMPDIR ")\n"\
@@ -69,6 +75,90 @@ static void bits_test(void) {
   bloom_filter_test();
 }
 
+static int cmp_ints(const void *a, const void *b) {
+  int x = *(const int *)a, y = *(const int *)b;
+  return (x > y) - (x < y);
+}
+
+static void priorityqueue_test(void) {
+  int values[] = {5, 3, 9, 1, 7, 3};
+  GtPriorityQueue *pq = gt_priority_queue_new(cmp_ints, 6);
+  test_assert(gt_priority_queue_is_empty(pq));
+  for (size_t i = 0; i < 6; i++)
+    gt_priority_queue_add(pq, values + i);
+  test_assert(gt_priority_queue_is_full(pq));
+  int expected[] = {1, 3, 3, 5, 7, 9};
+  for (size_t i = 0; i < 6; i++)
+    test_eq(*(int *)gt_priority_queue_extract_min(pq), expected[i], int,
+            "%d");
+  test_assert(gt_priority_queue_is_empty(pq));
+  gt_priority_queue_delete(pq);
+}
+
+/* elements of the sorting test: lines of SORT_LINE_LEN characters */
+#define SORT_LINE_LEN 6
+#define SORT_N_LINES 1000
+
+static int cmp_lines(const void *a, const void *b) {
+  return memcmp(*(char *const *)a, *(char *const *)b, SORT_LINE_LEN);
+}
+
+static void sort_lines(char **lines, size_t n) {
+  qsort(lines, n, sizeof(char *), cmp_lines);
+}
+
+static void output_lines(FILE *file, char **lines, size_t n,
+    Logger *logger) {
+  (void)logger;
+  for (size_t i = 0; i < n; i++)
+    fprintf(file, "%.*s\n", SORT_LINE_LEN, lines[i]);
+}
+
+static bool get_line(char **line, size_t *size, FILE *file, Logger *logger) {
+  return xgetline(line, size, file, logger);
+}
+
+static void write_line(FILE *file, char *line, Logger *logger) {
+  (void)logger;
+  fputs(line, file);
+}
+
+static int cmp_line_ptrs(const void *a, const void *b) {
+  return strcmp(**(char *const *const *)a, **(char *const *const *)b);
+}
+
+static void file_sorter_test(void) {
+  char *path = strcat_alloc(tmpdir, "/cbaia-tests-sort");
+  FILE *f = fopen(path, "w");
+  test_assert(f != NULL);
+  for (size_t i = 0; i < SORT_N_LINES; i++)
+    fprintf(f, "%06zu\n", (i * 7919) % 10007);
+  fclose(f);
+  /* small buffer: several parts */
+  size_t nfiles = sort_file_parts(path, NULL, path, ".sorted", 1024, 16,
+      read_lines_in_buffer, sort_lines, output_lines, NULL);
+  test_assert(nfiles > 1);
+  merge_n_files(nfiles, path, ".sorted", false, get_line, write_line,
+                cmp_line_ptrs, NULL);
+  char *sorted = strcat_alloc(path, ".sorted");
+  f = fopen(sorted, "r");
+  test_assert(f != NULL);
+  char *line = NULL, prev[SORT_LINE_LEN + 2] = "";
+  size_t size = 0, n = 0;
+  while (xgetline(&line, &size, f, NULL)) {
+    test_assert(strcmp(prev, line) <= 0);
+    strcpy(prev, line);
+    n++;
+  }
+  test_eq_size(n, SORT_N_LINES);
+  fclose(f);
+  free(line);
+  unlink(sorted);
+  unlink(path);
+  free(sorted);
+  free(path);
+}
+
 static void run_gzip_compressor_test(void) { gzip_compressor_test(tmpdir); }
 
 typedef struct {
@@ -83,6 +173,8 @@ static test_group_t test_groups[] = {
   {'z', "gzip compressor", run_gzip_compressor_test, false},
   {'b', "bit operations and bloom filter", bits_test, false},
   {'e', "set", set_test, false},
+  {'q', "priority queue", priorityqueue_test, false},
+  {'f', "file sorting and merging", file_sorter_test, false},
 };
 #define N_TEST_GROUPS (sizeof(test_groups) / sizeof(test_groups[0]))
 
