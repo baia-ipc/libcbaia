@@ -61,7 +61,7 @@ void gzip_compressor_test(const char *tmpdir) {
   gzip_compressor_run(gz, "hello ", 6, &out);
   gzip_compressor_run(gz, "world\n", 6, &out);
   gzip_compressor_run(gz, "", 0, &out);
-  char *path = strcat_alloc(tmpdir, "/lp-tests-gzip.gz");
+  char *path = strcat_alloc(tmpdir, "/cbaia-tests-gzip.gz");
   FILE *f = fopen(path, "wb");
   test_assert(f != NULL);
   fwrite(out.s, 1, out.len, f);

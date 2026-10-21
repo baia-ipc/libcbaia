@@ -10,12 +10,14 @@
 #include "argparse-def.h"
 #include "bitwise.h"
 #include "bloom-filter.h"
+#include "fastq-reader.h"
 #include "file.h"
 #include "file-merger.h"
 #include "file-sorter.h"
 #include "gzip-compressor.h"
 #include "priorityqueue.h"
 #include "logger.h"
+#include "sequtil.h"
 #include "set.h"
 #include "strbuf.h"
 #include "strutils.h"
@@ -36,6 +38,8 @@
   " -e : test set\n"\
   " -q : test priority queue\n"\
   " -f : test file sorting and merging\n"\
+  " -u : test sequence utilities\n"\
+  " -r : test FASTQ reader\n"\
   "\n"\
   "Other options:\n"\
   " -T <dir> : directory for temporary files (default: " DEFAULT_TMPDIR ")\n"\
@@ -160,6 +164,7 @@ static void file_sorter_test(void) {
 }
 
 static void run_gzip_compressor_test(void) { gzip_compressor_test(tmpdir); }
+static void run_fastq_reader_test(void) { fastq_reader_test(tmpdir); }
 
 typedef struct {
   char option;
@@ -175,6 +180,8 @@ static test_group_t test_groups[] = {
   {'e', "set", set_test, false},
   {'q', "priority queue", priorityqueue_test, false},
   {'f', "file sorting and merging", file_sorter_test, false},
+  {'u', "sequence utilities", sequtil_test, false},
+  {'r', "FASTQ reader", run_fastq_reader_test, false},
 };
 #define N_TEST_GROUPS (sizeof(test_groups) / sizeof(test_groups[0]))
 
