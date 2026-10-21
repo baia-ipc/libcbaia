@@ -46,7 +46,8 @@
   " -r : test FASTQ reader\n"\
   "\n"\
   "Other options:\n"\
-  " -T <dir> : directory for temporary files (default: " DEFAULT_TMPDIR ")\n"\
+  " -T, --tmpdir <dir> : directory for temporary files\n"\
+  "                      (default: " DEFAULT_TMPDIR ")\n"\
   "\n"\
   COMMON_OPTS_HELP
 
@@ -196,8 +197,13 @@ void parseargs(int argc, char *argv[],
     optstring[len] = test_groups[i].option;
     optstring[len + 1] = '\0';
   }
+  static struct option longopts[] = {
+    {"tmpdir", required_argument, NULL, 'T'},
+    COMMON_LONGOPTS
+    LONGOPTS_END
+  };
   opterr = 0;
-  while ((c = getopt(argc, argv, optstring)) != -1) {
+  while ((c = getopt_long(argc, argv, optstring, longopts, NULL)) != -1) {
     bool found = false;
     for (size_t i = 0; i < N_TEST_GROUPS; i++)
       if (c == test_groups[i].option) {

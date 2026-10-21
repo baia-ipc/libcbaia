@@ -5,6 +5,7 @@
 
 #include <assert.h>
 #include <errno.h>
+#include <getopt.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -72,8 +73,10 @@
           otherwise, stores the parse value to *DESTPTR
 */
 
+/* help and version are output to the standard output, the usage after an
+   error to the standard error */
 #define HELP_AND_EXIT { \
-  fprintf(stderr, PURPOSE, argv[0]);\
+  fprintf(stdout, PURPOSE, argv[0]);\
   exit(EXIT_SUCCESS); \
 }
 
@@ -83,7 +86,9 @@
 }
 
 #define VERSION_AND_EXIT { \
-  fprintf(stderr, "%s v."VERSION, argv[0]);\
+  const char *progname = strrchr(argv[0], '/'); \
+  fprintf(stdout, "%s " VERSION "\n", \
+          progname == NULL ? argv[0] : progname + 1); \
   exit(EXIT_SUCCESS); \
 }
 
@@ -151,21 +156,48 @@ static inline bool argparse_long(const char *s, long *value) {
 #define LOGFILE_OPT_HELP "-g"
 #endif
 
+/*
+  Long options: programs using getopt_long() list the common long options
+  in their table of options, e.g.:
+
+    static struct option longopts[] = {
+      {"threads", required_argument, NULL, 't'},
+      COMMON_LONGOPTS
+      LONGOPTS_END
+    };
+    while ((c = getopt_long(argc, argv, COMMON_OPTS_STR "t:", longopts,
+                            NULL)) != -1) ...
+
+  (each long option returns the letter of the corresponding short option)
+*/
+#define LOGGER_LONGOPTS \
+  {"quiet", no_argument, NULL, 'q'}, \
+  {"verbose", no_argument, NULL, 'v'}, \
+  {"debug", no_argument, NULL, 'D'}, \
+  {"logfile", required_argument, NULL, LOGFILE_OPT},
+
+#define COMMON_LONGOPTS \
+  LOGGER_LONGOPTS \
+  {"help", no_argument, NULL, 'h'}, \
+  {"version", no_argument, NULL, 'V'},
+
+#define LONGOPTS_END {NULL, 0, NULL, 0}
+
 #define LOGGER_OPTS_HELP \
   "Verbosity options: (only one can be used)\n"\
-  "   (default)   success, warning and error messages to stderr\n"\
-  "   -q          quiet: suppress success messages\n"\
-  "   -v          verbose: show additional info messages\n"\
-  "   -D          debug: show some debug information\n"\
-  "   " LOGFILE_OPT_HELP " <fname>  print messages to file "\
+  "   (default)            success, warning and error messages to stderr\n"\
+  "   -q, --quiet          quiet: suppress success messages\n"\
+  "   -v, --verbose        verbose: show additional info messages\n"\
+  "   -D, --debug          debug: show some debug information\n"\
+  "   " LOGFILE_OPT_HELP ", --logfile F      print messages to file "\
   "(default: stderr)\n"
 
 #define COMMON_OPTS_HELP \
   LOGGER_OPTS_HELP \
   "\n"\
   "Other options:\n"\
-  "   -h      show this help message and exit\n"\
-  "   -V      output version and exit\n"
+  "   -h, --help           show this help message and exit\n"\
+  "   -V, --version        output version and exit\n"
 
 #define LOGGER_OPTS_STR "qvD" LOGFILE_OPT_STR
 
@@ -204,10 +236,11 @@ static inline bool argparse_long(const char *s, long *value) {
     HELP_AND_EXIT; \
     break; \
   case ':': \
-    OPT_ERR(optopt, "argument required"); \
+    PARSE_ERR("Option '%s': argument required", argv[optind - 1]); \
     break; \
   case '?': \
-    OPT_ERR(optopt, "unknown option"); \
+    PARSE_ERR("Unknown option or missing argument: '%s'", \
+              argv[optind - 1]); \
     break; \
   default: \
     assert(false);
