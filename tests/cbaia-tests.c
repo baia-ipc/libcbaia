@@ -8,7 +8,9 @@
 #include <string.h>
 #include <unistd.h>
 #include "argparse-def.h"
+#include "gzip-compressor.h"
 #include "logger.h"
+#include "strbuf.h"
 #include "strutils.h"
 #include "test.h"
 
@@ -21,7 +23,8 @@
   "   %s [options]\n"\
   "\n"\
   "Test options (default: run all tests):\n"\
-  " -s : test string utilities\n"\
+  " -s : test string utilities and string buffer\n"\
+  " -z : test gzip compressor\n"\
   "\n"\
   "Other options:\n"\
   " -T <dir> : directory for temporary files (default: " DEFAULT_TMPDIR ")\n"\
@@ -35,7 +38,21 @@ static void strutils_test(void) {
   char *s = strcat_alloc("abc", "de");
   test_assert(strcmp(s, "abcde") == 0);
   free(s);
+  strbuf_t buf;
+  strbuf_init(&buf);
+  strbuf_append_str(&buf, "x=");
+  strbuf_append_long(&buf, -1234);
+  strbuf_append_char(&buf, ';');
+  strbuf_append_long(&buf, 0);
+  test_assert(buf.len == 9 && memcmp(buf.s, "x=-1234;0", 9) == 0);
+  strbuf_clear(&buf);
+  for (size_t i = 0; i < 10000; i++)
+    strbuf_append(&buf, "abc", 3);
+  test_eq_size(buf.len, 30000);
+  strbuf_free(&buf);
 }
+
+static void run_gzip_compressor_test(void) { gzip_compressor_test(tmpdir); }
 
 typedef struct {
   char option;
@@ -46,6 +63,7 @@ typedef struct {
 
 static test_group_t test_groups[] = {
   {'s', "string utilities", strutils_test, false},
+  {'z', "gzip compressor", run_gzip_compressor_test, false},
 };
 #define N_TEST_GROUPS (sizeof(test_groups) / sizeof(test_groups[0]))
 
@@ -88,7 +106,6 @@ void parseargs(int argc, char *argv[],
 int main(int argc, char *argv[]) {
   Logger *logger;
   parseargs(argc, argv, &logger);
-  (void)tmpdir;
   for (size_t i = 0; i < N_TEST_GROUPS; i++)
     if (test_groups[i].selected) {
       lprintf(logger, LOG_PHASE, "Testing %s...\n",
