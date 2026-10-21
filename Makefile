@@ -5,9 +5,16 @@ BINDIR=bin
 TESTDIR=tests
 $(shell mkdir -p $(OBJDIR) $(LIBDIR) $(BINDIR) >/dev/null)
 
-SRCS=$(wildcard $(SRCDIR)/*.c)
-OBJS=$(patsubst $(SRCDIR)/%.c,$(OBJDIR)/%.o,$(SRCS))
-HEADERS=$(wildcard $(SRCDIR)/*.h)
+# components (subdirectories of src); the header names are unique
+# over all components
+COMPONENTS = core ds io seq
+COMPONENT_DIRS = $(addprefix $(SRCDIR)/,$(COMPONENTS))
+vpath %.c $(COMPONENT_DIRS)
+
+SRCS=$(wildcard $(addsuffix /*.c,$(COMPONENT_DIRS)))
+OBJS=$(patsubst %.c,$(OBJDIR)/%.o,$(notdir $(SRCS)))
+HEADERS=$(wildcard $(addsuffix /*.h,$(COMPONENT_DIRS)))
+INCLUDES=$(addprefix -I,$(COMPONENT_DIRS))
 
 LIB = $(LIBDIR)/libcbaia.a
 TESTS = $(BINDIR)/cbaia-tests
@@ -20,7 +27,7 @@ default: lib
 
 lib: $(LIB)
 
-CFLAGS += -Wall -Wextra -std=gnu11
+CFLAGS += -Wall -Wextra -std=gnu11 $(INCLUDES)
 LDLIBS += -lz -lm
 
 DEBUGFLAGS_DEBUG = -gdwarf-3 -g3 -O0
@@ -40,8 +47,8 @@ DEPFLAGS = -MT $@ -MMD -MP -MF $(DEPDIR)/$*.Td
 COMPILE.c = $(CC) $(DEPFLAGS) $(CFLAGS) $(CPPFLAGS) $(TARGET_ARCH) $(DEBUGFLAGS) -c
 POSTCOMPILE = @mv -f $(DEPDIR)/$*.Td $(DEPDIR)/$*.d && touch $@
 
-$(OBJDIR)/%.o : $(SRCDIR)/%.c
-$(OBJDIR)/%.o : $(SRCDIR)/%.c $(DEPDIR)/%.d
+$(OBJDIR)/%.o : %.c
+$(OBJDIR)/%.o : %.c $(DEPDIR)/%.d
 	$(COMPILE.c) $(OUTPUT_OPTION) $<
 	$(POSTCOMPILE)
 
@@ -57,7 +64,7 @@ $(LIB): $(OBJS)
 	$(AR) rcs $@ $^
 
 $(BINDIR)/%: $(TESTDIR)/%.c $(LIB) $(HEADERS)
-	$(CC) $(CFLAGS) $(DEBUGFLAGS) -I$(SRCDIR) -o $@ $< $(LIB) $(LDLIBS)
+	$(CC) $(CFLAGS) $(DEBUGFLAGS) -o $@ $< $(LIB) $(LDLIBS)
 
 VALGRIND = valgrind --error-exitcode=1 -q --leak-check=full \
            --errors-for-leak-kinds=definite
