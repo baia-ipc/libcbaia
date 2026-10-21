@@ -8,8 +8,11 @@
 #include <string.h>
 #include <unistd.h>
 #include "argparse-def.h"
+#include "bitwise.h"
+#include "bloom-filter.h"
 #include "gzip-compressor.h"
 #include "logger.h"
+#include "set.h"
 #include "strbuf.h"
 #include "strutils.h"
 #include "test.h"
@@ -25,6 +28,8 @@
   "Test options (default: run all tests):\n"\
   " -s : test string utilities and string buffer\n"\
   " -z : test gzip compressor\n"\
+  " -b : test bit operations and bloom filter\n"\
+  " -e : test set\n"\
   "\n"\
   "Other options:\n"\
   " -T <dir> : directory for temporary files (default: " DEFAULT_TMPDIR ")\n"\
@@ -52,6 +57,18 @@ static void strutils_test(void) {
   strbuf_free(&buf);
 }
 
+static void bits_test(void) {
+  unsigned long long x = 0;
+  SET_BIT(x, 40);
+  SET_BIT(x, 0);
+  test_assert(x == ((1ULL << 40) | 1));
+  test_assert(GET_BIT(x, 40) == 1);
+  test_assert(GET_BIT(x, 39) == 0);
+  UNSET_BIT(x, 40);
+  test_assert(x == 1);
+  bloom_filter_test();
+}
+
 static void run_gzip_compressor_test(void) { gzip_compressor_test(tmpdir); }
 
 typedef struct {
@@ -64,6 +81,8 @@ typedef struct {
 static test_group_t test_groups[] = {
   {'s', "string utilities", strutils_test, false},
   {'z', "gzip compressor", run_gzip_compressor_test, false},
+  {'b', "bit operations and bloom filter", bits_test, false},
+  {'e', "set", set_test, false},
 };
 #define N_TEST_GROUPS (sizeof(test_groups) / sizeof(test_groups[0]))
 
