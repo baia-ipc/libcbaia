@@ -106,63 +106,50 @@ comparing their output to expected results.
 The modules of the `core` component are used by all other components and
 provide the base functionality of a command line program.
 
-Memory is allocated using the macros of `alloc.h` (`XMALLOC`, `XCALLOC`,
-`XREALLOC`, `XFREE`), which exit the program with an error message if the
-allocation fails, so that the return value does not need to be checked.
-The `XCHECKSPACE*` macros grow dynamic buffers to a required size (the
-`XCHECKSPACEINCPERC` variant by a percentage, for amortized constant time
-appends).
-
-Messages are output using the logger of `logger.h`, with the levels error,
-warning, success, phase, info, param, mem, debug and trace; on a terminal,
-the levels are shown in different colors (`colors.h`) and each message
-is preceded by the time.
-
-The file operations of `file.h` are wrappers of the standard functions
-(e.g. `xfopen`, `xfread`, `xgetline`), which exit the program with a
-descriptive error message in case of errors; furthermore, functions are
-provided for reading entire files or blocks of lines into buffers.
-
-The macros of `argparse-def.h` provide a common command line interface:
-the help and version options (`-h`, `-V`), the verbosity options (`-q`,
-`-v`, `-D`) and the log file option (`-g`, the letter can be changed),
-error messages for wrong options and arguments, and the parsing of
-integer values.
-
-`test.h` contains macros for unit tests (e.g. `test_assert`, `test_eq_str`)
-and `strutils.h` and `strbuf.h` string utilities and a growable string
-buffer, for building output text without allocations for each piece.
+| module | description |
+|---|---|
+| `alloc.h` | Memory is allocated using the macros of this module (`XMALLOC`, `XCALLOC`, `XREALLOC`, `XFREE`), which exit the program with an error message if the allocation fails, so that the return value does not need to be checked. The `XCHECKSPACE*` macros grow dynamic buffers to a required size (the `XCHECKSPACEINCPERC` variant by a percentage, for amortized constant time appends). |
+| `logger.h` | Messages are output using a logger, with the levels error, warning, success, phase, info, param, mem, debug and trace; on a terminal, the levels are shown in different colors and each message is preceded by the time. |
+| `colors.h` | Colors and styles for the terminal output. |
+| `file.h` | Wrappers of the standard file operations (e.g. `xfopen`, `xfread`, `xgetline`), which exit the program with a descriptive error message in case of errors; furthermore, functions for reading entire files or blocks of lines into buffers. |
+| `argparse-def.h` | Macros for a common command line interface: the help and version options (`-h`, `-V`), the verbosity options (`-q`, `-v`, `-D`) and the log file option (`-g`, the letter can be changed), also as long options (e.g. `--help`); error messages for wrong options and arguments; parsing of integer values. |
+| `progress.h` | Progress display in the style of the Python tqdm package: a counter with the rate or, if the total is known, a bar with the percentage and the remaining time. |
+| `strutils.h` | String utilities (e.g. allocating the concatenation of two strings). |
+| `strbuf.h` | Growable string buffer, for building output text without allocations for each piece. |
+| `test.h` | Macros for unit tests (e.g. `test_assert`, `test_eq_size`, `test_eq_str`), which output the compared values. |
 
 ## ds: data structures
 
-The `ds` component contains: macros for bit operations (`bitwise.h`); a
-Bloom filter for integer keys (`bloom-filter.h`); a set of integers
-(`set.h`), implemented as a sorted array plus an unsorted insertion
-buffer, optionally divided into buckets and using a Bloom filter for
-speeding up the queries; a binary heap of pointers, ordered by a
-comparison function, which can be used as priority queue (`heap.h`).
+The `ds` component contains data structures, which only depend on the
+`core` component.
+
+| module | description |
+|---|---|
+| `bitwise.h` | Macros for getting, setting and unsetting single bits of an integer. |
+| `bloom-filter.h` | Bloom filter for integer keys (two hash functions, derived from the splitmix64 hash). |
+| `set.h` | Set of integers, implemented as a sorted array plus an unsorted insertion buffer, optionally divided into buckets and using a Bloom filter for speeding up the queries. |
+| `heap.h` | Binary heap of pointers, ordered by a comparison function, which can be used as priority queue or for merging sorted sequences. |
 
 ## io: external sorting and compression
 
-Files which are too large to be sorted in memory are sorted using the
-modules of the `io` component: `file-sorter.h` sorts parts of the file
-which fit in a buffer of a given size and writes them to temporary files,
-which are then merged by `file-merger.h`, using a heap; the elements to
-sort (e.g. lines) and their order are defined by functions passed by the
-caller.
+The `io` component contains modules for handling large files: sorting
+files which do not fit in memory and compressing data in parallel.
 
-`gzip-compressor.h` compresses blocks of data as gzip members. As the
-concatenation of gzip members is a valid gzip file, blocks can be
-compressed in parallel by several threads and written in the right order
-by one of them.
+| module | description |
+|---|---|
+| `file-sorter.h` | Sorting of a file in parts which fit in a buffer of a given size, written to temporary files; the elements to sort (e.g. lines) and their order are defined by functions passed by the caller. |
+| `file-merger.h` | Merging of the sorted parts written by the file sorter, using a heap, into the sorted output file. |
+| `gzip-compressor.h` | Compression of blocks of data as gzip members (zlib): as the concatenation of gzip members is a valid gzip file, blocks can be compressed in parallel by several threads and written in the right order by one of them. |
 
 ## seq: biological sequences
 
-The `seq` component contains utilities for biological sequences
-(`sequtil.h`: reverse complement, computation of Python-style slices) and
-a reader of FASTQ files (`fastq-reader.h`), optionally gzip-compressed,
-which reads the records in batches, so that they can be processed by
-several threads.
+The `seq` component contains utilities for biological sequences and for
+the file formats used for them.
+
+| module | description |
+|---|---|
+| `sequtil.h` | Reverse complement of sequences (including IUPAC codes) and computation of the bounds of Python-style slices (useful for reproducing the results of Python programs). |
+| `fastq-reader.h` | Reading of FASTQ files, optionally gzip-compressed, in batches of records, so that they can be processed by several threads; the parsing follows the Biopython FastqGeneralIterator (multi-line records are supported). |
 
 # Development
 
