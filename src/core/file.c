@@ -109,14 +109,16 @@ void* __xfmap(const char *fname, const char *sfx, bool writable,
 void xfunmap(void *map, size_t fsize, int fd, Logger *logger)
 {
   LCHECK(munmap(map, fsize) == 0, logger, "Unmapping failed\n");
-  LCHECK(close(fd) == 0, logger, "closing file descriptor failed");
+  LCHECK(close(fd) == 0, logger, "Closing file descriptor failed, %s\n",
+         strerror(errno));
 }
 
 void __xfclose(FILE** file, Logger *logger, const char *_file, int _line)
 {
   assert(file != NULL);
   assert(*file != NULL);
-  __LCHECK(fclose(*file) == 0, logger, _file, _line, "closing file failed");
+  __LCHECK(fclose(*file) == 0, logger, _file, _line,
+           "Closing file failed, %s\n", strerror(errno));
   __lprintf(logger, LOG_DEBUG, _file, _line,
             "closed file... (%p)\n", *file);
   *file = NULL;
