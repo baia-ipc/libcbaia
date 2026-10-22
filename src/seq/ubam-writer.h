@@ -6,9 +6,10 @@
 
    A record is given as a FASTQ-like entry, whose title contains the read
    name and SAM tags in text format, separated by tabs (as in the FASTQ
-   output of Dorado, or of bam-reader.h): the record is unmapped (flag 4), the tags are encoded in
-   binary form (integers with the smallest type, as in htslib); fields of
-   the title which are not valid SAM tags are not written.
+   output of Dorado, or of bam-reader.h): the record is unmapped (flag 4),
+   the tags are encoded in binary form (integers with the smallest type,
+   as in htslib); fields of the title which are not valid SAM tags are not
+   written.
 */
 
 #ifndef UBAM_WRITER_H

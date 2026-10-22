@@ -258,6 +258,9 @@ static void append_tags(const bam_reader_t *self, const uint8_t *p,
           strbuf_append_str(out, num);
           break;
         }
+        default:
+          /* not reached: the type was checked by tag_value_size() */
+          break;
       }
     }
     p = v + size;
@@ -347,8 +350,8 @@ bool bam_reader_has_eof_marker(const char *filename) {
 size_t bam_reader_count(const char *filename) {
   assert(filename != NULL);
   bam_reader_t *self = bam_reader_new(filename);
-  size_t n = 0, len;
-  while ((len = next_record(self)) > 0)
+  size_t n = 0;
+  while (next_record(self) > 0)
     if ((le16(self->rec + 14) & (BAM_FSECONDARY | BAM_FSUPPLEMENTARY)) == 0)
       n++;
   bam_reader_delete(self);

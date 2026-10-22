@@ -95,6 +95,9 @@ static void put_value(strbuf_t *out, char type, long long v, float f) {
       put32(out, u);
       break;
     }
+    default:
+      assert(false);
+      break;
   }
 }
 
@@ -185,6 +188,8 @@ static void put_tag(strbuf_t *out, const char *t, size_t len) {
       strbuf_append_char(out, 'B');
       if (put_array(out, v, vlen))
         return;
+      goto invalid;
+    default:
       goto invalid;
   }
 invalid:
