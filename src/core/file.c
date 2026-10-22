@@ -70,7 +70,7 @@ FILE* __xfopen(const char *fname, const char *sfx, const char *mode,
   fname_and_sfx = (sfx != NULL) ? strcat_alloc(fname, sfx) : (char*)fname;
   file = fopen(fname_and_sfx, mode);
   __LCHECK(file != NULL, logger, _file, _line,
-      "ERROR: Opening file '%s' failed, %s\n",
+      "Opening file '%s' failed, %s\n",
             fname_and_sfx, strerror(errno));
   __lprintf(logger, LOG_DEBUG, _file, _line,
       "Opened %s %s %s (%p)\n", description ?
