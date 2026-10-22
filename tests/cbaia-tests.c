@@ -170,7 +170,7 @@ static void run_gzip_compressor_test(void) { gzip_compressor_test(tmpdir); }
 static void run_fastq_reader_test(void) { fastq_reader_test(tmpdir); }
 static void run_bgzf_compressor_test(void) { bgzf_compressor_test(tmpdir); }
 static void run_bam_reader_test(void) { bam_reader_test(tmpdir); }
-static void run_uubam_writer_test(void) { ubam_writer_test(tmpdir); }
+static void run_ubam_writer_test(void) { ubam_writer_test(tmpdir); }
 
 typedef struct {
   char option;
@@ -184,7 +184,7 @@ static test_group_t test_groups[] = {
   {'a', "argument parsing", argparse_test, false},
   {'o', "progress display", progress_test, false},
   {'z', "gzip compressor", run_gzip_compressor_test, false},
-  {'g', "BGZF compressor", run_bgzf_compressor_test, false},
+  {'c', "BGZF compressor", run_bgzf_compressor_test, false},
   {'b', "bit operations and bloom filter", bits_test, false},
   {'e', "set", set_test, false},
   {'p', "heap", heap_test, false},
@@ -193,7 +193,7 @@ static test_group_t test_groups[] = {
   {'r', "FASTQ reader", run_fastq_reader_test, false},
   {'x', "FASTQ writer", fastq_writer_test, false},
   {'m', "BAM reader", run_bam_reader_test, false},
-  {'n', "uBAM writer", run_uubam_writer_test, false},
+  {'n', "uBAM writer", run_ubam_writer_test, false},
 };
 #define N_TEST_GROUPS (sizeof(test_groups) / sizeof(test_groups[0]))
 
