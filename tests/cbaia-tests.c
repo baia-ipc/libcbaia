@@ -17,6 +17,7 @@
 #include "bitwise.h"
 #include "bloom-filter.h"
 #include "fastq-reader.h"
+#include "fastq-writer.h"
 #include "file.h"
 #include "file-merger.h"
 #include "file-sorter.h"
@@ -190,6 +191,7 @@ static test_group_t test_groups[] = {
   {'f', "file sorting and merging", file_sorter_test, false},
   {'u', "sequence utilities", sequtil_test, false},
   {'r', "FASTQ reader", run_fastq_reader_test, false},
+  {'x', "FASTQ writer", fastq_writer_test, false},
   {'m', "BAM reader", run_bam_reader_test, false},
   {'n', "BAM writer", run_bam_writer_test, false},
 };
