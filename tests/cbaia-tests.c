@@ -22,6 +22,7 @@
 #include "file-sorter.h"
 #include "gzip-compressor.h"
 #include "heap.h"
+#include "hyperloglog.h"
 #include "logger.h"
 #include "progress.h"
 #include "sequtil.h"
@@ -188,6 +189,7 @@ static test_group_t test_groups[] = {
   {'b', "bit operations and bloom filter", bits_test, false},
   {'e', "set", set_test, false},
   {'p', "heap", heap_test, false},
+  {'y', "HyperLogLog", hll_test, false},
   {'f', "file sorting and merging", file_sorter_test, false},
   {'u', "sequence utilities", sequtil_test, false},
   {'r', "FASTQ reader", run_fastq_reader_test, false},

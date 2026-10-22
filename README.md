@@ -129,6 +129,7 @@ The `ds` component contains data structures, which only depend on the
 | `bloom-filter.h` | Bloom filter for integer keys (two hash functions, derived from the splitmix64 hash). |
 | `set.h` | Set of integers, implemented as a sorted array plus an unsorted insertion buffer, optionally divided into buckets and using a Bloom filter for speeding up the queries. |
 | `heap.h` | Binary heap of pointers, ordered by a comparison function, which can be used as priority queue or for merging sorted sequences. |
+| `hyperloglog.h` | HyperLogLog: estimation of the number of distinct elements of a multiset (about 1.6% error) in 4 KiB; sketches can be merged, e.g. computed by different threads. |
 
 ## io: external sorting and compression
 
