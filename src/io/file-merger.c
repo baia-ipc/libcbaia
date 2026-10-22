@@ -113,7 +113,7 @@ void merge_n_files(size_t nfiles, const char *basename, const char *sfx,
       char buffer[BUFSIZ];
       size_t n;
       while ((n = fread(buffer, sizeof(char), sizeof(buffer), file)) > 0)
-        n = fwrite(buffer, sizeof(char), n, stdout);
+        xfwrite(buffer, sizeof(char), n, stdout, logger);
       xfunlink(filename, NULL, logger);
       free(filename);
     }
