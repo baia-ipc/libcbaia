@@ -18,7 +18,7 @@
 typedef struct Set Set;
 
 /* Create a new set
-  
+
    <insertion_buffer_size> size of the unsorted buffer used on insertion
                            in number of elements
 
@@ -49,7 +49,7 @@ void set_insert(Set *set, SET_TYPE key);
 
 /* Modify the internal state after multiple insertions in order
    to speed up subsequent queries.
-  
+
    Details: the _insert/_insert_simple inserts an element in an unsorted
    insertion buffer, in which a linear search is applied by queries. Instead,
    the main buffer is sorted and the queries work by binary search. This method

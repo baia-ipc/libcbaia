@@ -16,7 +16,7 @@
 
 //#define GG_SET_DEBUG
 
-#define NSETS(K) (1 << K)
+#define NSETS(K) (1 << (K))
 #define MASK(K) (NSETS(K) - 1)
 
 struct Set
@@ -40,7 +40,7 @@ Set *set_new(size_t insertion_buffer_size, size_t bloom_filter_size,
   size_t i;
   size_t nsets = NSETS(k);
   XMALLOC(set, sizeof *set);
-  XMALLOC(set->mainbuf, nsets * sizeof(size_t));
+  XMALLOC(set->mainbuf, nsets * sizeof(*set->mainbuf));
   XMALLOC(set->mainbufsize, nsets * sizeof(size_t));
   XMALLOC(set->mainbuffill, nsets * sizeof(size_t));
   XMALLOC(set->insbuf, nsets * sizeof(size_t));
