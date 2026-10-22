@@ -151,6 +151,7 @@ the file formats used for them.
 |---|---|
 | `sequtil.h` | Reverse complement of sequences (including IUPAC codes) and computation of the bounds of Python-style slices (useful for reproducing the results of Python programs). |
 | `fastq-reader.h` | Reading of FASTQ files, optionally gzip-compressed, in batches of records, so that they can be processed by several threads; the parsing follows the Biopython FastqGeneralIterator (multi-line records are supported). |
+| `bam-reader.h` | Reading of BAM files (e.g. the unaligned BAM of Dorado) without htslib, in batches of FASTQ-like records: the title contains the read name and the tags in SAM text format; minus-strand records are reverse complemented, secondary and supplementary alignments skipped. |
 
 # Development
 

@@ -16,7 +16,7 @@ src/<component>/  sources and headers of the modules of each component:
                   unit test macros
   ds/             data structures
   io/             external sorting, gzip and BGZF compression
-  seq/            sequences
+  seq/            sequences, FASTQ and BAM files
 tests/            unit test program
 dev/, scripts/    scripts for the projects (object lists, program tests)
 docs/             documentation (this file)
