@@ -87,21 +87,21 @@ void read_file(FILE *file, char **buffer, size_t *bufsize, Logger* logger);
    an error message if the number of elements read is not
    equal to nmemb.
 */
-#define xfread(PTR, SIZE, NMEMB, STREAM, LOGGER) {\
+#define xfread(PTR, SIZE, NMEMB, STREAM, LOGGER) do {\
   size_t _NREAD = fread(PTR, SIZE, NMEMB, STREAM), _NMEMB = (NMEMB);\
-  LCHECK(_NREAD == _NMEMB, LOGGER, "io error during file read access\n");\
-}
+  LCHECK(_NREAD == _NMEMB, LOGGER, "I/O error while reading a file\n");\
+} while (0)
 
 /*
    Write to stream using fwrite() and exit program with
    an error message if the number of elements written is not
    equal to nmemb.
 */
-#define xfwrite(PTR, SIZE, NMEMB, STREAM, LOGGER) { \
+#define xfwrite(PTR, SIZE, NMEMB, STREAM, LOGGER) do { \
   size_t _NWRITTEN = fwrite(PTR, SIZE, NMEMB, STREAM), _NMEMB = (NMEMB);\
   LCHECK(_NWRITTEN == _NMEMB, LOGGER,\
-      "IO Error during file read access\n");\
-}
+      "I/O error while writing a file\n");\
+} while (0)
 
 /*
    Read as many lines as possible from file content into the buffer

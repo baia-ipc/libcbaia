@@ -59,7 +59,7 @@ char *compute_nth_filename(const char *basename, const char *sfx, size_t n)
 }
 
 #define MODEDESC(MODE) \
-  (MODE[0] == 'r') ? "for reading" : "for writing"
+  (((MODE)[0] == 'r') ? "for reading" : "for writing")
 
 FILE* __xfopen(const char *fname, const char *sfx, const char *mode,
              const char *description, Logger *logger,
@@ -170,7 +170,7 @@ size_t file_size(FILE *file)
 {
   long fsize, curpos;
   curpos = ftell(file);
-  assert(fsize >= 0);
+  assert(curpos >= 0);
   fseek(file, 0, SEEK_END);
   fsize = ftell(file);
   assert(fsize >= 0);
