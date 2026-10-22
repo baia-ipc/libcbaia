@@ -297,6 +297,14 @@ Usage:
 - `TRACE`/`NTRACE` and, compiled only with `-DSHOW_TRACES`, `DEBUG_TRACE`:
   temporary debugging output.
 
+The modules never write messages directly to the standard error (with
+`fprintf(stderr, ...)`) and do not call `exit()` without logging the
+error; an error which is not reported through `LCHECK` is logged with
+`lprintf(logger, LOG_ERROR, ...)`, followed by `exit(EXIT_FAILURE)`.
+The level is shown by the logger, so the messages do not start with
+"Error". The functions which open files with a library other than the C
+standard library (e.g. zlib) report the errors in the same way.
+
 The logger argument can always be NULL, in which case only errors are
 output. Error messages describe the problem in terms of the user's input
 (file name, line, value), not of the implementation.
