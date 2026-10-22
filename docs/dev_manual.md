@@ -126,7 +126,17 @@ Headers have an include guard, named after the file in upper case:
 - the pointer star is attached to the name (`char *s`), also in return
   types where readable (`Logger* new_logger(...)` is accepted);
 - comments: `/* ... */` for documentation, `//` for short notes inside
-  functions.
+  functions;
+- function-like macros which are statements are wrapped in
+  `do { ... } while (0)`, so that they can be used anywhere a statement
+  can (e.g. in an `if` without braces); their arguments are enclosed in
+  parentheses in the expansion;
+- functions which never return (e.g. that report an error and exit) are
+  marked `__attribute__ ((noreturn))`, so that the compiler and the static
+  analyzers know it;
+- each `.c` file includes its own header, so that the declarations are
+  checked against the definitions; functions without parameters are
+  declared with `(void)`.
 
 ### Naming
 
@@ -438,7 +448,10 @@ Before a release, and after changes to the parsers or to the memory
 handling:
 
 - compile and run the tests with `-fsanitize=address,undefined`;
-- compile with `-Wall -Wextra` without warnings;
+- compile with `-Wall -Wextra` without warnings (e.g. in the continuous
+  integration with `-Werror`);
+- run a static analyzer, e.g. `clang-tidy
+  --checks='clang-analyzer-*,bugprone-*'`, and review its findings;
 - fuzz the input parsers.
 
 ## Performance
