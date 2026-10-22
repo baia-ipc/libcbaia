@@ -15,6 +15,9 @@
 
 #define FASTQ_READER_BUFSIZE (1 << 20)
 
+/* maximal length of the description of a format error */
+#define FASTQ_READER_MSG_LEN 256
+
 struct fastq_reader_t {
   char *filename;
   gzFile file;
@@ -25,6 +28,7 @@ struct fastq_reader_t {
   /* current line: the title line of the next record, once read */
   strbuf_t line;
   bool started, done;
+  Logger *logger;
 };
 
 fastq_reader_t* fastq_reader_new(const char *filename, Logger *logger) {
@@ -34,11 +38,9 @@ fastq_reader_t* fastq_reader_new(const char *filename, Logger *logger) {
   self->filename = strcat_alloc(filename, "");
   /* gzopen reads also uncompressed files */
   self->file = gzopen(filename, "rb");
-  if (self->file == NULL) {
-    fprintf(stderr, "Error: [Errno %d] %s: '%s'\n", errno, strerror(errno),
-            filename);
-    exit(EXIT_FAILURE);
-  }
+  LCHECK(self->file != NULL, logger, "Opening file '%s' failed, %s\n",
+         filename, strerror(errno));
+  self->logger = logger;
   gzbuffer(self->file, FASTQ_READER_BUFSIZE);
   XMALLOC(self->buf, FASTQ_READER_BUFSIZE);
   self->buf_pos = 0;
@@ -80,8 +82,8 @@ static void fill_buffer(fastq_reader_t *self) {
   if (n < 0) {
     int errnum;
     const char *msg = gzerror(self->file, &errnum);
-    fprintf(stderr, "Error: reading %s failed: %s\n", self->filename,
-            errnum == Z_ERRNO ? strerror(errno) : msg);
+    lprintf(self->logger, LOG_ERROR, "Reading file '%s' failed, %s\n",
+            self->filename, errnum == Z_ERRNO ? strerror(errno) : msg);
     exit(EXIT_FAILURE);
   }
   self->buf_pos = 0;
@@ -132,15 +134,15 @@ static size_t rstrip(strbuf_t *data, size_t from) {
   return data->len - from;
 }
 
-__attribute__ ((format (printf, 2, 3)))
+__attribute__ ((format (printf, 2, 3), noreturn))
 static void format_error(const fastq_reader_t *self, const char *fmt, ...) {
+  char msg[FASTQ_READER_MSG_LEN];
   va_list ap;
   va_start(ap, fmt);
-  fprintf(stderr, "Error: invalid FASTQ file %s, line %zu: ",
-          self->filename, self->lineno);
-  vfprintf(stderr, fmt, ap);
-  fprintf(stderr, "\n");
+  vsnprintf(msg, sizeof(msg), fmt, ap);
   va_end(ap);
+  lprintf(self->logger, LOG_ERROR, "Invalid FASTQ file %s, line %zu: %s\n",
+          self->filename, self->lineno, msg);
   exit(EXIT_FAILURE);
 }
 
