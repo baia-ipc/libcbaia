@@ -43,6 +43,8 @@ static inline void strbuf_clear(strbuf_t *self) {
 /* Append <len> characters */
 static inline void strbuf_append(strbuf_t *self, const char *s,
     size_t len) {
+  if (len == 0)  /* also if <s> is NULL */
+    return;
   XCHECKSPACEINCPERC(self->s, &self->cap, self->len + len + STRBUF_INC, 50);
   memcpy(self->s + self->len, s, len);
   self->len += len;
