@@ -8,6 +8,7 @@
 #include <zlib.h>
 #include "alloc.h"
 #include "bgzf-compressor.h"
+#include "logger.h"
 #include "strutils.h"
 #include "test.h"
 
@@ -36,10 +37,8 @@ bgzf_compressor_t* bgzf_compressor_new(int level) {
   memset(&self->strm, 0, sizeof(z_stream));
   /* raw deflate: the gzip header and footer are written here */
   if (deflateInit2(&self->strm, level, Z_DEFLATED, -15, 8,
-                   Z_DEFAULT_STRATEGY) != Z_OK) {
-    fprintf(stderr, "Error: initializing the compression failed\n");
-    exit(EXIT_FAILURE);
-  }
+                   Z_DEFAULT_STRATEGY) != Z_OK)
+    fatal_printf("Initialization of the BGZF compression failed\n");
   return self;
 }
 
@@ -67,10 +66,8 @@ static void compress_block(bgzf_compressor_t *self, const char *data,
   self->strm.avail_in = (uInt)len;
   self->strm.next_out = b + BGZF_HEADER_LEN;
   self->strm.avail_out = BGZF_MAX_BLOCK - BGZF_HEADER_LEN - BGZF_FOOTER_LEN;
-  if (deflate(&self->strm, Z_FINISH) != Z_STREAM_END) {
-    fprintf(stderr, "Error: BGZF compression failed\n");
-    exit(EXIT_FAILURE);
-  }
+  if (deflate(&self->strm, Z_FINISH) != Z_STREAM_END)
+    fatal_printf("BGZF compression failed\n");
   size_t block_len = BGZF_HEADER_LEN + self->strm.total_out +
                      BGZF_FOOTER_LEN;
   b[16] = (uint8_t)((block_len - 1) & 0xff);
