@@ -20,6 +20,9 @@
 
 #define BAM_MAGIC "BAM\1"
 
+/* the header text is read in parts of this size */
+#define BAM_HEADER_CHUNK (1 << 20)
+
 /* fixed-length part of a record, after block_size */
 #define BAM_CORE_LEN 32
 
@@ -39,6 +42,7 @@ struct bam_reader_t {
   char *rc;        /* reverse complement buffer */
   size_t rc_cap;
   bool done;
+  char *header;    /* SAM header text */
 };
 
 static uint32_t le32(const uint8_t *p) {
@@ -102,18 +106,33 @@ static uint32_t read_u32(gzFile file, const char *filename) {
   return le32(b);
 }
 
-/* read the header (magic, text, references) */
-static void read_header(gzFile file, const char *filename) {
+/* read the header (magic, text, references); returns the text
+   (0-terminated) */
+static char *read_header(gzFile file, const char *filename) {
   char magic[4];
   if (!read_exact(file, filename, magic, 4, true) ||
       memcmp(magic, BAM_MAGIC, 4) != 0)
     format_error(filename, "wrong magic number");
-  skip_bytes(file, filename, read_u32(file, filename));
+  /* the text is read in parts, so that the memory is allocated only for
+     the data actually present (the length may be wrong) */
+  size_t l_text = read_u32(file, filename), got = 0, cap = 0;
+  char *text = NULL;
+  while (got < l_text) {
+    size_t n = l_text - got < BAM_HEADER_CHUNK ? l_text - got :
+               BAM_HEADER_CHUNK;
+    XCHECKSPACEINCPERC(text, &cap, got + n + 1, 50);
+    read_exact(file, filename, text + got, n, false);
+    got += n;
+  }
+  XCHECKSPACEINCPERC(text, &cap, got + 1, 0);
+  /* the text can be padded with NUL characters */
+  text[got] = '\0';
   uint32_t n_ref = read_u32(file, filename);
   for (uint32_t i = 0; i < n_ref; i++) {
     skip_bytes(file, filename, read_u32(file, filename));
     read_u32(file, filename);
   }
+  return text;
 }
 
 bool bam_reader_is_bam(const char *filename) {
@@ -137,7 +156,7 @@ bam_reader_t* bam_reader_new(const char *filename) {
   self->rc = NULL;
   self->rc_cap = 0;
   self->done = false;
-  read_header(self->file, filename);
+  self->header = read_header(self->file, filename);
   return self;
 }
 
@@ -148,6 +167,7 @@ void bam_reader_delete(bam_reader_t *self) {
   free(self->filename);
   free(self->rec);
   free(self->rc);
+  free(self->header);
   free(self);
 }
 
@@ -291,6 +311,11 @@ static bool append_record(bam_reader_t *self, size_t len,
   return true;
 }
 
+const char *bam_reader_header(const bam_reader_t *self) {
+  assert(self != NULL);
+  return self->header;
+}
+
 size_t bam_reader_read_batch(bam_reader_t *self, fastq_batch_t *batch,
     size_t max_records) {
   assert(self != NULL);
@@ -414,6 +439,9 @@ void bam_reader_test(const char *tmpdir) {
   gzclose(f);
   strbuf_free(&b);
   test_assert(bam_reader_is_bam(path));
+  bam_reader_t *h = bam_reader_new(path);
+  test_assert(strcmp(bam_reader_header(h), text) == 0);
+  bam_reader_delete(h);
   test_assert(!bam_reader_has_eof_marker(path));
   FILE *raw = fopen(path, "ab");
   test_assert(raw != NULL);

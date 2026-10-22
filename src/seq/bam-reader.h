@@ -35,6 +35,10 @@ bool bam_reader_is_bam(const char *filename);
    failure */
 bam_reader_t* bam_reader_new(const char *filename);
 
+/* SAM header text of the file (e.g. its @RG and @PG lines), valid as long
+   as the reader exists */
+const char *bam_reader_header(const bam_reader_t *self);
+
 /*
    Read up to <max_records> records into <batch> (its previous content is
    removed); returns the number of records read (0 at the end of the file).
