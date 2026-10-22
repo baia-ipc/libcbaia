@@ -131,7 +131,7 @@ void __lprintf(Logger *logger, LoggingLevel level, const char *file,
     if (level <= logger->level)
       LPRINTF(logger->logfile, logger->colors, true, level, fmt,
               level >= LOG_DEBUG, file, line);
-  } 
+  }
   else if (level <= DEFAULT_LOGGER_LEVEL) {
     bool colored = isatty(fileno(stderr));
     LPRINTF(stderr, colored, true, level, fmt, level >= LOG_DEBUG, file, line);

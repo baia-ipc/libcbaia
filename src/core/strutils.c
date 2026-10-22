@@ -2,7 +2,7 @@
 
 #include <string.h>
 #include "alloc.h"
-#include "string.h"
+#include "strutils.h"
 
 char *strcat_alloc(const char *s1, const char *s2)
 {

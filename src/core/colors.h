@@ -27,6 +27,6 @@
 #define BRIGHT_CYAN    "96"
 #define BRIGHT_WHITE   "97"
 
-void test_fg_colors();
+void test_fg_colors(void);
 
 #endif

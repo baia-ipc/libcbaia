@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include "colors.h"
 
-void test_fg_colors() {
+void test_fg_colors(void) {
   printf("-- Colors:\n");
   START_COLOR(stdout, BLACK);   printf("BLACK\n");
   START_COLOR(stdout, RED);     printf("RED\n");
