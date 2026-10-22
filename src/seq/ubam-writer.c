@@ -12,7 +12,7 @@
 #include <zlib.h>
 #include "alloc.h"
 #include "bam-reader.h"
-#include "bam-writer.h"
+#include "ubam-writer.h"
 #include "bgzf-compressor.h"
 #include "strutils.h"
 #include "test.h"
@@ -33,7 +33,7 @@ static void put16(strbuf_t *b, uint16_t v) {
   strbuf_append_char(b, (char)(v >> 8));
 }
 
-void bam_writer_header(strbuf_t *out, const char *text) {
+void ubam_writer_header(strbuf_t *out, const char *text) {
   assert(out != NULL);
   assert(text != NULL);
   strbuf_append(out, "BAM\1", 4);
@@ -191,15 +191,15 @@ invalid:
   out->len = start;
 }
 
-void bam_writer_record(strbuf_t *out, const char *title, size_t title_len,
+void ubam_writer_record(strbuf_t *out, const char *title, size_t title_len,
     const char *seq, const char *qual, size_t len) {
   assert(out != NULL);
   assert(title != NULL);
   size_t name_len = 0;
   while (name_len < title_len && !isspace((unsigned char)title[name_len]))
     name_len++;
-  size_t l_read_name = (name_len < BAM_MAX_READ_NAME ? name_len :
-                        BAM_MAX_READ_NAME) + 1;
+  size_t l_read_name = (name_len < UBAM_MAX_READ_NAME ? name_len :
+                        UBAM_MAX_READ_NAME) + 1;
   size_t start = out->len;
   put32(out, 0);   /* block_size, set at the end */
   put32(out, 0xffffffff);
@@ -236,16 +236,16 @@ void bam_writer_record(strbuf_t *out, const char *title, size_t title_len,
 
 /* --- unit tests --- */
 
-void bam_writer_test(const char *tmpdir) {
+void ubam_writer_test(const char *tmpdir) {
   strbuf_t data, out;
   strbuf_init(&data);
   strbuf_init(&out);
-  bam_writer_header(&data, "@HD\tVN:1.6\tSO:unknown\n");
+  ubam_writer_header(&data, "@HD\tVN:1.6\tSO:unknown\n");
   const char *title = "r1\tqs:i:12\tch:i:-300\tdu:f:1.5\tst:Z:a b\t"
                       "XA:A:x\tbad\tXB:B:c,-1,2\tXI:i:x\tXC:i:4294967295\t"
                       "CB:Z:ACGT";
-  bam_writer_record(&data, title, strlen(title), "acgtn", "ABCDE", 5);
-  bam_writer_record(&data, "r2", 2, "ACG", "!!I", 3);
+  ubam_writer_record(&data, title, strlen(title), "acgtn", "ABCDE", 5);
+  ubam_writer_record(&data, "r2", 2, "ACG", "!!I", 3);
   bgzf_compressor_t *c = bgzf_compressor_new(6);
   bgzf_compressor_run(c, data.s, data.len, &out);
   bgzf_compressor_delete(c);

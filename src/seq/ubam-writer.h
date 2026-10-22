@@ -11,26 +11,26 @@
    the title which are not valid SAM tags are not written.
 */
 
-#ifndef BAM_WRITER_H
-#define BAM_WRITER_H
+#ifndef UBAM_WRITER_H
+#define UBAM_WRITER_H
 
 #include <stddef.h>
 #include "strbuf.h"
 
 /* maximum length of a read name in BAM (longer names are truncated) */
-#define BAM_MAX_READ_NAME 254
+#define UBAM_MAX_READ_NAME 254
 
 /* Append the header (SAM header text <text>, no reference) to <out> */
-void bam_writer_header(strbuf_t *out, const char *text);
+void ubam_writer_header(strbuf_t *out, const char *text);
 
 /*
    Append a record to <out>: <title> (length <title_len>): read name and
    tags; <seq> and <qual> (Phred+33): <len> bases
 */
-void bam_writer_record(strbuf_t *out, const char *title, size_t title_len,
+void ubam_writer_record(strbuf_t *out, const char *title, size_t title_len,
     const char *seq, const char *qual, size_t len);
 
 /* Unit tests (<tmpdir>: directory for temporary files) */
-void bam_writer_test(const char *tmpdir);
+void ubam_writer_test(const char *tmpdir);
 
 #endif

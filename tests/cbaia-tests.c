@@ -12,7 +12,6 @@
 #include <unistd.h>
 #include "argparse-def.h"
 #include "bam-reader.h"
-#include "bam-writer.h"
 #include "bgzf-compressor.h"
 #include "bitwise.h"
 #include "bloom-filter.h"
@@ -30,6 +29,7 @@
 #include "strbuf.h"
 #include "strutils.h"
 #include "test.h"
+#include "ubam-writer.h"
 
 #define DEFAULT_TMPDIR "/tmp"
 
@@ -170,7 +170,7 @@ static void run_gzip_compressor_test(void) { gzip_compressor_test(tmpdir); }
 static void run_fastq_reader_test(void) { fastq_reader_test(tmpdir); }
 static void run_bgzf_compressor_test(void) { bgzf_compressor_test(tmpdir); }
 static void run_bam_reader_test(void) { bam_reader_test(tmpdir); }
-static void run_bam_writer_test(void) { bam_writer_test(tmpdir); }
+static void run_uubam_writer_test(void) { ubam_writer_test(tmpdir); }
 
 typedef struct {
   char option;
@@ -193,7 +193,7 @@ static test_group_t test_groups[] = {
   {'r', "FASTQ reader", run_fastq_reader_test, false},
   {'x', "FASTQ writer", fastq_writer_test, false},
   {'m', "BAM reader", run_bam_reader_test, false},
-  {'n', "BAM writer", run_bam_writer_test, false},
+  {'n', "uBAM writer", run_uubam_writer_test, false},
 };
 #define N_TEST_GROUPS (sizeof(test_groups) / sizeof(test_groups[0]))
 
