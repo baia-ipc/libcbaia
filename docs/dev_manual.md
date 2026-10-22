@@ -15,7 +15,7 @@ src/<component>/  sources and headers of the modules of each component:
   core/           memory allocation, logging, files, strings, command line,
                   unit test macros
   ds/             data structures
-  io/             external sorting, gzip compression
+  io/             external sorting, gzip and BGZF compression
   seq/            sequences
 tests/            unit test program
 dev/, scripts/    scripts for the projects (object lists, program tests)

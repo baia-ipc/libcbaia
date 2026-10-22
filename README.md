@@ -140,6 +140,7 @@ files which do not fit in memory and compressing data in parallel.
 | `file-sorter.h` | Sorting of a file in parts which fit in a buffer of a given size, written to temporary files; the elements to sort (e.g. lines) and their order are defined by functions passed by the caller. |
 | `file-merger.h` | Merging of the sorted parts written by the file sorter, using a heap, into the sorted output file. |
 | `gzip-compressor.h` | Compression of blocks of data as gzip members (zlib): as the concatenation of gzip members is a valid gzip file, blocks can be compressed in parallel by several threads and written in the right order by one of them. |
+| `bgzf-compressor.h` | Compression of blocks of data in the BGZF format of BAM files (gzip members of at most 64 KiB, with their size in an extra field), in parallel as with the gzip compressor; and the BGZF end-of-file marker. |
 
 ## seq: biological sequences
 

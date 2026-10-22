@@ -11,6 +11,7 @@
 #include <string.h>
 #include <unistd.h>
 #include "argparse-def.h"
+#include "bgzf-compressor.h"
 #include "bitwise.h"
 #include "bloom-filter.h"
 #include "fastq-reader.h"
@@ -164,6 +165,7 @@ static void file_sorter_test(void) {
 
 static void run_gzip_compressor_test(void) { gzip_compressor_test(tmpdir); }
 static void run_fastq_reader_test(void) { fastq_reader_test(tmpdir); }
+static void run_bgzf_compressor_test(void) { bgzf_compressor_test(tmpdir); }
 
 typedef struct {
   char option;
@@ -177,6 +179,7 @@ static test_group_t test_groups[] = {
   {'a', "argument parsing", argparse_test, false},
   {'o', "progress display", progress_test, false},
   {'z', "gzip compressor", run_gzip_compressor_test, false},
+  {'g', "BGZF compressor", run_bgzf_compressor_test, false},
   {'b', "bit operations and bloom filter", bits_test, false},
   {'e', "set", set_test, false},
   {'p', "heap", heap_test, false},
