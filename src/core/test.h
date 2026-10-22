@@ -14,7 +14,7 @@
     exit(EXIT_FAILURE);\
   }
 
-#define test_eq(FOUND, EXP, TYPE, FMT) {\
+#define test_eq(FOUND, EXP, TYPE, FMT) do {\
   TYPE _FOUND = FOUND;\
   TYPE _EXP = EXP;\
   if (_FOUND != _EXP) {\
@@ -25,7 +25,7 @@
   } else {\
     fprintf(stderr, "[OK] %s = "FMT"\n", #FOUND, _EXP);\
   }\
-}
+} while (0)
 
 #define test_eq_size(FOUND, EXP) \
   test_eq(FOUND, EXP, size_t, "%zu")
@@ -36,7 +36,7 @@
 #define test_eq_long(FOUND, EXP) \
   test_eq(FOUND, EXP, long, "%ld")
 
-#define test_eq_str(FOUND, EXP) {\
+#define test_eq_str(FOUND, EXP) do {\
   const char *_FOUND = FOUND;\
   const char *_EXP = EXP;\
   if (strcmp(_FOUND, _EXP) != 0) {\
@@ -47,7 +47,7 @@
   } else {\
     fprintf(stderr, "[OK] %s = \"%s\"\n", #FOUND, _EXP);\
   }\
-}
+} while (0)
 
 #define test_eq_char(FOUND, EXP) \
   test_eq(FOUND, EXP, char, "%c")

@@ -77,9 +77,9 @@ void NTRACE(const char *fmt, ...)\
 void DEBUG_NTRACE(const char *fmt, ...)
      __attribute__ ((format (printf,1,2)));
 #else
-/* when compiled without SHOW_TRACES, DEBUG_[N]TRACE are deleted from the code */
-#define DEBUG_TRACE(fmt, ...) {;}
-#define DEBUG_NTRACE(fmt, ...) {;}
+/* without SHOW_TRACES, DEBUG_[N]TRACE are deleted from the code */
+#define DEBUG_TRACE(fmt, ...) ((void)0)
+#define DEBUG_NTRACE(fmt, ...) ((void)0)
 #endif
 
 /* ---- versions requiring __FILE__ and __LINE__ ---- */
@@ -91,16 +91,16 @@ void __lprintf(Logger *logger, LoggingLevel level, const char *file,
      int line, const char *fmt, ...)
      __attribute__ ((format (printf,5,6)));
 
-#define __LCHECK(CONDITION, LOGGER, F, L, FMT, ...) { \
+#define __LCHECK(CONDITION, LOGGER, F, L, FMT, ...) do { \
   if (!(CONDITION)) {\
     __lprintf(LOGGER, LOG_ERROR, F, L, FMT, ##__VA_ARGS__);\
     delete_logger(LOGGER);\
     exit(EXIT_FAILURE);\
   }\
-}
+} while (0)
 
 void __fatal_printf(const char *file, int line, const char *fmt, ...)
-     __attribute__ ((format (printf,3,4)));
+     __attribute__ ((format (printf,3,4), noreturn));
 
 void __showmem(Logger *logger, const char *file, int line);
 

@@ -103,10 +103,10 @@
 #define PARSE_START \
   LOGGER_OPTS_VAR_DECLARE \
 
-#define PARSE_ERR(FMT, ...) { \
+#define PARSE_ERR(FMT, ...) do { \
   lprintf(NULL, LOG_ERROR, FMT "\n\n", ##__VA_ARGS__);\
   PURPOSE_AND_EXIT; \
-}
+} while (0)
 
 #define OPT_ERR(C, FMT, ...) \
   PARSE_ERR("Option '-%c': " FMT, C, ##__VA_ARGS__)
@@ -122,31 +122,31 @@ static inline bool argparse_long(const char *s, long *value) {
   return *s != '\0' && *end == '\0' && errno == 0;
 }
 
-#define PARSE_INTEGER_OPT_MIN(C, DESTPTR, MINVALUE) { \
+#define PARSE_INTEGER_OPT_MIN(C, DESTPTR, MINVALUE) do { \
     long argvalue; \
     if (!argparse_long(optarg, &argvalue) || argvalue < (MINVALUE)) \
       OPT_ERR(C, "argument must be an integer >= %ld (%s found)",\
         (long)(MINVALUE), optarg); \
     *(DESTPTR) = argvalue;\
-}
+} while (0)
 
-#define PARSE_INTEGER_OPT_MIN_MAX(C, DESTPTR, MINVALUE, MAXVALUE) { \
+#define PARSE_INTEGER_OPT_MIN_MAX(C, DESTPTR, MINVALUE, MAXVALUE) do { \
     long argvalue; \
     if (!argparse_long(optarg, &argvalue) || argvalue < (MINVALUE) || \
         argvalue > (MAXVALUE)) \
       OPT_ERR(C, "argument must be an integer >= %ld and <= %ld "\
         "(%s found)", (long)(MINVALUE), (long)(MAXVALUE), optarg); \
     *(DESTPTR) = argvalue;\
-}
+} while (0)
 
-#define PARSE_INTEGER_ARG_MIN(N, DESTPTR, MINVALUE) { \
+#define PARSE_INTEGER_ARG_MIN(N, DESTPTR, MINVALUE) do { \
     long argvalue; \
     if (!argparse_long(argv[optind + (N)], &argvalue) || \
         argvalue < (MINVALUE)) \
       ARG_ERR((N)+1, "argument must be an integer >= %ld (%s found)",\
         (long)(MINVALUE), argv[optind + (N)]); \
     *(DESTPTR) = argvalue;\
-}
+} while (0)
 
 /* option for the log file; a program can define these macros before
    including this header, if it needs the letter for another option */
