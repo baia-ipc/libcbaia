@@ -43,6 +43,7 @@ struct bam_reader_t {
   size_t rc_cap;
   bool done;
   char *header;    /* SAM header text */
+  Logger *logger;
 };
 
 static uint32_t le32(const uint8_t *p) {
@@ -54,101 +55,101 @@ static uint16_t le16(const uint8_t *p) {
   return (uint16_t)(p[0] | (p[1] << 8));
 }
 
-static gzFile open_file(const char *filename) {
+static gzFile open_file(const char *filename, Logger *logger) {
   gzFile file = gzopen(filename, "rb");
-  if (file == NULL) {
-    fprintf(stderr, "Error: [Errno %d] %s: '%s'\n", errno, strerror(errno),
-            filename);
-    exit(EXIT_FAILURE);
-  }
+  LCHECK(file != NULL, logger, "Opening file '%s' failed, %s\n", filename,
+         strerror(errno));
   return file;
 }
 
-static void format_error(const char *filename, const char *msg) {
-  fprintf(stderr, "Error: invalid BAM file %s: %s\n", filename, msg);
+__attribute__ ((noreturn))
+static void format_error(const bam_reader_t *self, const char *msg) {
+  lprintf(self->logger, LOG_ERROR, "Invalid BAM file %s: %s\n",
+          self->filename, msg);
   exit(EXIT_FAILURE);
 }
 
 /* read exactly <len> bytes; false at the end of the file (if no byte was
    read and <eof_ok>), otherwise exits on a truncated file */
-static bool read_exact(gzFile file, const char *filename, void *buf,
-    size_t len, bool eof_ok) {
+static bool read_exact(bam_reader_t *self, void *buf, size_t len,
+    bool eof_ok) {
   size_t got = 0;
   while (got < len) {
-    int n = gzread(file, (char *)buf + got, (unsigned)(len - got));
+    int n = gzread(self->file, (char *)buf + got, (unsigned)(len - got));
     if (n < 0) {
       int errnum;
-      const char *msg = gzerror(file, &errnum);
-      format_error(filename, errnum == Z_ERRNO ? strerror(errno) : msg);
+      const char *msg = gzerror(self->file, &errnum);
+      format_error(self, errnum == Z_ERRNO ? strerror(errno) : msg);
     }
     if (n == 0) {
       if (got == 0 && eof_ok)
         return false;
-      format_error(filename, "unexpected end of file");
+      format_error(self, "unexpected end of file");
     }
     got += (size_t)n;
   }
   return true;
 }
 
-static void skip_bytes(gzFile file, const char *filename, size_t len) {
+static void skip_bytes(bam_reader_t *self, size_t len) {
   uint8_t buf[4096];
   while (len > 0) {
     size_t n = len < sizeof(buf) ? len : sizeof(buf);
-    read_exact(file, filename, buf, n, false);
+    read_exact(self, buf, n, false);
     len -= n;
   }
 }
 
-static uint32_t read_u32(gzFile file, const char *filename) {
+static uint32_t read_u32(bam_reader_t *self) {
   uint8_t b[4];
-  read_exact(file, filename, b, 4, false);
+  read_exact(self, b, 4, false);
   return le32(b);
 }
 
 /* read the header (magic, text, references); returns the text
    (0-terminated) */
-static char *read_header(gzFile file, const char *filename) {
+static char *read_header(bam_reader_t *self) {
   char magic[4];
-  if (!read_exact(file, filename, magic, 4, true) ||
+  if (!read_exact(self, magic, 4, true) ||
       memcmp(magic, BAM_MAGIC, 4) != 0)
-    format_error(filename, "wrong magic number");
+    format_error(self, "wrong magic number");
   /* the text is read in parts, so that the memory is allocated only for
      the data actually present (the length may be wrong) */
-  size_t l_text = read_u32(file, filename), got = 0, cap = 0;
+  size_t l_text = read_u32(self), got = 0, cap = 0;
   char *text = NULL;
   while (got < l_text) {
     size_t n = l_text - got < BAM_HEADER_CHUNK ? l_text - got :
                BAM_HEADER_CHUNK;
     XCHECKSPACEINCPERC(text, &cap, got + n + 1, 50);
-    read_exact(file, filename, text + got, n, false);
+    read_exact(self, text + got, n, false);
     got += n;
   }
   XCHECKSPACEINCPERC(text, &cap, got + 1, 0);
   /* the text can be padded with NUL characters */
   text[got] = '\0';
-  uint32_t n_ref = read_u32(file, filename);
+  uint32_t n_ref = read_u32(self);
   for (uint32_t i = 0; i < n_ref; i++) {
-    skip_bytes(file, filename, read_u32(file, filename));
-    read_u32(file, filename);
+    skip_bytes(self, read_u32(self));
+    read_u32(self);
   }
   return text;
 }
 
-bool bam_reader_is_bam(const char *filename) {
+bool bam_reader_is_bam(const char *filename, Logger *logger) {
   assert(filename != NULL);
-  gzFile file = open_file(filename);
+  gzFile file = open_file(filename, logger);
   char magic[4];
   int n = gzread(file, magic, 4);
   gzclose(file);
   return n == 4 && memcmp(magic, BAM_MAGIC, 4) == 0;
 }
 
-bam_reader_t* bam_reader_new(const char *filename) {
+bam_reader_t* bam_reader_new(const char *filename, Logger *logger) {
   assert(filename != NULL);
   bam_reader_t *self;
   XMALLOC(self, sizeof(bam_reader_t));
-  self->file = open_file(filename);
+  self->file = open_file(filename, logger);
+  self->logger = logger;
   gzbuffer(self->file, 1 << 17);
   self->filename = strcat_alloc(filename, "");
   self->rec = NULL;
@@ -156,7 +157,7 @@ bam_reader_t* bam_reader_new(const char *filename) {
   self->rc = NULL;
   self->rc_cap = 0;
   self->done = false;
-  self->header = read_header(self->file, filename);
+  self->header = read_header(self);
   return self;
 }
 
@@ -174,15 +175,15 @@ void bam_reader_delete(bam_reader_t *self) {
 /* read the next record into self->rec; returns its length (0: end) */
 static size_t next_record(bam_reader_t *self) {
   uint8_t b[4];
-  if (self->done || !read_exact(self->file, self->filename, b, 4, true)) {
+  if (self->done || !read_exact(self, b, 4, true)) {
     self->done = true;
     return 0;
   }
   size_t len = le32(b);
   if (len < BAM_CORE_LEN)
-    format_error(self->filename, "record too short");
+    format_error(self, "record too short");
   XCHECKSPACEINCPERC(self->rec, &self->rec_cap, len, 50);
-  read_exact(self->file, self->filename, self->rec, len, false);
+  read_exact(self, self->rec, len, false);
   return len;
 }
 
@@ -206,29 +207,29 @@ static void append_tags(const bam_reader_t *self, const uint8_t *p,
     const uint8_t *end, strbuf_t *out) {
   while (p < end) {
     if (end - p < 3)
-      format_error(self->filename, "truncated tag");
+      format_error(self, "truncated tag");
     char type = (char)p[2];
     const uint8_t *v = p + 3;
     size_t size;
     if (type == 'Z' || type == 'H') {
       const uint8_t *z = memchr(v, '\0', (size_t)(end - v));
       if (z == NULL)
-        format_error(self->filename, "unterminated string tag");
+        format_error(self, "unterminated string tag");
       size = (size_t)(z - v) + 1;
     } else if (type == 'B') {
       if (end - v < 5)
-        format_error(self->filename, "truncated array tag");
+        format_error(self, "truncated array tag");
       size_t elsize = tag_value_size((char)v[0]);
       if (elsize == 0 || v[0] == 'A')
-        format_error(self->filename, "unknown array type");
+        format_error(self, "unknown array type");
       size = 5 + elsize * le32(v + 1);
     } else {
       size = tag_value_size(type);
       if (size == 0)
-        format_error(self->filename, "unknown tag type");
+        format_error(self, "unknown tag type");
     }
     if ((size_t)(end - v) < size)
-      format_error(self->filename, "truncated tag");
+      format_error(self, "truncated tag");
     if (type != 'B' && !skipped_tag(p)) {
       strbuf_append_char(out, '\t');
       strbuf_append(out, (const char *)p, 2);
@@ -283,7 +284,7 @@ static bool append_record(bam_reader_t *self, size_t len,
   const uint8_t *qual = seq + (l_seq + 1) / 2;
   const uint8_t *tags = qual + l_seq;
   if (l_read_name == 0 || tags > end || name[l_read_name - 1] != '\0')
-    format_error(self->filename, "inconsistent record lengths");
+    format_error(self, "inconsistent record lengths");
   if (flag & (BAM_FSECONDARY | BAM_FSUPPLEMENTARY))
     return false;
   bool reverse = (flag & BAM_FREVERSE) != 0;
@@ -347,9 +348,9 @@ bool bam_reader_has_eof_marker(const char *filename) {
   return found;
 }
 
-size_t bam_reader_count(const char *filename) {
+size_t bam_reader_count(const char *filename, Logger *logger) {
   assert(filename != NULL);
-  bam_reader_t *self = bam_reader_new(filename);
+  bam_reader_t *self = bam_reader_new(filename, logger);
   size_t n = 0;
   while (next_record(self) > 0)
     if ((le16(self->rec + 14) & (BAM_FSECONDARY | BAM_FSUPPLEMENTARY)) == 0)
@@ -441,8 +442,8 @@ void bam_reader_test(const char *tmpdir) {
   test_eq(gzwrite(f, b.s, (unsigned)b.len), (int)b.len, int, "%d");
   gzclose(f);
   strbuf_free(&b);
-  test_assert(bam_reader_is_bam(path));
-  bam_reader_t *h = bam_reader_new(path);
+  test_assert(bam_reader_is_bam(path, NULL));
+  bam_reader_t *h = bam_reader_new(path, NULL);
   test_assert(strcmp(bam_reader_header(h), text) == 0);
   bam_reader_delete(h);
   test_assert(!bam_reader_has_eof_marker(path));
@@ -451,8 +452,8 @@ void bam_reader_test(const char *tmpdir) {
   fwrite(bgzf_eof, 1, BGZF_EOF_LEN, raw);
   fclose(raw);
   test_assert(bam_reader_has_eof_marker(path));
-  test_eq(bam_reader_count(path), (size_t)3, size_t, "%zu");
-  bam_reader_t *r = bam_reader_new(path);
+  test_eq(bam_reader_count(path, NULL), (size_t)3, size_t, "%zu");
+  bam_reader_t *r = bam_reader_new(path, NULL);
   fastq_batch_t batch;
   fastq_batch_init(&batch);
   test_eq(bam_reader_read_batch(r, &batch, 2), (size_t)2, size_t, "%zu");
@@ -468,7 +469,7 @@ void bam_reader_test(const char *tmpdir) {
   f = gzopen(path, "wb");
   gzputs(f, "@r1\nACGT\n+\nAAAA\n");
   gzclose(f);
-  test_assert(!bam_reader_is_bam(path));
+  test_assert(!bam_reader_is_bam(path, NULL));
   unlink(path);
   free(path);
 }

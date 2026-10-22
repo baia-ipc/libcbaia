@@ -261,7 +261,7 @@ void ubam_writer_test(const char *tmpdir) {
   fwrite(out.s, 1, out.len, f);
   fclose(f);
   test_assert(bam_reader_has_eof_marker(path));
-  bam_reader_t *r = bam_reader_new(path);
+  bam_reader_t *r = bam_reader_new(path, NULL);
   fastq_batch_t batch;
   fastq_batch_init(&batch);
   test_eq(bam_reader_read_batch(r, &batch, 10), (size_t)2, size_t, "%zu");

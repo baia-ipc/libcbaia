@@ -24,16 +24,17 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include "fastq-reader.h"
+#include "logger.h"
 
 typedef struct bam_reader_t bam_reader_t;
 
 /* Is the file a BAM file (by its content); exit with an error message if
    it cannot be opened */
-bool bam_reader_is_bam(const char *filename);
+bool bam_reader_is_bam(const char *filename, Logger *logger);
 
 /* Open a BAM file and read its header; exit with an error message on
    failure */
-bam_reader_t* bam_reader_new(const char *filename);
+bam_reader_t* bam_reader_new(const char *filename, Logger *logger);
 
 /* SAM header text of the file (e.g. its @RG and @PG lines), valid as long
    as the reader exists */
@@ -55,7 +56,7 @@ void bam_reader_delete(bam_reader_t *self);
 bool bam_reader_has_eof_marker(const char *filename);
 
 /* Number of records of a BAM file (as returned by the reader) */
-size_t bam_reader_count(const char *filename);
+size_t bam_reader_count(const char *filename, Logger *logger);
 
 /* Unit tests (<tmpdir>: directory for temporary files) */
 void bam_reader_test(const char *tmpdir);
