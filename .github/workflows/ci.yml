@@ -1,8 +1,9 @@
 name: CI
 
+# run only manually (Actions tab, "Run workflow"), to save the Actions
+# minutes of the account; run the tests locally with "make test"
 on:
-  push:
-  pull_request:
+  workflow_dispatch:
 
 jobs:
   test:
