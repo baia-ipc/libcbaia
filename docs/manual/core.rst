@@ -77,7 +77,8 @@ error is redirected, the colors are not used.
 
 The example program ``logdemo`` (``docs/manual/examples/logdemo.c``)
 outputs a message at each level. With the default level, only the
-warnings, errors and success messages are shown; ``-v`` adds the
+warnings, errors and success messages are shown; ``-q`` shows only the
+errors; ``-v`` adds the
 parameters, the phases and the information messages
 (:numref:`fig-term-logger`); ``-D`` adds the debugging messages, with
 the source file and line, and the memory usage

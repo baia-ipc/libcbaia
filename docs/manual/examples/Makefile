@@ -32,7 +32,7 @@ check: $(PROGS)
 	  data/reads.fastq
 	for f in expected/reads.*.fastq; do \
 	  zcat out/`basename $$f`.gz | diff - $$f || exit 1; done
-	$(VALGRIND) ./logdemo -q -n 1000 2> out/logdemo.err
+	$(VALGRIND) ./logdemo -n 1000 2> out/logdemo.err
 	sed 's/^# [0-9-]* [0-9:]* |/#/' out/logdemo.err | diff - expected/logdemo.log
 	! ./logdemo -q -n 10 -e 2> /dev/null
 	rm -rf out
