@@ -2,8 +2,8 @@
 
 /*
    Sequence utilities: reverse complement and substrings with the
-   semantics of the Python slices (used by the Python implementation,
-   whose output is reproduced exactly).
+   semantics of the Python slices (useful for reproducing exactly the
+   output of Python programs).
 */
 
 #ifndef SEQUTIL_H

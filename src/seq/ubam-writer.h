@@ -2,7 +2,7 @@
 
 /*
    Encoding of unaligned BAM data (header and records), to be compressed
-   with BGZF (see bgzf.h).
+   with BGZF (see bgzf-compressor.h).
 
    A record is given as a FASTQ-like entry, whose title contains the read
    name and SAM tags in text format, separated by tabs (as in the FASTQ
