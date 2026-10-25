@@ -35,7 +35,7 @@ TESTS = $(BINDIR)/cbaia-tests
 
 PREFIX ?= /usr/local
 
-.PHONY: default lib test manual install uninstall clean cleanup cleandep
+.PHONY: default lib test fuzz manual install uninstall clean cleanup cleandep
 
 default: lib
 
@@ -115,6 +115,10 @@ VALGRIND = $(if $(shell command -v valgrind),valgrind --error-exitcode=1 -q \
 test: $(TESTS)
 	$(VALGRIND) $(BINDIR)/cbaia-tests -q
 	$(MAKE) -C docs/manual/examples check
+
+# fuzzing harnesses (libFuzzer, clang), see docs/manual/testing.rst
+fuzz:
+	tests/fuzz/build.sh
 
 # user manual (PDF), from docs/manual (requires Sphinx and LaTeX)
 SPHINXBUILD ?= sphinx-build

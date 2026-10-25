@@ -31,6 +31,8 @@ The targets of the Makefile:
 ``make test``      build and run the unit tests (``bin/cbaia-tests``,
                    under valgrind if available) and the example programs
                    of this manual
+``make fuzz``      build the fuzzing harnesses (clang; see
+                   :ref:`testing`)
 ``make install``   install the libraries and the headers (see below)
 ``make manual``    build this manual (``manual/libcbaia-manual.pdf``;
                    requires Sphinx and LaTeX)

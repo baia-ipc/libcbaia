@@ -56,8 +56,8 @@ built with only a C compiler and ``make``). In particular, BAM files are
 read and written without htslib.
 
 **Tested.** Each module has unit tests, run under valgrind (failing on
-memory errors and leaks); the input parsers are fuzzed in the projects
-using them.
+memory errors and leaks); the parsers of the input files (FASTQ, BAM,
+whitelists) are fuzzed.
 
 Components
 ~~~~~~~~~~

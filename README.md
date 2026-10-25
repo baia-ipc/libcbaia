@@ -178,7 +178,9 @@ programs are in `docs/manual/examples` and are tested by `make test`.
 The conventions for the organization of the code, the coding style,
 the modules, the tests and the commits are described in the developer
 guide (`docs/dev_manual.md`). New modules should come with unit tests,
-which are added to the test program `tests/cbaia-tests.c`.
+which are added to the test program `tests/cbaia-tests.c`. The parsers
+of the input files are fuzzed with libFuzzer (`make fuzz`; harnesses in
+`tests/fuzz`).
 
 # License
 

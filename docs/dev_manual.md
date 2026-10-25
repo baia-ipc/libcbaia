@@ -460,7 +460,9 @@ handling:
   integration with `-Werror`);
 - run a static analyzer, e.g. `clang-tidy
   --checks='clang-analyzer-*,bugprone-*'`, and review its findings;
-- fuzz the input parsers.
+- fuzz the input parsers (`make fuzz`, then `tests/fuzz/run.sh <harness>
+  <seconds> [<jobs>]`; harnesses: `reads`, `bam`, `whitelist`); a new
+  parser comes with a harness in `tests/fuzz`.
 
 ## Performance
 

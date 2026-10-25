@@ -32,3 +32,24 @@ jobs:
         run: |
           make VALGRIND= CC=clang \
             DEBUGFLAGS="-g -O1 -fsanitize=address,undefined -fno-sanitize-recover=undefined" test
+  fuzzing:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install the clang runtime libraries
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libclang-rt-18-dev
+      - name: Build the fuzzing harnesses
+        run: make fuzz
+      - name: Fuzz each harness for one minute
+        run: |
+          for h in reads bam whitelist; do
+            tests/fuzz/run.sh $h 60 2
+          done
+      - name: Upload crashing inputs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fuzz-crashes
+          path: obj/fuzz/crashes-*

@@ -92,9 +92,43 @@ handling:
 * **Static analysis**: e.g. ``clang-tidy
   --checks='clang-analyzer-*,bugprone-*'``, reviewing the findings (some
   are false positives, e.g. in khash).
-* **Fuzzing**: the parsers of the input files (FASTQ, BAM, whitelists)
-  are fuzzed with libFuzzer in the projects (e.g. ``tests/fuzz`` of
-  Lumipore). As the parsers exit the program on invalid input, the
-  harnesses wrap ``exit()`` (linker option ``--wrap=exit``) so that it
-  returns to the fuzzer; leak detection is disabled, as the memory of an
-  interrupted parse is not freed.
+* **Fuzzing**: see below.
+
+Fuzzing
+~~~~~~~
+
+The parsers of the input files are fuzzed with libFuzzer (clang, with
+the address and undefined behaviour sanitizers; on Debian/Ubuntu, the
+clang runtime package, e.g. ``libclang-rt-18-dev``, is needed). The
+harnesses are in ``tests/fuzz``:
+
+``fuzz-reads.c``
+   files of reads, through the reads reader (FASTQ, gzipped FASTQ or
+   BAM): the records are read in small batches, written again as FASTQ
+   and as unaligned BAM, and reverse complemented; the reads are counted
+   and the completeness of the file is checked;
+``fuzz-bam.c``
+   BAM files: header and records, encoded again as unaligned BAM;
+``fuzz-whitelist.c``
+   barcode whitelists: barcodes searched at both ends with distances 0
+   to 2, and cells identified from the exact matches.
+
+::
+
+   make fuzz                         # builds bin/fuzz/fuzz-<harness>
+   tests/fuzz/run.sh reads 600 4     # harness, seconds, parallel jobs
+
+The corpus is kept in ``obj/fuzz/corpus-<harness>`` (started from the
+seeds in ``tests/fuzz/seeds/<harness>``); crashing inputs are written to
+``obj/fuzz/crashes-<harness>/`` and can be replayed with
+``bin/fuzz/fuzz-<harness> <file>``.
+
+As the parsers exit the program on invalid input, ``exit()`` is wrapped
+(linker option ``--wrap=exit``) so that it returns to the harness
+(``FUZZ_RUN()`` of ``tests/fuzz/fuzz-common.h``), which closes the files
+left open; leak detection is disabled, as the memory of an interrupted
+parse is not freed. ``fuzz-common.h`` is also used by the harnesses of
+the projects, which fuzz their own parsers (e.g. the sample sheets and
+library configurations of Lumipore): they add ``tests/fuzz`` of the
+library to the include path, and define ``FUZZ_NAME`` (used in the name
+of the temporary input file).
