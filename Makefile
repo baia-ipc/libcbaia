@@ -35,7 +35,7 @@ TESTS = $(BINDIR)/cbaia-tests
 
 PREFIX ?= /usr/local
 
-.PHONY: default lib test install uninstall clean cleanup cleandep
+.PHONY: default lib test manual install uninstall clean cleanup cleandep
 
 default: lib
 
@@ -105,6 +105,13 @@ VALGRIND = $(if $(shell command -v valgrind),valgrind --error-exitcode=1 -q \
 test: $(TESTS)
 	$(VALGRIND) $(BINDIR)/cbaia-tests -q
 	$(MAKE) -C docs/manual/examples check
+
+# user manual (PDF), from docs/manual (requires Sphinx and LaTeX)
+SPHINXBUILD ?= sphinx-build
+manual:
+	$(SPHINXBUILD) -M latexpdf docs/manual docs/manual/_build -q
+	mkdir -p manual
+	cp docs/manual/_build/latex/libcbaia.pdf manual/libcbaia-manual.pdf
 
 install: $(LIB) $(ZLIB)
 	mkdir -p $(DESTDIR)$(PREFIX)/lib $(DESTDIR)$(PREFIX)/include/cbaia

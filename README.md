@@ -162,6 +162,17 @@ the file formats used for them.
 | `cell-caller.h` | Identification of the cells of a single-cell library from the counts of the barcodes found exactly in the reads, given the expected number of cells (as in Cell Ranger 2), optionally with cells known from another source. |
 | `complexity.h` | Estimate of the library complexity (number of distinct molecules) from the reads and the distinct molecule keys (e.g. UMI and ends of the insert), taking sequencing errors into account (Lander-Waterman, as in Picard). |
 
+# Manual
+
+The user manual, for the C developers using the library or contributing
+to it, is [manual/libcbaia-manual.pdf](manual/libcbaia-manual.pdf): how
+to build and include the library in a project, a first program, the
+conventions of the API, a description of each module with examples,
+recipes (e.g. a barcode demultiplexer, multithreaded processing), the
+tests, and the API reference. Its source is in `docs/manual`
+(reStructuredText, Sphinx; `make manual` builds the PDF); the example
+programs are in `docs/manual/examples` and are tested by `make test`.
+
 # Development
 
 The conventions for the organization of the code, the coding style,

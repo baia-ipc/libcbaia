@@ -2,6 +2,7 @@ bin/
 obj/
 lib/
 .d/
+docs/manual/_build/
 docs/manual/examples/readcount
 docs/manual/examples/bcdemux
 docs/manual/examples/logdemo

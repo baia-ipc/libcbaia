@@ -1,0 +1,532 @@
+.. _reference:
+
+API reference
+-------------
+
+The declarations of the headers of the library (generated from the headers by ``docs/manual/make_reference.py``; the documentation of each function is in the header, before its declaration). The unit test functions (``<module>_test()``) and the internal functions (``__`` prefix, called by macros) are not listed.
+
+Core (``core``)
+~~~~~~~~~~~~~~~~
+
+**alloc.h**
+
+Memory allocation macros
+
+.. code-block:: c
+
+   #define XMALLOC(PTR, BUFSIZE)
+   #define XCALLOC(PTR, NITEMS, ITMSIZE)
+   #define XREALLOC(PTR, REQSIZE)
+   #define XCHECKSPACE(PTRPTR, SIZEPTR, REQSIZE)
+   #define XCHECKSPACEINC(PTR, SIZEPTR, REQSIZE, INC)
+   #define XCHECKSPACEINCPERC(PTR, SIZEPTR, REQSIZE, INCPERC)
+   #define XFREE(PTR)
+
+**argparse-def.h**
+
+.. code-block:: c
+
+   #define VERSION
+   #define STR(S)
+   #define XSTR(S)
+   #define BOOLSTR(BOOL)
+   #define HELP_AND_EXIT
+   #define PURPOSE_AND_EXIT
+   #define VERSION_AND_EXIT
+   #define LOGGER_OPTS_VAR_DECLARE
+   #define PARSE_START
+   #define PARSE_ERR(FMT, ...)
+   #define OPT_ERR(C, FMT, ...)
+   #define ARG_ERR(N, FMT, ...)
+   static inline bool argparse_long(const char *s, long *value);
+   #define PARSE_INTEGER_OPT_MIN(C, DESTPTR, MINVALUE)
+   #define PARSE_INTEGER_OPT_MIN_MAX(C, DESTPTR, MINVALUE, MAXVALUE)
+   #define PARSE_INTEGER_ARG_MIN(N, DESTPTR, MINVALUE)
+   #define LOGFILE_OPT
+   #define LOGFILE_OPT_STR
+   #define LOGFILE_OPT_HELP
+   #define LOGGER_LONGOPTS
+   #define COMMON_LONGOPTS
+   #define LONGOPTS_END
+   #define LOGGER_OPTS_HELP
+   #define COMMON_OPTS_HELP
+   #define LOGGER_OPTS_STR
+   #define COMMON_OPTS_STR
+   #define LOGGER_OPTS_CHKMULTI
+   #define LOGGER_OPTS_PARSE_CASES
+   #define COMMON_OPTS_PARSE_CASES
+   #define CHECK_NARGS(EXPECTED)
+   #define CHECK_MIN_NARGS(EXPECTED)
+   #define LOGGER_OPTS_APPLY(LOGGER)
+   #define INIT_LOGGER(LOGGER)
+   #define PARSE_LOG(FMT, ...)
+   #define PARSE_LOG_N(FMT, ...)
+
+**colors.h**
+
+Colors
+
+.. code-block:: c
+
+   #define START_COLOR(STREAM, COLOR)
+   #define STOP_COLOR(STREAM)
+   #define BLACK
+   #define RED
+   #define GREEN
+   #define YELLOW
+   #define BLUE
+   #define MAGENTA
+   #define CYAN
+   #define WHITE
+   #define BRIGHT_BLACK
+   #define BRIGHT_RED
+   #define BRIGHT_GREEN
+   #define BRIGHT_YELLOW
+   #define BRIGHT_BLUE
+   #define BRIGHT_MAGENTA
+   #define BRIGHT_CYAN
+   #define BRIGHT_WHITE
+
+**file.h**
+
+File system interaction
+
+.. code-block:: c
+
+   #define xfopen(fname, sfx, mode, description, logger)
+   #define xfclose(file, logger)
+   void xfunlink(const char *fname, const char *sfx, Logger *logger);
+   void xfrename(const char *fname_old, const char *sfx_old,
+                 const char *fname_new, const char *sfx_new,
+                 Logger *logger);
+   void read_file(FILE *file, char **buffer, size_t *bufsize, Logger* logger);
+   #define xfread(PTR, SIZE, NMEMB, STREAM, LOGGER)
+   #define xfwrite(PTR, SIZE, NMEMB, STREAM, LOGGER)
+   size_t read_lines_in_buffer(FILE *file, char *buffer, const size_t bufsize,
+       char ***lines, size_t *linesbufsize, Logger *logger);
+   char *compute_nth_filename(const char *basename, const char *sfx, size_t n);
+   bool xgetline(char **line, size_t *line_size, FILE *file, Logger *logger);
+   bool xgetdelim(char **line, size_t *line_size, int delim, FILE *file,
+                  Logger *logger);
+   #define xfmap(fname, sfx, writable, fsize, fd, logger)
+   void xfunmap(void *map, size_t fsize, int fd, Logger *logger);
+   bool file_exists(const char *fname, const char *sfx);
+   size_t file_size(FILE *file);
+   void xchksig(const char *signature, const char *expected,
+                const char *fname, const char *sfx,
+                const char *desc, const char *helpmsg,
+                Logger *logger);
+   #define xfopen_chksig(fname, sfx, mode, description, expected_signature, helpmsg, logger)
+   #define xfopen_putsig(fname, sfx, mode, description, signature, logger)
+   #define xfmap_chksig(fname, sfx, fsize, fd, expected_signature, filedesc, helpmsg, logger)
+   bool is_directory(const char *path);
+   void xmakedirs(const char *path, Logger *logger);
+   char *path_basename(const char *path);
+   typedef bool (*list_dir_filter_t)(const char *name, const char *path,
+       void *data);
+   char **list_dir(const char *dir, list_dir_filter_t filter, void *data,
+       size_t *n, Logger *logger);
+
+**logger.h**
+
+Logging library
+
+.. code-block:: c
+
+   typedef struct Logger Logger;
+   typedef enum LoggingLevel {
+     LOG_ERROR   = 0,
+     LOG_WARN    = 1,
+     LOG_SUCCESS = 2,
+     LOG_PHASE   = 3,
+     LOG_INFO    = 4,
+     LOG_PARAM   = 5,
+     LOG_MEM     = 6,
+     LOG_DEBUG   = 7,
+     LOG_TRACE   = 8
+   } LoggingLevel;
+   Logger* new_logger(FILE *logfile, LoggingLevel level);
+   void delete_logger(Logger* logger);
+   #define lprintf(LOGGER, LEVEL, FMT, ...)
+   void lnprintf(Logger *logger, LoggingLevel level, const char *fmt, ...)
+        __attribute__ ((format (printf,3,4)));
+   #define LCHECK(CONDITION, LOGGER, FMT, ...)
+   #define fatal_printf(FMT, ...)
+   #define showmem(logger)
+   #define TRACE(FMT, ...)
+   void NTRACE(const char *fmt, ...)\
+        __attribute__ ((format (printf,1,2)));
+   #define DEBUG_TRACE(FMT, ...)
+   void DEBUG_NTRACE(const char *fmt, ...)
+        __attribute__ ((format (printf,1,2)));
+   #define DEBUG_NTRACE(fmt, ...)
+
+**progress.h**
+
+Progress display in the style of the Python tqdm package, e.g.:
+
+.. code-block:: c
+
+   #define PROGRESS_MIN_INTERVAL
+   typedef struct progress_t progress_t;
+   progress_t* progress_new(FILE *file, const char *description, size_t total);
+   void progress_update(progress_t *self, size_t n);
+   void progress_finish(progress_t *self);
+   size_t progress_count(const progress_t *self);
+   void progress_delete(progress_t *self);
+
+**strbuf.h**
+
+Growable string buffer, for building output text without allocations for each piece (the memory is kept when the buffer is cleared).
+
+.. code-block:: c
+
+   #define STRBUF_INC
+   typedef struct {
+     char *s;
+     size_t len;
+     size_t cap;
+   } strbuf_t;
+   static inline void strbuf_init(strbuf_t *self);
+   static inline void strbuf_free(strbuf_t *self);
+   static inline void strbuf_clear(strbuf_t *self);
+   static inline void strbuf_append(strbuf_t *self, const char *s,
+       size_t len);
+   static inline void strbuf_append_str(strbuf_t *self, const char *s);
+   static inline void strbuf_append_char(strbuf_t *self, char c);
+   static inline void strbuf_append_long(strbuf_t *self, long value);
+
+**strutils.h**
+
+.. code-block:: c
+
+   char *strcat_alloc(const char *s1, const char *s2);
+   bool str_has_suffix(const char *s, const char *sfx);
+   void fputs_json_string(const char *s, FILE *f);
+   void fputs_html_escaped(const char *s, FILE *f);
+   void format_duration(double seconds, char *buf, size_t size);
+
+**test.h**
+
+.. code-block:: c
+
+   #define test_assert(TEST)
+   #define test_eq(FOUND, EXP, TYPE, FMT)
+   #define test_eq_size(FOUND, EXP)
+   #define test_eq_int(FOUND, EXP)
+   #define test_eq_long(FOUND, EXP)
+   #define test_eq_str(FOUND, EXP)
+   #define test_eq_char(FOUND, EXP)
+
+Data structures (``ds``)
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+**bitwise.h**
+
+.. code-block:: c
+
+   #define GET_BIT(E, BITNUM)
+   #define SET_BIT(E, BITNUM)
+   #define UNSET_BIT(E, BITNUM)
+
+**bloom-filter.h**
+
+Bloom filter for integer keys (two hash functions, derived from the splitmix64 hash of the key).
+
+.. code-block:: c
+
+   typedef struct bloom_filter_t bloom_filter_t;
+   bloom_filter_t *bloom_filter_new(size_t size_exp);
+   void bloom_filter_insert(bloom_filter_t *self, size_t key);
+   bool bloom_filter_query(const bloom_filter_t *self, size_t key);
+   void bloom_filter_delete(bloom_filter_t *self);
+
+**heap.h**
+
+Binary min-heap of pointers, ordered by a comparison function (the smallest element is extracted first), e.g. for priority queues or for merging sorted sequences.
+
+.. code-block:: c
+
+   typedef int (*heap_cmp_t)(const void *a, const void *b);
+   typedef struct heap_t heap_t;
+   heap_t* heap_new(heap_cmp_t cmp, size_t capacity);
+   void heap_push(heap_t *self, void *element);
+   void *heap_pop(heap_t *self);
+   void *heap_peek(const heap_t *self);
+   size_t heap_size(const heap_t *self);
+   bool heap_is_empty(const heap_t *self);
+   void heap_delete(heap_t *self);
+
+**hyperloglog.h**
+
+HyperLogLog: estimation of the number of distinct elements of a multiset, using a small fixed amount of memory (Flajolet et al. 2007, with the small-range correction by linear counting of Heule et al. 2013).
+
+.. code-block:: c
+
+   #define HLL_PRECISION
+   #define HLL_REGISTERS
+   typedef struct {
+     uint8_t registers[HLL_REGISTERS];
+   } hll_t;
+   void hll_init(hll_t *self);
+   uint64_t hll_hash(const void *data, size_t len);
+   void hll_add(hll_t *self, uint64_t hash);
+   void hll_merge(hll_t *self, const hll_t *other);
+   double hll_estimate(const hll_t *self);
+
+**set.h**
+
+Implementation: - Sorted array S plus an unsorted buffer B - Query is by binary search on S plus linear search on B - Insertion is in B - B is sorted and merged in S when full
+
+.. code-block:: c
+
+   #define SET_TYPE
+   typedef struct Set Set;
+   Set *set_new(size_t insertion_buffer_size, size_t bloom_filter_size,
+                size_t k);
+   void set_insert_simple(Set *set, SET_TYPE key);
+   void set_insert(Set *set, SET_TYPE key);
+   void set_finalize_insertions(Set *set);
+   bool set_query(const Set *set, SET_TYPE key);
+   void set_delete(Set *set);
+
+Large files and compression (``io``)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+**bgzf-compressor.h**
+
+BGZF compression (the format of BAM files): the data are compressed in blocks of at most 64 KiB, each a gzip member with an extra field (BC) containing the size of the block. As for the gzip members of gzip-compressor.h, blocks can be compressed in parallel and written in order; a BGZF file ends with an empty block (the end-of-file marker).
+
+.. code-block:: c
+
+   #define BGZF_EOF_LEN
+   extern const uint8_t bgzf_eof[BGZF_EOF_LEN];
+   typedef struct bgzf_compressor_t bgzf_compressor_t;
+   bgzf_compressor_t* bgzf_compressor_new(int level);
+   void bgzf_compressor_run(bgzf_compressor_t *self, const char *data,
+       size_t len, strbuf_t *out);
+   void bgzf_compressor_delete(bgzf_compressor_t *self);
+
+**file-merger.h**
+
+Merging of sorted files
+
+.. code-block:: c
+
+   void merge_n_files(size_t nfiles, const char *basename, const char *sfx,
+       bool use_stdout,
+       bool getelem(char **elem, size_t *elemsize, FILE *file, Logger *logger),
+       void writeelem(FILE *file, char *elem, Logger *logger),
+       int cmpelems(const void *elem1, const void *elem2), Logger *logger);
+
+**file-sorter.h**
+
+Sorting of large files in parts which fit in memory (to be merged with merge_n_files() of file-merger.h)
+
+.. code-block:: c
+
+   size_t sort_file_parts(
+       const char *infname,
+       const char *infsfx,
+       const char *outfname,
+       const char *outfsfx,
+       size_t bufsize,
+       size_t elems_bufsize_init,
+       size_t read_elems(FILE *file, char *buffer, size_t bufsize,
+                         char ***elems, size_t *elemsbufsize, Logger *logger),
+       void sort_elems(char **elems, size_t nelems),
+       void output_sorted_elems(FILE *file, char **elems, size_t nelems,
+                                Logger *logger),
+       Logger *logger);
+
+**gzip-compressor.h**
+
+Compression of data blocks as gzip members; the concatenation of gzip members is a valid gzip file, thus blocks can be compressed in parallel and written in order.
+
+.. code-block:: c
+
+   typedef struct gzip_compressor_t gzip_compressor_t;
+   gzip_compressor_t* gzip_compressor_new(int level);
+   void gzip_compressor_run(gzip_compressor_t *self, const char *data,
+       size_t len, strbuf_t *out);
+   void gzip_compressor_delete(gzip_compressor_t *self);
+
+Sequences and reads (``seq``)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+**bam-reader.h**
+
+Reading of BAM files, e.g. the unaligned BAM files written by Dorado and MinKNOW, in batches of FASTQ-like records (see fastq-reader.h).
+
+.. code-block:: c
+
+   typedef struct bam_reader_t bam_reader_t;
+   bool bam_reader_is_bam(const char *filename, Logger *logger);
+   bam_reader_t* bam_reader_new(const char *filename, Logger *logger);
+   const char *bam_reader_header(const bam_reader_t *self);
+   size_t bam_reader_read_batch(bam_reader_t *self, fastq_batch_t *batch,
+       size_t max_records);
+   void bam_reader_delete(bam_reader_t *self);
+   bool bam_reader_has_eof_marker(const char *filename);
+   size_t bam_reader_count(const char *filename, Logger *logger);
+
+**cell-caller.h**
+
+Identification of the cell barcodes of a single-cell library: the barcodes of a whitelist (e.g. all barcodes of a platform) found exactly in the reads are counted, and the barcodes of the cells are selected from the counts, given the expected number of cells N, as in Cell Ranger (version 2): the barcodes with a count of at least 1/10 of the 99th percentile of the counts of the N most frequent barcodes.
+
+.. code-block:: c
+
+   typedef struct cell_caller_t cell_caller_t;
+   cell_caller_t* cell_caller_new(void);
+   void cell_caller_add(cell_caller_t *self, uint64_t barcode);
+   void cell_caller_merge(cell_caller_t *self, cell_caller_t *other);
+   whitelist_t* cell_caller_run(const cell_caller_t *self,
+       size_t expected_cells, size_t length, const whitelist_t *known,
+       const char *path, Logger *logger);
+   size_t cell_caller_sorted_counts(const cell_caller_t *self,
+       uint64_t **counts);
+   void cell_caller_delete(cell_caller_t *self);
+
+**complexity.h**
+
+Library complexity of a sample: estimation of the number of distinct molecules of the library, from the number of reads and of distinct molecule keys (e.g. the UMI and the first and last bases of the insert, which identify the copies of a molecule without an alignment), for deciding whether deeper sequencing of a library is worthwhile.
+
+.. code-block:: c
+
+   #define COMPLEXITY_MIN_READS
+   typedef struct {
+     bool estimated;
+     double error_free;
+     double molecules_seen;
+     double duplication;
+     bool saturated_unknown;
+     double molecules;
+     double molecules_2x;
+   } complexity_t;
+   void complexity_estimate(size_t reads, double distinct_keys,
+       double mean_key_length, double error_rate, complexity_t *out);
+
+**fastq-reader.h**
+
+Reading of FASTQ files (optionally gzip-compressed) in batches of records.
+
+.. code-block:: c
+
+   typedef struct fastq_reader_t fastq_reader_t;
+   typedef struct {
+     size_t title_from, title_len;
+     size_t seq_from, seq_len;
+     size_t qual_from;
+   } fastq_record_t;
+   typedef struct {
+     strbuf_t data;
+     fastq_record_t *records;
+     size_t n_records, records_cap;
+   } fastq_batch_t;
+   fastq_reader_t* fastq_reader_new(const char *filename, Logger *logger);
+   size_t fastq_reader_read_batch(fastq_reader_t *self, fastq_batch_t *batch,
+       size_t max_records);
+   void fastq_reader_delete(fastq_reader_t *self);
+   void fastq_batch_init(fastq_batch_t *batch);
+   void fastq_batch_free(fastq_batch_t *batch);
+
+**fastq-writer.h**
+
+Writing of FASTQ records to a buffer (e.g. for a batch of records, which is then compressed with gzip-compressor.h and written to a file).
+
+.. code-block:: c
+
+   void fastq_writer_record(strbuf_t *out, const char *title, size_t title_len,
+       const char *seq, const char *qual, size_t len);
+
+**outfiles.h**
+
+Output files of a program writing the reads to several destinations, e.g. a demultiplexer (a destination for each sample), with one compressed file for each destination: - for an input file: <outdir>/<input basename>.<destination>.fastq.gz, where the suffix .fastq.gz, .fastq or .bam of the input file is removed; - for a group of input files (directory mode): <outdir>/<group>/<destination>.fastq.gz.
+
+.. code-block:: c
+
+   #define OUTFILES_COMPRESSLEVEL
+   typedef struct outfiles_t outfiles_t;
+   outfiles_t* outfiles_new(const char *outdir, const char *reads_file,
+       size_t n_destinations, Logger *logger);
+   outfiles_t* outfiles_new_group(const char *outdir, const char *group,
+       size_t n_destinations, Logger *logger);
+   void outfiles_set_append(outfiles_t *self, bool append);
+   void outfiles_set_bam(outfiles_t *self, size_t destination,
+       const char *header, size_t len);
+   #define OUTFILES_FASTQ_SFX
+   #define OUTFILES_BAM_SFX
+   void outfiles_write(outfiles_t *self, size_t destination, const char *name,
+       const char *data, size_t len);
+   void outfiles_delete(outfiles_t *self);
+
+**reads-reader.h**
+
+Reader of the reads of a FASTQ file (optionally gzipped) or of an unaligned BAM file, recognized from the content, with the same interface (batches of FASTQ records, see fastq-reader.h); functions for recognizing the files of reads by their name, counting the reads, and checking whether a file is complete (e.g. when it is written by another program, such as a basecaller).
+
+.. code-block:: c
+
+   typedef struct reads_reader_t reads_reader_t;
+   reads_reader_t* reads_reader_new(const char *filename, Logger *logger);
+   bool reads_reader_is_bam(const reads_reader_t *self);
+   size_t reads_reader_read_batch(reads_reader_t *self, fastq_batch_t *batch,
+       size_t max_records);
+   void reads_reader_delete(reads_reader_t *self);
+   bool reads_reader_is_reads_filename(const char *name);
+   size_t reads_reader_count(const char *filename, Logger *logger);
+   bool reads_reader_file_complete(const char *path);
+
+**sequtil.h**
+
+Sequence utilities: reverse complement and substrings with the semantics of the Python slices (useful for reproducing exactly the output of Python programs).
+
+.. code-block:: c
+
+   void reverse_complement(const char *seq, size_t len, char *dest);
+   void py_slice(long len, long start, long stop, long *from, long *slice_len);
+
+**ubam-writer.h**
+
+Encoding of unaligned BAM data (header and records), to be compressed with BGZF (see bgzf-compressor.h).
+
+.. code-block:: c
+
+   #define UBAM_MAX_READ_NAME
+   void ubam_writer_header(strbuf_t *out, const char *text);
+   void ubam_writer_record(strbuf_t *out, const char *title, size_t title_len,
+       const char *seq, const char *qual, size_t len);
+
+**whitelist.h**
+
+Whitelist of barcodes (e.g. the cell barcodes of a single-cell platform) and correction of the barcodes extracted from the reads.
+
+.. code-block:: c
+
+   #define WHITELIST_MAX_BARCODE_LENGTH
+   #define WHITELIST_MAX_DIST
+   typedef struct whitelist_t whitelist_t;
+   typedef enum {
+     WHITELIST_EXACT,
+     WHITELIST_CORRECTED,
+     WHITELIST_AMBIGUOUS,
+     WHITELIST_NOT_FOUND,
+   } whitelist_status_t;
+   typedef struct {
+     whitelist_status_t status;
+     uint64_t barcode;
+     long dist;
+     size_t consumed;
+   } whitelist_match_t;
+   whitelist_t* whitelist_new(const char *path, Logger *logger);
+   whitelist_t* whitelist_new_from_codes(const uint64_t *barcodes, size_t n,
+       size_t length);
+   bool whitelist_encode(const whitelist_t *self, const char *seq,
+       uint64_t *barcode);
+   bool whitelist_contains(const whitelist_t *self, uint64_t barcode);
+   void whitelist_delete(whitelist_t *self);
+   size_t whitelist_barcode_length(const whitelist_t *self);
+   size_t whitelist_size(const whitelist_t *self);
+   size_t whitelist_codes(const whitelist_t *self, uint64_t **codes);
+   void whitelist_match(const whitelist_t *self, const char *seq, size_t len,
+       bool from_end, long max_dist, whitelist_match_t *match);
+   void whitelist_decode(const whitelist_t *self, uint64_t barcode, char *out);
