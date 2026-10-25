@@ -77,6 +77,27 @@ static void strutils_test(void) {
     strbuf_append(&buf, "abc", 3);
   test_eq_size(buf.len, 30000);
   strbuf_free(&buf);
+  test_assert(str_has_suffix("reads.fastq.gz", ".gz"));
+  test_assert(!str_has_suffix(".gz", ".gz"));
+  test_assert(!str_has_suffix("reads.fastq", ".gz"));
+  char dur[32];
+  format_duration(3725, dur, sizeof(dur));
+  test_eq_str(dur, "01:02:05");
+  format_duration(90061, dur, sizeof(dur));
+  test_eq_str(dur, "1 d 01:01:01");
+  format_duration(-3, dur, sizeof(dur));
+  test_eq_str(dur, "00:00:00");
+  char *out = NULL;
+  size_t outsize = 0;
+  FILE *f = open_memstream(&out, &outsize);
+  test_assert(f != NULL);
+  fputs_json_string("a\"b\\c\n\x01", f);
+  fputc(' ', f);
+  fputs_html_escaped("<a href=\"x\">&</a>", f);
+  fclose(f);
+  test_eq_str(out, "\"a\\\"b\\\\c\\n\\u0001\" "
+              "&lt;a href=&quot;x&quot;&gt;&amp;&lt;/a&gt;");
+  free(out);
 }
 
 static void argparse_test(void) {
