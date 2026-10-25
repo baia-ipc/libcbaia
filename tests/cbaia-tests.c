@@ -27,6 +27,7 @@
 #include "hyperloglog.h"
 #include "logger.h"
 #include "progress.h"
+#include "reads-reader.h"
 #include "sequtil.h"
 #include "set.h"
 #include "strbuf.h"
@@ -255,6 +256,7 @@ static void run_fastq_reader_test(void) { fastq_reader_test(tmpdir); }
 static void run_bgzf_compressor_test(void) { bgzf_compressor_test(tmpdir); }
 static void run_bam_reader_test(void) { bam_reader_test(tmpdir); }
 static void run_ubam_writer_test(void) { ubam_writer_test(tmpdir); }
+static void run_reads_reader_test(void) { reads_reader_test(tmpdir); }
 static void run_whitelist_test(void) { whitelist_test(tmpdir); }
 static void run_cell_caller_test(void) { cell_caller_test(tmpdir); }
 
@@ -282,6 +284,7 @@ static test_group_t test_groups[] = {
   {'x', "FASTQ writer", fastq_writer_test, false},
   {'m', "BAM reader", run_bam_reader_test, false},
   {'n', "uBAM writer", run_ubam_writer_test, false},
+  {'d', "reads reader", run_reads_reader_test, false},
   {'w', "barcode whitelist", run_whitelist_test, false},
   {'l', "cell caller", run_cell_caller_test, false},
   {'i', "library complexity", complexity_test, false},
