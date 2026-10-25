@@ -16,6 +16,7 @@
 #include "bitwise.h"
 #include "bloom-filter.h"
 #include "cell-caller.h"
+#include "complexity.h"
 #include "fastq-reader.h"
 #include "fastq-writer.h"
 #include "file.h"
@@ -283,6 +284,7 @@ static test_group_t test_groups[] = {
   {'n', "uBAM writer", run_ubam_writer_test, false},
   {'w', "barcode whitelist", run_whitelist_test, false},
   {'l', "cell caller", run_cell_caller_test, false},
+  {'i', "library complexity", complexity_test, false},
 };
 #define N_TEST_GROUPS (sizeof(test_groups) / sizeof(test_groups[0]))
 
