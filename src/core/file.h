@@ -220,4 +220,29 @@ void* __xfmap_chksig(const char *fname, const char *sfx,
   __xfmap_chksig(fname, sfx, fsize, fd, expected_signature, \
                  filedesc, helpmsg, logger, __FILE__, __LINE__)
 
+/* Whether path is an existing directory */
+bool is_directory(const char *path);
+
+/* Create a directory and its parents, if they do not exist (as mkdir -p);
+   the program is exited with an error message if this fails */
+void xmakedirs(const char *path, Logger *logger);
+
+/* Last component of a path, without trailing slashes (allocated, to be
+   freed by the caller); e.g. "run/fastq_pass/" -> "fastq_pass" */
+char *path_basename(const char *path);
+
+/* Filter for list_dir(): name: the entry name; path: <dir>/<name>; data:
+   the data passed to list_dir() */
+typedef bool (*list_dir_filter_t)(const char *name, const char *path,
+    void *data);
+
+/* Paths (<dir>/<name>) of the entries of the directory dir, in
+   lexicographic order, without the hidden entries (name starting with a
+   dot); if filter is not NULL, only those for which it returns true;
+   the number of paths is stored in n; the array and the paths are
+   allocated, to be freed by the caller; the program is exited with an
+   error message if the directory cannot be read */
+char **list_dir(const char *dir, list_dir_filter_t filter, void *data,
+    size_t *n, Logger *logger);
+
 #endif

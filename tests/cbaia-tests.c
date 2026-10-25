@@ -100,6 +100,65 @@ static void strutils_test(void) {
   free(out);
 }
 
+static bool only_txt(const char *name, const char *path, void *data) {
+  (void)path;
+  (*(size_t *)data)++;
+  return str_has_suffix(name, ".txt");
+}
+
+static void file_utils_test(void) {
+  char *base = path_basename("run/fastq_pass/");
+  test_eq_str(base, "fastq_pass");
+  free(base);
+  base = path_basename("reads.fastq");
+  test_eq_str(base, "reads.fastq");
+  free(base);
+  char *dir = strcat_alloc(tmpdir, "/file_utils_test");
+  char *sub = strcat_alloc(dir, "/a/b");
+  xmakedirs(sub, NULL);
+  xmakedirs(sub, NULL);   /* existing: no error */
+  test_assert(is_directory(sub));
+  test_assert(!is_directory("/nonexistent/x"));
+  const char *names[] = {"z.txt", "y.dat", "x.txt", ".hidden.txt"};
+  for (size_t i = 0; i < 4; i++) {
+    char *dir_slash = strcat_alloc(dir, "/");
+    char *path = strcat_alloc(dir_slash, names[i]);
+    FILE *f = fopen(path, "w");
+    test_assert(f != NULL);
+    fclose(f);
+    free(dir_slash);
+    free(path);
+  }
+  size_t n, calls = 0;
+  char **paths = list_dir(dir, only_txt, &calls, &n, NULL);
+  test_eq_size(n, 2);
+  test_eq_size(calls, 4);   /* a, x.txt, y.dat, z.txt */
+  base = path_basename(paths[0]);
+  test_eq_str(base, "x.txt");
+  free(base);
+  for (size_t i = 0; i < n; i++)
+    free(paths[i]);
+  free(paths);
+  paths = list_dir(dir, NULL, NULL, &n, NULL);
+  test_eq_size(n, 4);   /* the hidden file is not listed */
+  for (size_t i = 0; i < n; i++) {
+    if (!is_directory(paths[i]))
+      unlink(paths[i]);
+    free(paths[i]);
+  }
+  free(paths);
+  char *hidden = strcat_alloc(dir, "/.hidden.txt");
+  unlink(hidden);
+  free(hidden);
+  rmdir(sub);
+  char *a = strcat_alloc(dir, "/a");
+  rmdir(a);
+  free(a);
+  rmdir(dir);
+  free(sub);
+  free(dir);
+}
+
 static void argparse_test(void) {
   long value;
   test_assert(argparse_long("42", &value));
@@ -203,6 +262,7 @@ typedef struct {
 
 static test_group_t test_groups[] = {
   {'s', "string utilities", strutils_test, false},
+  {'k', "file and directory utilities", file_utils_test, false},
   {'a', "argument parsing", argparse_test, false},
   {'o', "progress display", progress_test, false},
   {'z', "gzip compressor", run_gzip_compressor_test, false},

@@ -11,6 +11,7 @@
 #include <sys/mman.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <dirent.h>
 #include "alloc.h"
 #include "strutils.h"
 #include "file.h"
@@ -312,4 +313,72 @@ void *__xfmap_chksig(const char *fname, const char *sfx,
   xchksig((char*)result, expected_signature, fname, sfx, filedesc, helpmsg,
       logger);
   return result;
+}
+
+bool is_directory(const char *path)
+{
+  struct stat st;
+  return stat(path, &st) == 0 && S_ISDIR(st.st_mode);
+}
+
+void xmakedirs(const char *path, Logger *logger)
+{
+  char *p = strcat_alloc(path, "");
+  for (char *s = p + 1; *s != '\0'; s++)
+    if (*s == '/') {
+      *s = '\0';
+      mkdir(p, 0777);
+      *s = '/';
+    }
+  LCHECK(mkdir(p, 0777) == 0 || errno == EEXIST, logger,
+         "Creating directory '%s' failed, %s\n", p, strerror(errno));
+  free(p);
+}
+
+char *path_basename(const char *path)
+{
+  size_t len = strlen(path);
+  while (len > 1 && path[len - 1] == '/')
+    len--;
+  size_t start = len;
+  while (start > 0 && path[start - 1] != '/')
+    start--;
+  char *result;
+  XMALLOC(result, len - start + 1);
+  memcpy(result, path + start, len - start);
+  result[len - start] = '\0';
+  return result;
+}
+
+static int cmpstrptr(const void *a, const void *b)
+{
+  return strcmp(*(char *const *)a, *(char *const *)b);
+}
+
+char **list_dir(const char *dir, list_dir_filter_t filter, void *data,
+    size_t *n, Logger *logger)
+{
+  DIR *d = opendir(dir);
+  LCHECK(d != NULL, logger, "Opening directory '%s' failed, %s\n", dir,
+         strerror(errno));
+  char *dir_slash = strcat_alloc(dir, "/");
+  char **paths = NULL;
+  size_t cap = 0;
+  *n = 0;
+  struct dirent *e;
+  while ((e = readdir(d)) != NULL) {
+    if (e->d_name[0] == '.')
+      continue;
+    char *path = strcat_alloc(dir_slash, e->d_name);
+    if (filter == NULL || filter(e->d_name, path, data)) {
+      XCHECKSPACEINCPERC(paths, &cap, (*n + 1) * sizeof(char *), 50);
+      paths[(*n)++] = path;
+    } else
+      free(path);
+  }
+  free(dir_slash);
+  closedir(d);
+  if (*n > 1)
+    qsort(paths, *n, sizeof(char *), cmpstrptr);
+  return paths;
 }
