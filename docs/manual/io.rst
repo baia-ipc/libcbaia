@@ -112,3 +112,22 @@ with an empty block, the end-of-file marker ``bgzf_eof``
 The output files of several destinations (``outfiles.h``,
 :ref:`outfiles`) write such compressed blocks, and add the BGZF
 end-of-file marker to BAM files.
+
+Checksums (``md5.h``)
+~~~~~~~~~~~~~~~~~~~~~
+
+The MD5 digest (RFC 1321) of data or of a file, as 32 lowercase
+hexadecimal digits, e.g. for the checksums of files in metadata (such
+as the ``md5`` of the onlists of seqspec files) or for checking
+downloads; not for security purposes:
+
+.. code-block:: c
+
+   char hex[MD5_HEX_LEN + 1];
+   md5_file("barcodes.txt.gz", hex, logger);   /* as md5sum */
+
+   md5_t md5;                                  /* data in parts */
+   md5_init(&md5);
+   md5_update(&md5, data, len);
+   md5_update(&md5, more, more_len);
+   md5_final(&md5, hex);

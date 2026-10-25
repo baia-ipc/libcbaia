@@ -78,7 +78,7 @@ shown in :numref:`fig-components`:
 
 ``io``
    handling of large files: sorting of files which do not fit in memory,
-   and parallel gzip and BGZF compression;
+   parallel gzip and BGZF compression, MD5 checksums;
 
 ``seq``
    sequences and sequencing reads: reverse complement, FASTQ and BAM

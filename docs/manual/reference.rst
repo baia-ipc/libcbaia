@@ -351,6 +351,24 @@ Compression of data blocks as gzip members; the concatenation of gzip members is
        size_t len, strbuf_t *out);
    void gzip_compressor_delete(gzip_compressor_t *self);
 
+**md5.h**
+
+MD5 message digest (RFC 1321), e.g. for the checksums of files in metadata (as the md5 of the onlists of seqspec files) or for checking downloads. Not to be used for security purposes.
+
+.. code-block:: c
+
+   #define MD5_H
+   #define MD5_HEX_LEN
+   typedef struct {
+     uint32_t state[4];
+     uint64_t n_bytes;
+     uint8_t buffer[64];
+   } md5_t;
+   void md5_init(md5_t *self);
+   void md5_update(md5_t *self, const void *data, size_t len);
+   void md5_final(md5_t *self, char *hex);
+   void md5_file(const char *path, char *hex, Logger *logger);
+
 Sequences and reads (``seq``)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

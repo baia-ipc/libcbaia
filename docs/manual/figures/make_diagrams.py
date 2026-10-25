@@ -56,7 +56,7 @@ def components(outdir):
     ("ds", 4.4, 1, ["bitwise", "bloom-filter", "set", "heap",
                      "hyperloglog"]),
     ("io", 6.65, 1, ["file-sorter", "file-merger", "gzip-compressor",
-                      "bgzf-compressor"]),
+                      "bgzf-compressor", "md5"]),
   ]
   top = 4.6
   pos = {}
