@@ -14,7 +14,7 @@ vpath %.c $(COMPONENT_DIRS)
 SRCS=$(wildcard $(addsuffix /*.c,$(COMPONENT_DIRS)))
 OBJS=$(patsubst %.c,$(OBJDIR)/%.o,$(notdir $(SRCS)))
 HEADERS=$(wildcard $(addsuffix /*.h,$(COMPONENT_DIRS)))
-INCLUDES=$(addprefix -I,$(COMPONENT_DIRS))
+INCLUDES=$(addprefix -I,$(COMPONENT_DIRS)) -Iext/khash
 
 LIB = $(LIBDIR)/libcbaia.a
 
@@ -108,7 +108,7 @@ test: $(TESTS)
 install: $(LIB) $(ZLIB)
 	mkdir -p $(DESTDIR)$(PREFIX)/lib $(DESTDIR)$(PREFIX)/include/cbaia
 	cp $(LIB) $(ZLIB) $(DESTDIR)$(PREFIX)/lib/
-	cp $(HEADERS) $(DESTDIR)$(PREFIX)/include/cbaia/
+	cp $(HEADERS) ext/khash/khash.h $(DESTDIR)$(PREFIX)/include/cbaia/
 
 uninstall:
 	rm -f $(DESTDIR)$(PREFIX)/lib/libcbaia.a \

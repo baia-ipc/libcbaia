@@ -19,7 +19,8 @@
 #
 
 CBAIA_COMPONENTS = core ds io seq
-CBAIA_INCLUDES = $(addprefix -I$(CBAIA_DIR)/src/,$(CBAIA_COMPONENTS))
+CBAIA_INCLUDES = $(addprefix -I$(CBAIA_DIR)/src/,$(CBAIA_COMPONENTS)) \
+  -I$(CBAIA_DIR)/ext/khash
 CBAIA_LIB = $(CBAIA_DIR)/lib/libcbaia.a
 ifeq ($(SYSTEM_LIBS),1)
 CBAIA_LDLIBS = -lz -lm
