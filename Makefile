@@ -61,8 +61,18 @@ DEPFLAGS = -MT $@ -MMD -MP -MF $(DEPDIR)/$*.Td
 COMPILE.c = $(CC) $(DEPFLAGS) $(CFLAGS) $(CPPFLAGS) $(TARGET_ARCH) $(DEBUGFLAGS) -c
 POSTCOMPILE = @mv -f $(DEPDIR)/$*.Td $(DEPDIR)/$*.d && touch $@
 
+# the objects are rebuilt when the compilation flags change (e.g. the
+# DEBUGFLAGS of a project vendoring the library): the flags are saved in
+# FLAGS_STAMP, which is rewritten (thus newer than the objects) only if
+# they differ from those of the previous build
+FLAGS_STAMP = $(OBJDIR)/.flags
+FLAGS_NOW = $(CC) $(CFLAGS) $(CPPFLAGS) $(TARGET_ARCH) $(DEBUGFLAGS)
+$(shell printf '%s\n' '$(subst ','\'',$(FLAGS_NOW))' | \
+  cmp -s - $(FLAGS_STAMP) || \
+  printf '%s\n' '$(subst ','\'',$(FLAGS_NOW))' > $(FLAGS_STAMP))
+
 $(OBJDIR)/%.o : %.c
-$(OBJDIR)/%.o : %.c $(DEPDIR)/%.d
+$(OBJDIR)/%.o : %.c $(DEPDIR)/%.d $(FLAGS_STAMP)
 	$(COMPILE.c) $(OUTPUT_OPTION) $<
 	$(POSTCOMPILE)
 

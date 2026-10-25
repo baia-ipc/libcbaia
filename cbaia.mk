@@ -36,14 +36,21 @@ CBAIA_LIBS = $(CBAIA_LIB) $(CBAIA_ZLIB)
 CBAIA_MAKE_LIB = $(MAKE) -C $(CBAIA_DIR) lib SYSTEM_LIBS=$(SYSTEM_LIBS) \
   $(if $(DEBUGFLAGS),DEBUGFLAGS='$(DEBUGFLAGS)')
 
-$(CBAIA_LIB): $(wildcard $(CBAIA_DIR)/src/*/*.c $(CBAIA_DIR)/src/*/*.h)
+# the Makefile of the library is always run: it rebuilds the library if
+# its sources or the compilation flags (DEBUGFLAGS) changed; otherwise the
+# library is not modified, and the programs are not relinked
+$(CBAIA_LIB): cbaia-force
 	$(CBAIA_MAKE_LIB)
 
-# the zlib library is built after the main one (with make -j, two runs of
-# the sub-make at the same time would conflict); its recipe is also needed
-# when only it is missing (e.g. after a build with SYSTEM_LIBS=1)
+.PHONY: cbaia-force
+cbaia-force:
+
+# the zlib library is built by the same run of the Makefile of the library
+# (with make -j, two runs at the same time would conflict); its recipe is
+# also needed when only it is missing (e.g. after a build with
+# SYSTEM_LIBS=1)
 ifneq ($(CBAIA_ZLIB),)
-$(CBAIA_ZLIB): $(CBAIA_LIB)
+$(CBAIA_ZLIB): | $(CBAIA_LIB)
 	$(CBAIA_MAKE_LIB)
 endif
 

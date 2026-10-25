@@ -91,7 +91,7 @@ bin/prog: src/prog.c $(CBAIA_LIB)
 ```
 
 Thereby the library is (re-)built automatically when its source files
-change. As the header names are unique over all components, the modules
+or the compilation flags (`DEBUGFLAGS` of the project) change. As the header names are unique over all components, the modules
 are included by their name (e.g. `#include "logger.h"`).
 
 The directories `dev` and `scripts` contain scripts which can be used in

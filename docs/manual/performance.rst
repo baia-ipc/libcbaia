@@ -50,9 +50,9 @@ the program by default. Compiling the program and the library with
 compiler to inline small functions of the library (e.g. those called
 for each read) into the loops of the program, as if they were in the
 same file. The vendored library is built with the ``DEBUGFLAGS`` of the
-project; after a build of the library with other flags (e.g. ``make
-test`` in its directory), ``make cbaia-clean`` in the project ensures
-that it is rebuilt with the flags of the project.
+project, and rebuilt automatically when they change (e.g. after a build
+of the library alone with other flags, by ``make test`` in its
+directory).
 
 Using library modules instead of project modules
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

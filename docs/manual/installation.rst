@@ -49,8 +49,9 @@ variable; predefined sets are:
                             flags
 ==========================  ============================================
 
-e.g. ``make test DEBUGFLAGS='$(DEBUGFLAGS_SANITIZE)'`` (after ``make
-cleanup``, as the objects are not rebuilt when only the flags change).
+e.g. ``make test DEBUGFLAGS='$(DEBUGFLAGS_SANITIZE)'``. When the flags
+change, the objects are rebuilt (the flags of the last build are saved
+in ``obj/.flags``).
 Note that ``-DNDEBUG`` disables the ``assert()`` checks, which are used
 for programming errors only, never for checking the input.
 
@@ -135,20 +136,23 @@ The variables:
                        of the programs
 =====================  ======================================================
 
-The library is built by its own Makefile when one of its sources
-changes, with the ``DEBUGFLAGS`` of the project, if defined, so that
-e.g. a debug build of the project also uses a debug build of the
-library. ``make cbaia-clean`` removes the build of the library.
+The library is built by its own Makefile, with the ``DEBUGFLAGS`` of
+the project, if defined, so that e.g. a debug build of the project also
+uses a debug build of the library. The Makefile of the library is run at
+each build of the project, and rebuilds the library when one of its
+sources, or the compilation flags, changed since the previous build (the
+flags are saved in ``obj/.flags`` of the library); otherwise, the
+library is left unchanged and the programs are not relinked. ``make
+cbaia-clean`` removes the build of the library.
 
 .. note::
 
-   The library is rebuilt when its **sources** change, not when the
-   flags of the project change. After changing ``DEBUGFLAGS`` (e.g.
-   from a debug to an optimized build), run ``make cbaia-clean``, so that
-   the library is rebuilt with the new flags. This matters in particular
-   with link-time optimization: a project compiled with ``-flto`` (as
-   Lumipore) can inline the functions of the library, e.g. in the inner
-   loops, only if the library was also compiled with ``-flto``.
+   As the library is always built with the flags of the project, a
+   project compiled with link-time optimization (``-flto``, as Lumipore)
+   can inline the functions of the library, e.g. in the inner loops, also
+   after the library was built with other flags (e.g. by ``make test`` in
+   its directory): the next build of the project rebuilds it with
+   ``-flto``.
 
 **Linking only what is used.** As ``libcbaia.a`` is a static library,
 only the modules used by a program are linked into it. In a project with

@@ -59,10 +59,8 @@ When a module of a project becomes part of the library:
    library.
 3. Check that the outputs and the performance of the project are
    unchanged: run its tests, and compare the running time and memory
-   with the previous version on realistic data. With link-time
-   optimization, the library must be built with the same flags as the
-   project (``make cbaia-clean`` after changing them, see
-   :ref:`installation`).
+   with the previous version on realistic data (the library is built
+   with the flags of the project, see :ref:`installation`).
 
 When the modules of Lumipore were moved, the running time and the memory
 of Lumipore did not change (see :ref:`performance`).
