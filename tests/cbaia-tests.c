@@ -47,15 +47,26 @@
   "\n"\
   "Test options (default: run all tests):\n"\
   " -s : test string utilities and string buffer\n"\
+  " -k : test file and directory utilities\n"\
   " -a : test argument parsing\n"\
   " -o : test progress display\n"\
   " -z : test gzip compressor\n"\
+  " -c : test BGZF compressor\n"\
   " -b : test bit operations and bloom filter\n"\
   " -e : test set\n"\
   " -p : test heap\n"\
+  " -y : test HyperLogLog\n"\
   " -f : test file sorting and merging\n"\
   " -u : test sequence utilities\n"\
   " -r : test FASTQ reader\n"\
+  " -x : test FASTQ writer\n"\
+  " -m : test BAM reader\n"\
+  " -n : test uBAM writer\n"\
+  " -d : test reads reader (FASTQ or BAM)\n"\
+  " -t : test output files\n"\
+  " -w : test barcode whitelist\n"\
+  " -l : test cell caller\n"\
+  " -i : test library complexity\n"\
   "\n"\
   "Other options:\n"\
   " -T, --tmpdir <dir> : directory for temporary files\n"\
