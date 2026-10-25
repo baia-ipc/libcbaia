@@ -26,6 +26,7 @@
 #include "heap.h"
 #include "hyperloglog.h"
 #include "logger.h"
+#include "outfiles.h"
 #include "progress.h"
 #include "reads-reader.h"
 #include "sequtil.h"
@@ -257,6 +258,7 @@ static void run_bgzf_compressor_test(void) { bgzf_compressor_test(tmpdir); }
 static void run_bam_reader_test(void) { bam_reader_test(tmpdir); }
 static void run_ubam_writer_test(void) { ubam_writer_test(tmpdir); }
 static void run_reads_reader_test(void) { reads_reader_test(tmpdir); }
+static void run_outfiles_test(void) { outfiles_test(tmpdir); }
 static void run_whitelist_test(void) { whitelist_test(tmpdir); }
 static void run_cell_caller_test(void) { cell_caller_test(tmpdir); }
 
@@ -285,6 +287,7 @@ static test_group_t test_groups[] = {
   {'m', "BAM reader", run_bam_reader_test, false},
   {'n', "uBAM writer", run_ubam_writer_test, false},
   {'d', "reads reader", run_reads_reader_test, false},
+  {'t', "output files", run_outfiles_test, false},
   {'w', "barcode whitelist", run_whitelist_test, false},
   {'l', "cell caller", run_cell_caller_test, false},
   {'i', "library complexity", complexity_test, false},
