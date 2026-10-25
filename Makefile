@@ -104,6 +104,7 @@ VALGRIND = $(if $(shell command -v valgrind),valgrind --error-exitcode=1 -q \
 
 test: $(TESTS)
 	$(VALGRIND) $(BINDIR)/cbaia-tests -q
+	$(MAKE) -C docs/manual/examples check
 
 install: $(LIB) $(ZLIB)
 	mkdir -p $(DESTDIR)$(PREFIX)/lib $(DESTDIR)$(PREFIX)/include/cbaia
