@@ -21,7 +21,8 @@ same structure and the same command line interface.
 
 The modules are organized in components: `core` (the base functionality,
 used by all other components), `ds` (data structures), `io` (external
-sorting, compression) and `seq` (biological sequences).
+sorting, compression) and `seq` (biological sequences and sequencing
+reads). External code: zlib and khash (klib hash tables), in `ext`.
 
 # Installation
 
@@ -111,10 +112,10 @@ provide the base functionality of a command line program.
 | `alloc.h` | Memory is allocated using the macros of this module (`XMALLOC`, `XCALLOC`, `XREALLOC`, `XFREE`), which exit the program with an error message if the allocation fails, so that the return value does not need to be checked. The `XCHECKSPACE*` macros grow dynamic buffers to a required size (the `XCHECKSPACEINCPERC` variant by a percentage, for amortized constant time appends). |
 | `logger.h` | Messages are output using a logger, with the levels error, warning, success, phase, info, param, mem, debug and trace; on a terminal, the levels are shown in different colors and each message is preceded by the time. |
 | `colors.h` | Colors and styles for the terminal output. |
-| `file.h` | Wrappers of the standard file operations (e.g. `xfopen`, `xfread`, `xgetline`), which exit the program with a descriptive error message in case of errors; furthermore, functions for reading entire files or blocks of lines into buffers. |
+| `file.h` | Wrappers of the standard file operations (e.g. `xfopen`, `xfread`, `xgetline`), which exit the program with a descriptive error message in case of errors; furthermore, functions for reading entire files or blocks of lines into buffers, and for directories and paths (creating a directory with its parents, listing the entries of a directory with a filter, the last component of a path). |
 | `argparse-def.h` | Macros for a common command line interface: the help and version options (`-h`, `-V`), the verbosity options (`-q`, `-v`, `-D`) and the log file option (`-g`, the letter can be changed), also as long options (e.g. `--help`); error messages for wrong options and arguments; parsing of integer values. |
 | `progress.h` | Progress display in the style of the Python tqdm package: a counter with the rate or, if the total is known, a bar with the percentage and the remaining time. |
-| `strutils.h` | String utilities (e.g. allocating the concatenation of two strings). |
+| `strutils.h` | String utilities: allocating the concatenation of two strings, testing a suffix, writing a string escaped for JSON or HTML, formatting a duration. |
 | `strbuf.h` | Growable string buffer, for building output text without allocations for each piece. |
 | `test.h` | Macros for unit tests (e.g. `test_assert`, `test_eq_size`, `test_eq_str`), which output the compared values. |
 
@@ -155,6 +156,11 @@ the file formats used for them.
 | `fastq-writer.h` | Writing of FASTQ records to a buffer, e.g. for a batch of records compressed with the gzip compressor. |
 | `bam-reader.h` | Reading of BAM files (e.g. the unaligned BAM of Dorado) without htslib, in batches of FASTQ-like records: the title contains the read name and the tags in SAM text format; minus-strand records are reverse complemented, secondary and supplementary alignments skipped. The SAM header text is available (e.g. its read groups). |
 | `ubam-writer.h` | Encoding of unaligned BAM headers and records (from a title with the read name and SAM tags in text format), to be compressed with the BGZF compressor. |
+| `reads-reader.h` | Reading of the reads of a FASTQ or unaligned BAM file, recognized from the content, with the same interface; recognition of the files of reads by their name, counting of the reads, and check that a file written by another program (e.g. a basecaller) is complete. |
+| `outfiles.h` | Output files of a program writing the reads to several destinations (e.g. the samples of a demultiplexer): gzipped FASTQ or BAM files, created when first written, optionally appended to. |
+| `whitelist.h` | Barcode whitelists (e.g. the cell barcodes of a single-cell platform, up to 32 bp, 2 bits per base): correction of the barcodes of the reads, anchored at one end, with up to 3 edits; the unique closest barcode is reported. |
+| `cell-caller.h` | Identification of the cells of a single-cell library from the counts of the barcodes found exactly in the reads, given the expected number of cells (as in Cell Ranger 2), optionally with cells known from another source. |
+| `complexity.h` | Estimate of the library complexity (number of distinct molecules) from the reads and the distinct molecule keys (e.g. UMI and ends of the insert), taking sequencing errors into account (Lander-Waterman, as in Picard). |
 
 # Development
 
