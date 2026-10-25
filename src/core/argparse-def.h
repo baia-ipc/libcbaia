@@ -186,7 +186,7 @@ static inline bool argparse_long(const char *s, long *value) {
 #define LOGGER_OPTS_HELP \
   "Verbosity options: (only one can be used)\n"\
   "   (default)            success, warning and error messages to stderr\n"\
-  "   -q, --quiet          quiet: suppress success messages\n"\
+  "   -q, --quiet          quiet: only error messages\n"\
   "   -v, --verbose        verbose: show additional info messages\n"\
   "   -D, --debug          debug: show some debug information\n"\
   "   " LOGFILE_OPT_HELP ", --logfile F      print messages to file "\
@@ -257,7 +257,7 @@ static inline bool argparse_long(const char *s, long *value) {
 
 #define LOGGER_OPTS_APPLY(LOGGER) \
   {\
-    LoggingLevel level = quiet ?   LOG_WARN : \
+    LoggingLevel level = quiet ?   LOG_ERROR : \
                          verbose ? LOG_PARAM : \
                          debug ?   LOG_DEBUG : \
                                    LOG_SUCCESS; \

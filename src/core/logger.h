@@ -12,7 +12,7 @@ typedef struct Logger Logger;
 
 typedef enum LoggingLevel {
   LOG_ERROR   = 0, /* always displayed, error = leading to program exit */
-  LOG_WARN    = 1, /* always displayed, warning = not leading to program exit */
+  LOG_WARN    = 1, /* displayed if not -q, warning = not leading to program exit */
   LOG_SUCCESS = 2, /* displayed if not -q, success of an operation */
   LOG_PHASE   = 3, /* displayed if -v, start of an operation */
   LOG_INFO    = 4, /* displayed if -v, general verbose information */

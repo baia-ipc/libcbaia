@@ -116,7 +116,7 @@ The help, with the common options added by ``COMMON_OPTS_HELP``:
 
    Verbosity options: (only one can be used)
       (default)            success, warning and error messages to stderr
-      -q, --quiet          quiet: suppress success messages
+      -q, --quiet          quiet: only error messages
       -v, --verbose        verbose: show additional info messages
       -D, --debug          debug: show some debug information
       -g, --logfile F      print messages to file (default: stderr)
