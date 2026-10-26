@@ -6,8 +6,9 @@ TESTDIR=tests
 $(shell mkdir -p $(OBJDIR) $(LIBDIR) $(BINDIR) >/dev/null)
 
 # components (subdirectories of src); the header names are unique
-# over all components
-COMPONENTS = core ds io seq
+# over all components; the list is that of cbaia.mk (CBAIA_COMPONENTS),
+# used by the projects vendoring the library
+COMPONENTS := $(shell sed -n 's/^CBAIA_COMPONENTS *= *//p' cbaia.mk)
 COMPONENT_DIRS = $(addprefix $(SRCDIR)/,$(COMPONENTS))
 vpath %.c $(COMPONENT_DIRS)
 
@@ -35,6 +36,11 @@ TESTS = $(BINDIR)/cbaia-tests
 
 PREFIX ?= /usr/local
 
+# the target of a failed recipe is deleted, so that it is not considered
+# up to date by the next run (e.g. a truncated .inc after a failure of
+# dev/embed.sh)
+.DELETE_ON_ERROR:
+
 .PHONY: default lib data test fuzz manual install uninstall clean cleanup \
         cleandep
 
@@ -55,7 +61,7 @@ DEBUGFLAGS_SANITIZE = -fsanitize=address,undefined $(DEBUGFLAGS_DEBUG)
 # select the DEBUGFLAGS settings to use:
 DEBUGFLAGS=$(DEBUGFLAGS_NDEBUG)
 
-# header dependency tracking recipy modified from:
+# header dependency tracking recipe modified from:
 # http://make.mad-scientist.net/papers/advanced-auto-dependency-generation/
 
 DEPDIR := .d

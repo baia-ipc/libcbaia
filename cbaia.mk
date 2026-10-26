@@ -18,6 +18,8 @@
 # SYSTEM_LIBS=1 (e.g. make SYSTEM_LIBS=1), the system library.
 #
 
+# the components of the library (subdirectories of src), also used by
+# its Makefile
 CBAIA_COMPONENTS = core ds io seq
 CBAIA_INCLUDES = $(addprefix -I$(CBAIA_DIR)/src/,$(CBAIA_COMPONENTS)) \
   -I$(CBAIA_DIR)/ext/khash
@@ -58,6 +60,11 @@ endif
 # literal, see dev/embed.sh; e.g. for the files src/*.html of the project:
 #   obj/%-html.inc: src/%.html $(CBAIA_EMBED)
 #   	$(CBAIA_EMBED) $< > $@
+# with .DELETE_ON_ERROR: in the Makefile of the project, so that a failure
+# does not leave a truncated .inc, considered up to date by the next run;
+# it is not set here, as it applies to all the rules of the Makefile
+# including this fragment (the library itself is built by its own
+# Makefile, which sets it)
 CBAIA_EMBED = $(CBAIA_DIR)/dev/embed.sh
 
 cbaia-clean:

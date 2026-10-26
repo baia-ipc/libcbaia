@@ -15,7 +15,10 @@ mkdir -p $OUT $OBJ
 SAN="-fsanitize=fuzzer-no-link,address,undefined -fno-sanitize-recover=undefined"
 CFLAGS="-g -O1 $SAN -std=gnu11"
 INCLUDES="-Iext/zlib -Iext/khash -Itests/fuzz -Iobj"
-for c in core ds io seq; do INCLUDES="$INCLUDES -Isrc/$c"; done
+# the components of the library, listed in cbaia.mk
+for c in $(sed -n 's/^CBAIA_COMPONENTS *= *//p' cbaia.mk); do
+  INCLUDES="$INCLUDES -Isrc/$c"
+done
 ZLIB_DEFINES="-DHAVE_UNISTD_H -DHAVE_STDARG_H -D_LARGEFILE64_SOURCE=1"
 
 # the newest header: an object is rebuilt also if a header is newer (the

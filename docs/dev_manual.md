@@ -79,7 +79,14 @@ static const char *const page_css =
 In the library, the files of the components with an extension listed in
 `DATA_EXTS` of the Makefile (`html-page.css` gives `obj/html-page-css.inc`)
 are converted automatically; a project adds a rule using `$(CBAIA_EMBED)`
-(see `cbaia.mk`).
+(see `cbaia.mk`). The Makefiles set `.DELETE_ON_ERROR:`, so that a failed
+conversion does not leave a truncated `.inc`, which the next run would
+consider up to date (`cbaia.mk` does not set it, as it applies to the
+whole Makefile including it: a project using `$(CBAIA_EMBED)` sets it).
+
+The list of the components (subdirectories of `src`) is
+`CBAIA_COMPONENTS` of `cbaia.mk`, also read by the Makefile of the
+library and by `tests/fuzz/build.sh`; a new component is added there.
 
 In the projects, the object files to link into each program are computed
 from the headers it includes (by `dev/objdeps.sh`: each `x.h` included
