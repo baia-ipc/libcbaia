@@ -205,16 +205,22 @@ The content:
    (muted, e.g. the unassigned reads); if ``mean`` > 0, a dashed line at
    that value;
 ``void html_histogram(FILE *f, const size_t *hist, size_t n_bins, size_t bin_width, const char *what, const char *unit, const char *empty)``
-   a histogram of counts in bins of width ``bin_width`` (bin ``b``: the
+   a histogram of counts in bins of width ``bin_width`` (> 0; bin ``b``: the
    values from ``b * bin_width`` to ``(b + 1) * bin_width - 1``, as for
    ``hist_median()``), up to the bin of the 99.5th percentile; the x axis
    is labelled ``what (unit)``; if all counts are 0, the note ``empty`` is
    written instead;
-``void html_knee(FILE *f, const uint64_t *counts, size_t n, size_t n_cells)``
-   a barcode rank plot ("knee plot", log-log): the counts of reads of
-   the barcodes in decreasing order (e.g. from
-   ``cell_caller_sorted_counts()``), with a dashed line at the rank
-   ``n_cells`` (the barcodes identified as cells; 0: none);
+``void html_knee(FILE *f, const uint64_t *counts, size_t n, size_t n_selected, const char *x_label, const char *y_label, const char *selected_label)``
+   a rank plot ("knee plot", log-log): counts in decreasing order (e.g.
+   the reads of the barcodes, from ``cell_caller_sorted_counts()``), with
+   the axes titled ``x_label (log scale)`` and ``y_label (log scale)``,
+   and a dashed line at the rank ``n_selected`` (0: none), labelled with
+   the number and ``selected_label``; e.g. for the cells of a
+   single-cell library::
+
+      html_knee(f, counts, n, n_cells, "barcodes, by decreasing number "
+                "of reads", "reads", "cells");
+
 ``const char *html_num(size_t n)``
    a number with thousands separators (``1,234,567``), for the text of
    the report; the result is in a static buffer, overwritten after four
@@ -230,7 +236,11 @@ the values and labels of the tiles are HTML (e.g. ``92.5%`` or
 style, e.g. for a page written otherwise; besides the headings and tables
 (numbers right-aligned), it defines the classes ``p.sub`` (subtitle),
 ``p.note`` (small, muted text), ``p.running`` (a highlighted box, e.g.
-"run in progress") and ``td.seq`` (sequences, in monospace).
+"run in progress") and ``td.seq`` (sequences, in monospace), and the
+colors as CSS variables (e.g. ``--primary`` and ``--secondary``, the
+colors of the bars of the classes ``s`` and ``p``). The style is written
+in ``src/io/html-page.css``; the Makefile of the library converts it to
+a C string, included by ``html-page.c``.
 
 The example program ``htmlreport`` (``docs/manual/examples/htmlreport.c``)
 writes the report of a demultiplexer (with example values,

@@ -12,86 +12,36 @@
 #include "strutils.h"
 #include "test.h"
 
-/* plots */
+/* plots: width (the height depends on the plot) */
 #define HTML_PLOT_WIDTH 760
+/* plots with axes: margins of the plot area (the left one for the labels
+   of the y axis) */
+#define HTML_PLOT_LEFT 60
+#define HTML_PLOT_RIGHT 20
+#define HTML_PLOT_TOP 10
+/* plots with axes: distance from the x axis of the tick labels */
+#define HTML_TICK_LABEL_DY 16
+/* bar chart: width of the labels, space right of the bars for the values,
+   height of the bars and space between them */
 #define HTML_LABEL_WIDTH 190
+#define HTML_VALUE_WIDTH 150
 #define HTML_BAR_HEIGHT 16
 #define HTML_BAR_GAP 4
+/* histogram: height of the plot area, space below it (x axis labels and
+   title), distance of the title from the x axis */
+#define HTML_HIST_HEIGHT 200
+#define HTML_HIST_BOTTOM 30
+#define HTML_HIST_TITLE_DY 28
+/* rank plot: the same; maximal number of points of the line */
+#define HTML_KNEE_HEIGHT 240
+#define HTML_KNEE_BOTTOM 34
+#define HTML_KNEE_TITLE_DY 30
 #define HTML_MAX_KNEE_POINTS 400
 
+/* generated from html-page.css by the Makefile */
 const char *const html_page_css =
-  ":root{--bg:#ffffff;--card:#f6f5f2;--ink:#0b0b0b;--ink2:#52514e;"
-  "--grid:#e4e3df;--sample:#2a78d6;--pseudo:#b9b8b2;--accent:#eb6834;"
-  "--warn:#fff4e5}\n"
-  "@media (prefers-color-scheme: dark){:root{--bg:#1b1b1a;--card:#262624;"
-  "--ink:#f2f1ee;--ink2:#b5b3ad;--grid:#3a3936;--sample:#5b9be6;"
-  "--pseudo:#6d6b66;--accent:#f08a5d;--warn:#3a2e1e}}\n"
-  "body{background:var(--bg);color:var(--ink);font-family:system-ui,"
-  "-apple-system,'Segoe UI',Roboto,sans-serif;margin:0;line-height:1.45}\n"
-  "main{max-width:1000px;margin:0 auto;padding:16px}\n"
-  "h1{font-size:1.6em;margin:0.4em 0 0.1em}"
-  "h1.logo{display:inline-block;margin-top:0.2em}"
-  "h1.logo img{display:block;width:auto}"
-  /* (centered: the spacing after the last letter compensated) */
-  "h1.logo span{display:block;margin-top:6px;font-size:0.6em;"
-  "font-weight:700;letter-spacing:0.8em;padding-left:0.8em;"
-  "text-align:center;text-transform:uppercase;color:var(--ink2)}\n"
-  ".head{display:flex;flex-wrap:wrap;align-items:center;gap:0 32px}"
-  ".head .brand{text-align:center}.head .updated{font-size:0.8em}"
-  ".head .side{flex:1 1 420px;min-width:0}"
-  ".head .side td{text-align:left}"
-  /* dashboard: the page fits the screen, the panels scroll if needed */
-  "body.dash main{max-width:none;height:100vh;box-sizing:border-box;"
-  "display:flex;flex-direction:column;gap:10px;padding:12px 18px}\n"
-  ".dbar{display:flex;flex-wrap:wrap;align-items:center;gap:6px 28px}"
-  ".dbar .brand{text-align:center}.dbar .brand img{display:block;"
-  "width:auto;margin:0 auto}.dbar .brand span{display:block;margin-top:3px;"
-  "font-size:0.8em;font-weight:700;letter-spacing:0.6em;padding-left:0.6em;"
-  "text-transform:uppercase;color:var(--ink2)}.dbar .updated{font-size:0.75em}"
-  ".dbar .dinfo{flex:1 1 400px;min-width:0;font-size:0.9em}"
-  ".dbar .dinfo p{margin:2px 0}\n"
-  ".dash .tiles{margin:0}.dash .tile{flex:1 1 130px;padding:6px 12px}"
-  ".dgrid{flex:1;min-height:0;display:grid;"
-  "grid-template-columns:repeat(3,minmax(0,1fr));"
-  "grid-auto-rows:minmax(0,1fr);gap:10px}\n"
-  ".panel{background:var(--card);border-radius:10px;padding:8px 14px;"
-  "overflow:auto;min-height:0}.panel h3{margin:0 0 6px;font-size:1em}"
-  ".panel.tall{grid-row:span 2}.panel.wide{grid-column:span 2}"
-  ".panel table{width:100%}"
-  /* (the plots are scaled down to the width of a panel) */
-  ".dash svg text{font-size:13px}\n"
-  "@media (max-width:1000px),(max-height:560px){body.dash main{height:auto}"
-  ".dgrid{grid-template-columns:minmax(0,1fr);grid-auto-rows:auto}"
-  ".panel.tall,.panel.wide{grid-row:auto;grid-column:auto}}\n"
-  ".head .side td:first-child{white-space:nowrap}"
-  ".head .side>h2:first-child{border-top:none;margin-top:0.4em;"
-  "padding-top:0}\n"
-  "h2{font-size:1.3em;margin:1.6em 0 0.4em;padding-top:0.6em;"
-  "border-top:2px solid var(--grid)}h3{font-size:1.05em;margin:1.2em 0 "
-  "0.3em}\n"
-  ".sub{color:var(--ink2);margin:0}"
-  ".tiles{display:flex;flex-wrap:wrap;gap:10px;margin:0.8em 0}\n"
-  ".tile{background:var(--card);border-radius:8px;padding:8px 14px;"
-  "min-width:140px}.tile .v{font-size:1.5em;font-weight:600}"
-  ".tile .l{color:var(--ink2);font-size:0.85em}\n"
-  "table{border-collapse:collapse;font-size:0.9em;margin:0.4em 0}"
-  "th,td{padding:3px 10px;text-align:right;border-bottom:1px solid "
-  "var(--grid)}th{color:var(--ink2);font-weight:600}"
-  "td:first-child,th:first-child{text-align:left}\n"
-  "td.seq{font-family:ui-monospace,monospace;text-align:left}\n"
-  ".note{color:var(--ink2);font-size:0.85em}"
-  ".running{background:var(--warn);border-radius:8px;padding:8px 14px}\n"
-  "code{font-family:ui-monospace,monospace;font-size:0.9em;"
-  "word-break:break-all}\n"
-  "svg{max-width:100%;height:auto;display:block}"
-  "svg text{fill:var(--ink);font-size:11px;font-family:inherit}\n"
-  "svg .muted{fill:var(--ink2)}svg .grid{stroke:var(--grid)}"
-  "svg .halo{paint-order:stroke;stroke:var(--bg);stroke-width:3px;"
-  "stroke-linejoin:round}"
-  "svg .axis{stroke:var(--ink2)}\n"
-  "svg .s{fill:var(--sample)}svg .p{fill:var(--pseudo)}"
-  "svg .a{stroke:var(--accent);fill:none}svg .line{stroke:var(--sample);"
-  "fill:none;stroke-width:2}\n";
+#include "html-page-css.inc"
+  ;
 
 /*
    reload of a page rewritten during a run: the script contains the time
@@ -156,17 +106,10 @@ void html_page_start(FILE *f, const char *title, long refresh) {
   write_updated(f, date);
 }
 
-void html_page_start_logo(FILE *f, const char *title,
-    const html_logo_t *logo, const char *heading, long refresh) {
-  assert(f != NULL);
-  assert(title != NULL);
-  assert(logo != NULL && logo->src != NULL);
-  assert(heading != NULL);
-  char date[64];
-  now_date(date, sizeof(date));
-  write_head(f, title, refresh, date, NULL);
-  fputs("<div class=\"head\">\n<div class=\"brand\">\n<h1 class=\"logo\">"
-        "<picture>", f);
+/* the logo, with its dark variant, if any */
+static void write_logo(FILE *f, const html_logo_t *logo) {
+  assert(logo->src != NULL);
+  fputs("<picture>", f);
   if (logo->src_dark != NULL) {
     fputs("<source media=\"(prefers-color-scheme: dark)\" srcset=\"", f);
     fputs_html_escaped(logo->src_dark, f);
@@ -176,7 +119,22 @@ void html_page_start_logo(FILE *f, const char *title,
   fputs_html_escaped(logo->src, f);
   fputs("\" alt=\"", f);
   fputs_html_escaped(logo->alt != NULL ? logo->alt : "", f);
-  fprintf(f, "\" height=\"%d\"></picture><span>", logo->height);
+  fprintf(f, "\" height=\"%d\"></picture>", logo->height);
+}
+
+void html_page_start_logo(FILE *f, const char *title,
+    const html_logo_t *logo, const char *heading, long refresh) {
+  assert(f != NULL);
+  assert(title != NULL);
+  assert(logo != NULL && logo->src != NULL);
+  assert(heading != NULL);
+  char date[64];
+  now_date(date, sizeof(date));
+  write_head(f, title, refresh, date, NULL);
+  fputs("<div class=\"head\">\n<div class=\"brand\">\n<h1 class=\"logo\">",
+        f);
+  write_logo(f, logo);
+  fputs("<span>", f);
   fputs_html_escaped(heading, f);
   fputs("</span></h1>\n", f);
   write_updated(f, date);
@@ -192,19 +150,8 @@ void html_dashboard_start(FILE *f, const char *title,
   now_date(date, sizeof(date));
   write_head(f, title, refresh, date, "dash");
   fputs("<header class=\"dbar\">\n<div class=\"brand\">", f);
-  if (logo != NULL) {
-    fputs("<picture>", f);
-    if (logo->src_dark != NULL) {
-      fputs("<source media=\"(prefers-color-scheme: dark)\" srcset=\"", f);
-      fputs_html_escaped(logo->src_dark, f);
-      fputs("\">", f);
-    }
-    fputs("<img src=\"", f);
-    fputs_html_escaped(logo->src, f);
-    fputs("\" alt=\"", f);
-    fputs_html_escaped(logo->alt != NULL ? logo->alt : "", f);
-    fprintf(f, "\" height=\"%d\"></picture>", logo->height);
-  }
+  if (logo != NULL)
+    write_logo(f, logo);
   fputs("<span>", f);
   fputs_html_escaped(heading, f);
   fputs("</span>\n", f);
@@ -247,6 +194,9 @@ void html_page_end(FILE *f, const char *footer) {
 }
 
 void html_tile(FILE *f, const char *value, const char *label) {
+  assert(f != NULL);
+  assert(value != NULL);
+  assert(label != NULL);
   fprintf(f, "<div class=\"tile\"><div class=\"v\">%s</div>"
           "<div class=\"l\">%s</div></div>\n", value, label);
 }
@@ -281,11 +231,13 @@ double html_percent(size_t a, size_t b) {
 void html_hbars(FILE *f, size_t n, const char *const *labels,
     const size_t *values, const char *const *classes, size_t total,
     double mean) {
+  assert(f != NULL);
+  assert(n == 0 || (labels != NULL && values != NULL && classes != NULL));
   size_t max = 1;
   for (size_t i = 0; i < n; i++)
     if (values[i] > max)
       max = values[i];
-  int area = HTML_PLOT_WIDTH - HTML_LABEL_WIDTH - 150;
+  int area = HTML_PLOT_WIDTH - HTML_LABEL_WIDTH - HTML_VALUE_WIDTH;
   int height = (int)n * (HTML_BAR_HEIGHT + HTML_BAR_GAP) + 10;
   fprintf(f, "<svg viewBox=\"0 0 %d %d\" width=\"%d\" role=\"img\">\n",
           HTML_PLOT_WIDTH, height, HTML_PLOT_WIDTH);
@@ -314,10 +266,15 @@ void html_hbars(FILE *f, size_t n, const char *const *labels,
   fputs("</svg>\n", f);
 }
 
-/* histogram of the insert lengths */
 void html_histogram(FILE *f, const size_t *hist, size_t n_bins_all,
     size_t bin_width, const char *what, const char *unit,
     const char *empty) {
+  assert(f != NULL);
+  assert(hist != NULL || n_bins_all == 0);
+  assert(bin_width > 0);
+  assert(what != NULL);
+  assert(unit != NULL);
+  assert(empty != NULL);
   size_t total = 0, max = 0, last = 0;
   for (size_t b = 0; b < n_bins_all; b++) {
     total += hist[b];
@@ -341,8 +298,9 @@ void html_histogram(FILE *f, const size_t *hist, size_t n_bins_all,
       break;
   }
   size_t n_bins = shown + 1;
-  int left = 60, bottom = 30, top = 10, width = HTML_PLOT_WIDTH - left - 20,
-      height = 200;
+  int left = HTML_PLOT_LEFT, bottom = HTML_HIST_BOTTOM, top = HTML_PLOT_TOP,
+      width = HTML_PLOT_WIDTH - left - HTML_PLOT_RIGHT,
+      height = HTML_HIST_HEIGHT;
   double ymax = nice_number((double)max), bw = (double)width / (double)n_bins;
   fprintf(f, "<svg viewBox=\"0 0 %d %d\" width=\"%d\" role=\"img\">\n",
           HTML_PLOT_WIDTH, height + top + bottom, HTML_PLOT_WIDTH);
@@ -372,22 +330,28 @@ void html_histogram(FILE *f, const size_t *hist, size_t n_bins_all,
     fprintf(f, "<line class=\"axis\" x1=\"%.1f\" y1=\"%d\" x2=\"%.1f\" "
             "y2=\"%d\"/><text class=\"muted\" x=\"%.1f\" y=\"%d\" "
             "text-anchor=\"middle\">%zu</text>\n", px, top + height, px,
-            top + height + 4, px, top + height + 16, x);
+            top + height + 4, px, top + height + HTML_TICK_LABEL_DY, x);
   }
   fprintf(f, "<text class=\"muted\" x=\"%d\" y=\"%d\" text-anchor=\"middle\""
-          ">", left + width / 2, top + height + 28);
+          ">", left + width / 2, top + height + HTML_HIST_TITLE_DY);
   fputs_html_escaped(what, f);
   fprintf(f, " (%s)%s</text>\n</svg>\n", unit,
           shown < last ? ", longest 0.5% not shown" : "");
 }
 
-/* reads of the barcodes by rank (log-log), with the cell threshold */
 void html_knee(FILE *f, const uint64_t *counts, size_t n,
-    size_t n_cells) {
+    size_t n_selected, const char *x_label, const char *y_label,
+    const char *selected_label) {
+  assert(f != NULL);
+  assert(counts != NULL || n == 0);
+  assert(x_label != NULL);
+  assert(y_label != NULL);
+  assert(selected_label != NULL);
   if (n == 0 || counts[0] == 0)
     return;
-  int left = 60, bottom = 34, top = 10, width = HTML_PLOT_WIDTH - left - 20,
-      height = 240;
+  int left = HTML_PLOT_LEFT, bottom = HTML_KNEE_BOTTOM, top = HTML_PLOT_TOP,
+      width = HTML_PLOT_WIDTH - left - HTML_PLOT_RIGHT,
+      height = HTML_KNEE_HEIGHT;
   double lx = log10((double)n) > 0 ? log10((double)n) : 1,
          ly = log10((double)counts[0]) > 0 ? log10((double)counts[0]) : 1;
   fprintf(f, "<svg viewBox=\"0 0 %d %d\" width=\"%d\" role=\"img\">\n",
@@ -406,7 +370,8 @@ void html_knee(FILE *f, const uint64_t *counts, size_t n,
     if (x > left + width + 1)
       break;
     fprintf(f, "<text class=\"muted\" x=\"%.1f\" y=\"%d\" "
-            "text-anchor=\"middle\">%s</text>\n", x, top + height + 16,
+            "text-anchor=\"middle\">%s</text>\n", x,
+            top + height + HTML_TICK_LABEL_DY,
             html_num((size_t)pow(10, e)));
   }
   fputs("<polyline class=\"line\" points=\"", f);
@@ -420,20 +385,24 @@ void html_knee(FILE *f, const uint64_t *counts, size_t n,
     fprintf(f, "%.1f,%.1f ", left + width * pos, top + height - height * y);
   }
   fputs("\"/>\n", f);
-  if (n_cells > 0) {
-    double x = left + width * log10((double)n_cells) / lx;
+  if (n_selected > 0) {
+    double x = left + width * log10((double)n_selected) / lx;
     fprintf(f, "<line class=\"a\" x1=\"%.1f\" y1=\"%d\" x2=\"%.1f\" "
             "y2=\"%d\" stroke-dasharray=\"4 3\"/><text x=\"%.1f\" y=\"%d\">"
-            "%s cells</text>\n", x, top, x, top + height, x + 4, top + 12,
-            html_num(n_cells));
+            "%s ", x, top, x, top + height, x + 4, top + 12,
+            html_num(n_selected));
+    fputs_html_escaped(selected_label, f);
+    fputs("</text>\n", f);
   }
   fprintf(f, "<text class=\"muted\" x=\"%d\" y=\"%d\" text-anchor=\"middle\""
-          ">barcodes, by decreasing number of reads (log scale)</text>\n"
+          ">", left + width / 2, top + height + HTML_KNEE_TITLE_DY);
+  fputs_html_escaped(x_label, f);
+  fprintf(f, " (log scale)</text>\n"
           "<text class=\"muted\" transform=\"translate(14,%d) rotate(-90)\" "
-          "text-anchor=\"middle\">reads (log scale)</text>\n</svg>\n",
-          left + width / 2, top + height + 30, top + height / 2);
+          "text-anchor=\"middle\">", top + height / 2);
+  fputs_html_escaped(y_label, f);
+  fputs(" (log scale)</text>\n</svg>\n", f);
 }
-
 
 /* --- unit tests --- */
 
@@ -448,16 +417,17 @@ void html_page_test(void) {
   test_assert(f != NULL);
   html_page_start(f, "Test <report>", 30);
   html_tile(f, "1,234", "reads");
-  const char *labels[] = {"S1", "unassigned"};
+  const char *labels[] = {"a", "other"};
   const size_t values[] = {30, 10};
   const char *classes[] = {"s", "p"};
   html_hbars(f, 2, labels, values, classes, 40, 20);
   const size_t hist[] = {0, 2, 5, 1};
-  html_histogram(f, hist, 4, 10, "insert length", "bp", "No inserts.");
+  html_histogram(f, hist, 4, 10, "length", "bp", "No values.");
   const size_t none[] = {0, 0};
-  html_histogram(f, none, 2, 10, "insert length", "bp", "No inserts.");
+  html_histogram(f, none, 2, 10, "length", "bp", "No values.");
   const uint64_t counts[] = {500, 300, 100, 5, 1};
-  html_knee(f, counts, 5, 3);
+  html_knee(f, counts, 5, 3, "items, by decreasing count", "count",
+            "selected");
   html_page_end(f, "Generated by test");
   fclose(f);
   const char *exp[] = {"<!doctype html>", "<title>Test &lt;report&gt;</title>",
@@ -466,8 +436,10 @@ void html_page_test(void) {
     "Updated: ", "<div class=\"v\">1,234</div>",
     ">30 (75.0%)</text>", "stroke-dasharray=\"4 3\"><title>mean</title>",
     "<title>20-29 bp: 5</title>", "<title>30 bp or more: 1</title>",
-    ">insert length (bp)</text>",
-    "<p class=\"note\">No inserts.</p>", "3 cells</text>",
+    ">length (bp)</text>",
+    "<p class=\"note\">No values.</p>", "3 selected</text>",
+    ">items, by decreasing count (log scale)</text>",
+    ">count (log scale)</text>",
     "<p class=\"note\">Generated by test</p>", "</html>\n"};
   for (size_t i = 0; i < sizeof(exp) / sizeof(exp[0]); i++)
     test_assert(strstr(out, exp[i]) != NULL);
@@ -497,7 +469,7 @@ void html_page_test(void) {
   fputs("<p>state</p>\n", f);
   html_dashboard_bar_end(f);
   fputs("<div class=\"dgrid\">\n", f);
-  html_panel_start(f, "Samples", "tall");
+  html_panel_start(f, "Values", "tall");
   html_panel_end(f);
   html_panel_start(f, "Steps", NULL);
   html_panel_end(f);
@@ -508,7 +480,7 @@ void html_page_test(void) {
   test_assert(strstr(out, "<span>dashboard</span>") != NULL);
   test_assert(strstr(out, "<div class=\"dinfo\">\n<p>state</p>\n</div>\n"
               "</header>") != NULL);
-  test_assert(strstr(out, "<section class=\"panel tall\"><h3>Samples</h3>"
+  test_assert(strstr(out, "<section class=\"panel tall\"><h3>Values</h3>"
               "\n</section>") != NULL);
   test_assert(strstr(out, "<section class=\"panel\"><h3>Steps</h3>") != NULL);
   free(out);

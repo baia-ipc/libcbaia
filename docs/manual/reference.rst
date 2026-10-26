@@ -373,7 +373,7 @@ Compression of data blocks as gzip members; the concatenation of gzip members is
 
 **html-page.h**
 
-Self-contained HTML reports: a page with a style for light and dark themes (no external resources), tiles with the main values, and plots as inline SVG (horizontal bar chart, histogram, barcode rank plot).
+Self-contained HTML reports: a page with a style for light and dark themes (no external resources), tiles with the main values, and plots as inline SVG (horizontal bar chart, histogram, rank plot).
 
 .. code-block:: c
 
@@ -402,7 +402,9 @@ Self-contained HTML reports: a page with a style for light and dark themes (no e
    void html_histogram(FILE *f, const size_t *hist, size_t n_bins,
        size_t bin_width, const char *what, const char *unit,
        const char *empty);
-   void html_knee(FILE *f, const uint64_t *counts, size_t n, size_t n_cells);
+   void html_knee(FILE *f, const uint64_t *counts, size_t n,
+       size_t n_selected, const char *x_label, const char *y_label,
+       const char *selected_label);
 
 **md5.h**
 

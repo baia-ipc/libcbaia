@@ -3,7 +3,7 @@
 /*
    Self-contained HTML reports: a page with a style for light and dark
    themes (no external resources), tiles with the main values, and plots as
-   inline SVG (horizontal bar chart, histogram, barcode rank plot).
+   inline SVG (horizontal bar chart, histogram, rank plot).
 
    A report is written as: html_page_start(), the content (headings,
    paragraphs, tables, tiles, plots), html_page_end(). The style defines:
@@ -11,7 +11,11 @@
      (highlighted box); tables (numbers right-aligned, td.seq: monospace);
    - div.tiles containing the tiles (html_tile());
    - SVG classes: s (main color, e.g. samples), p (secondary, muted color),
-     a (accent line), line, grid, axis, muted, halo.
+     a (accent line), line, grid, axis, muted, halo; the colors are the
+     CSS variables --primary (s, line), --secondary (p) and --accent (a).
+
+   The style is in html-page.css, from which the Makefile generates the C
+   string included by html-page.c.
 */
 
 #ifndef HTML_PAGE_H
@@ -111,21 +115,26 @@ void html_hbars(FILE *f, size_t n, const char *const *labels,
     double mean);
 
 /*
-   Histogram of the counts of <n_bins> bins of width <bin_width> (bin b:
-   values from b * bin_width to (b + 1) * bin_width - 1; the last bin: all
-   larger values), up to the bin of the 99.5th percentile; x axis: "<what> (<unit>)"; if all counts are 0,
-   the note <empty> instead
+   Histogram of the counts of <n_bins> bins of width <bin_width> (> 0; bin
+   b: values from b * bin_width to (b + 1) * bin_width - 1; the last bin:
+   all larger values), up to the bin of the 99.5th percentile; x axis:
+   "<what> (<unit>)"; if all counts are 0, the note <empty> instead
 */
 void html_histogram(FILE *f, const size_t *hist, size_t n_bins,
     size_t bin_width, const char *what, const char *unit,
     const char *empty);
 
 /*
-   Barcode rank plot (log-log): the <n> counts of reads of the barcodes,
-   in decreasing order; if <n_cells> > 0, a dashed line at that rank (the
-   barcodes identified as cells)
+   Rank plot (log-log, "knee plot"): the <n> counts of the items, in
+   decreasing order (e.g. the reads of each barcode); axes titles:
+   "<x_label> (log scale)" and "<y_label> (log scale)"; if <n_selected> >
+   0, a dashed line at that rank, labeled "<n_selected> <selected_label>"
+   (e.g. the barcodes identified as cells: "cells"); the labels are text
+   (HTML-escaped)
 */
-void html_knee(FILE *f, const uint64_t *counts, size_t n, size_t n_cells);
+void html_knee(FILE *f, const uint64_t *counts, size_t n,
+    size_t n_selected, const char *x_label, const char *y_label,
+    const char *selected_label);
 
 /* Unit tests */
 void html_page_test(void);

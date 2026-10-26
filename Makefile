@@ -76,6 +76,14 @@ $(OBJDIR)/%.o : %.c $(DEPDIR)/%.d $(FLAGS_STAMP)
 	$(COMPILE.c) $(OUTPUT_OPTION) $<
 	$(POSTCOMPILE)
 
+# data files included by sources, generated in OBJDIR: the CSS of the HTML
+# pages as a C string literal (comment lines removed, \ and " escaped)
+$(OBJDIR)/html-page-css.inc: $(SRCDIR)/io/html-page.css
+	sed -e '/^[[:space:]]*\/\*.*\*\/[[:space:]]*$$/d' -e 's/\\/\\\\/g' \
+	  -e 's/"/\\"/g' -e 's/^/"/' -e 's/$$/\\n"/' $< > $@
+$(OBJDIR)/html-page.o: $(OBJDIR)/html-page-css.inc
+$(OBJDIR)/html-page.o: override CPPFLAGS += -I$(OBJDIR)
+
 $(DEPDIR)/%.d: ;
 .PRECIOUS: $(DEPDIR)/%.d
 
