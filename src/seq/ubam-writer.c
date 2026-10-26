@@ -223,7 +223,8 @@ void ubam_writer_record(strbuf_t *out, const char *title, size_t title_len,
     strbuf_append_char(out, (char)((base_code(seq[i]) << 4) |
                        (i + 1 < len ? base_code(seq[i + 1]) : 0)));
   for (size_t i = 0; i < len; i++)
-    strbuf_append_char(out, (char)qual_value(qual[i]));
+    strbuf_append_char(out, qual == NULL ? (char)BAM_QUAL_MISSING :
+                       (char)qual_value(qual[i]));
   const char *p = tags;
   while (p < end) {
     p++;
@@ -291,6 +292,12 @@ static void test_qualities(void) {
   const uint8_t *q = record_qual(&b, 5);
   test_assert(q[0] == 0 && q[1] == 0 && q[2] == 40 && q[3] == 93 &&
               q[4] == 93);
+  /* missing qualities */
+  strbuf_clear(&b);
+  ubam_writer_record(&b, "r2", 2, "ACG", NULL, 3);
+  q = record_qual(&b, 3);
+  test_assert(q[0] == BAM_QUAL_MISSING && q[1] == BAM_QUAL_MISSING &&
+              q[2] == BAM_QUAL_MISSING);
   strbuf_free(&b);
 }
 

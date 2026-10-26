@@ -14,7 +14,8 @@
      (MM, ML, MN), whose positions refer to the whole read;
    - the sequence and qualities are in the orientation of the original
      read (reverse complemented, if the record is mapped to the minus
-     strand); missing qualities are written as '!';
+     strand); missing qualities are written as '!' (thus they become
+     qualities 0 if the record is written again, e.g. by ubam-writer.h);
    - secondary and supplementary alignments are skipped.
 */
 
