@@ -150,7 +150,8 @@ The writers append records to a ``strbuf_t``, which is then compressed
    SAM tags in text format, separated by tabs (as returned by the BAM
    reader); the tags are encoded in binary form (integers with the
    smallest type, as htslib does); fields which are not valid SAM tags
-   are not written. The read name is the first word of the title
+   are not written, nor repeated tags (a BAM record cannot have two tags
+   with the same name: the first valid one is kept). The read name is the first word of the title
    (leading whitespace is skipped; ``*``, i.e. ``UBAM_NO_READ_NAME``, if
    the title is empty); names longer than ``UBAM_MAX_READ_NAME`` (254)
    are truncated. Quality characters below ``!`` or above ``~`` (out of

@@ -9,7 +9,8 @@
    output of Dorado, or of bam-reader.h): the record is unmapped (flag 4),
    the tags are encoded in binary form (integers with the smallest type,
    as in htslib); fields of the title which are not valid SAM tags are not
-   written.
+   written, nor the tags with the name of a tag already written (a record
+   cannot have two tags with the same name: the first valid one is kept).
 */
 
 #ifndef UBAM_WRITER_H

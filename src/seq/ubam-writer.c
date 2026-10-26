@@ -136,9 +136,41 @@ invalid:
   return false;
 }
 
-/* append a tag given in SAM text format (e.g. "RG:Z:x"), if valid */
-static void put_tag(strbuf_t *out, const char *t, size_t len) {
-  if (!sam_tag_is_valid(t, len))
+/* size of the value of an integer or float type */
+static size_t value_size(char type) {
+  return type == 'c' || type == 'C' ? 1 : type == 's' || type == 'S' ? 2 : 4;
+}
+
+/* size of a tag written by put_tag() at <p> (name, type and value) */
+static size_t tag_size(const char *p) {
+  switch (p[2]) {
+    case 'A': return 4;
+    case 'Z': case 'H': return 3 + strlen(p + 3) + 1;
+    case 'B': {
+      const uint8_t *n = (const uint8_t *)p + 4;
+      uint32_t count = (uint32_t)n[0] | ((uint32_t)n[1] << 8) |
+                       ((uint32_t)n[2] << 16) | ((uint32_t)n[3] << 24);
+      return 8 + value_size(p[3]) * count;
+    }
+    default: return 3 + value_size(p[2]);
+  }
+}
+
+/* is there a tag with the name of <t> among the tags written by put_tag()
+   in tags[0..len) */
+static bool has_tag(const char *tags, size_t len, const char *t) {
+  for (size_t i = 0; i < len; i += tag_size(tags + i))
+    if (tags[i] == t[0] && tags[i + 1] == t[1])
+      return true;
+  return false;
+}
+
+/* append a tag given in SAM text format (e.g. "RG:Z:x"), if valid and not
+   among the tags already written from out->s + <tags_from> */
+static void put_tag(strbuf_t *out, const char *t, size_t len,
+    size_t tags_from) {
+  if (!sam_tag_is_valid(t, len) ||
+      has_tag(out->s + tags_from, out->len - tags_from, t))
     return;
   const char *v = t + 5;
   size_t vlen = len - 5;
@@ -169,6 +201,8 @@ static void put_tag(strbuf_t *out, const char *t, size_t len) {
       return;
     }
     case 'Z': case 'H':
+      if (memchr(v, '\0', vlen) != NULL)
+        goto invalid;
       strbuf_append_char(out, t[3]);
       strbuf_append(out, v, vlen);
       strbuf_append_char(out, '\0');
@@ -226,12 +260,13 @@ void ubam_writer_record(strbuf_t *out, const char *title, size_t title_len,
     strbuf_append_char(out, qual == NULL ? (char)BAM_QUAL_MISSING :
                        (char)qual_value(qual[i]));
   const char *p = tags;
+  size_t tags_from = out->len;
   while (p < end) {
     p++;
     const char *e = memchr(p, '\t', (size_t)(end - p));
     if (e == NULL)
       e = end;
-    put_tag(out, p, (size_t)(e - p));
+    put_tag(out, p, (size_t)(e - p), tags_from);
     p = e;
   }
   uint32_t block_size = (uint32_t)(out->len - start - 4);
@@ -301,9 +336,29 @@ static void test_qualities(void) {
   strbuf_free(&b);
 }
 
+/* invalid and repeated tags are not written */
+static void test_tags(void) {
+  strbuf_t b;
+  strbuf_init(&b);
+  write_record(&b, "r1\tRG:Z:a\tXX:i:x\tRG:Z:b\tXX:i:2\tB1:B:C,1,2\t"
+               "ch:i:5\tB1:B:c,3\tch:i:6\tXX:Z:y", "A", "I");
+  size_t tags_len;
+  const char *tags = record_tags(&b, 1, &tags_len);
+  const char exp[] = "RGZa\0" "XXC\x02" "B1BC\x02\0\0\0\x01\x02" "chC\x05";
+  test_eq_size(tags_len, sizeof(exp) - 1);
+  test_assert(memcmp(tags, exp, sizeof(exp) - 1) == 0);
+  /* a string value with a NUL character is not valid */
+  strbuf_clear(&b);
+  ubam_writer_record(&b, "r1\tst:Z:a\0b", 11, "A", "I", 1);
+  record_tags(&b, 1, &tags_len);
+  test_eq_size(tags_len, 0);
+  strbuf_free(&b);
+}
+
 void ubam_writer_test(const char *tmpdir) {
   test_read_name();
   test_qualities();
+  test_tags();
   strbuf_t data, out;
   strbuf_init(&data);
   strbuf_init(&out);
