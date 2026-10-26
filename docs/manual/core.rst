@@ -154,7 +154,11 @@ the help. :ref:`quickstart` shows a complete example; the elements are:
 
 **The help.** The program defines ``PURPOSE`` (the help text, with ``%s``
 for the program name, ending with ``COMMON_OPTS_HELP``) and, before
-including the header, ``VERSION``. ``STR(x)``/``XSTR(x)`` stringify a
+including the header, ``VERSION``. A program whose help is not a fixed
+text (e.g. ``tests/cbaia-tests.c``, which generates the list of the test
+options from its table of tests) defines instead, before including the
+header, ``PRINT_PURPOSE(stream)``, which writes the help to ``stream``
+(``argv[0]`` is available). ``STR(x)``/``XSTR(x)`` stringify a
 token or the value of a macro; ``BOOLSTR(b)`` gives ``"T"`` or ``"F"``.
 
 **The common options**, handled by ``COMMON_OPTS_PARSE_CASES``:

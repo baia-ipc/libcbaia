@@ -74,15 +74,21 @@
           otherwise, stores the parse value to *DESTPTR
 */
 
+/* output of the help (PURPOSE) to STREAM; a program can define this macro
+   before including this header, e.g. if the help is generated */
+#ifndef PRINT_PURPOSE
+#define PRINT_PURPOSE(STREAM) fprintf(STREAM, PURPOSE, argv[0])
+#endif
+
 /* help and version are output to the standard output, the usage after an
    error to the standard error */
 #define HELP_AND_EXIT { \
-  fprintf(stdout, PURPOSE, argv[0]);\
+  PRINT_PURPOSE(stdout);\
   exit(EXIT_SUCCESS); \
 }
 
 #define PURPOSE_AND_EXIT { \
-  fprintf(stderr, PURPOSE, argv[0]);\
+  PRINT_PURPOSE(stderr);\
   exit(EXIT_FAILURE); \
 }
 

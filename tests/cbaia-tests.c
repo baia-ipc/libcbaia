@@ -3,6 +3,9 @@
 /* version of libcbaia */
 #define VERSION "0.1.0"
 
+/* the help, with the test options of the table of the test groups */
+#define PRINT_PURPOSE(STREAM) print_purpose(STREAM, argv[0])
+
 #include <assert.h>
 #include <errno.h>
 #include <stdbool.h>
@@ -47,50 +50,6 @@
 #include "whitelist.h"
 
 #define DEFAULT_TMPDIR "/tmp"
-
-// %-PURPOSE-%
-#define PURPOSE "Unit tests of libcbaia\n"\
-  "\n"\
-  "Usage:\n"\
-  "   %s [options]\n"\
-  "\n"\
-  "Test options (default: run all tests):\n"\
-  " -s : test string utilities and string buffer\n"\
-  " -N : test numeric utilities\n"\
-  " -k : test file and directory utilities\n"\
-  " -a : test argument parsing\n"\
-  " -o : test progress display\n"\
-  " -z : test gzip compressor\n"\
-  " -c : test BGZF compressor\n"\
-  " -b : test bit operations and bloom filter\n"\
-  " -e : test set\n"\
-  " -p : test heap\n"\
-  " -y : test HyperLogLog\n"\
-  " -f : test file sorting and merging\n"\
-  " -u : test sequence utilities\n"\
-  " -E : test edit distance of short sequences\n"\
-  " -r : test FASTQ reader\n"\
-  " -x : test FASTQ writer\n"\
-  " -m : test BAM reader\n"\
-  " -n : test uBAM writer\n"\
-  " -S : test SAM tags\n"\
-  " -A : test SAM header\n"\
-  " -j : test MinKNOW read metadata\n"\
-  " -d : test reads reader (FASTQ or BAM)\n"\
-  " -t : test output files\n"\
-  " -w : test barcode whitelist\n"\
-  " -l : test cell caller\n"\
-  " -i : test library complexity\n"\
-  " -5 : test MD5 digest\n"\
-  " -W : test HTML writer\n"\
-  " -M : test HTML templates\n"\
-  " -H : test HTML reports\n"\
-  "\n"\
-  "Other options:\n"\
-  " -T, --tmpdir <dir> : directory for temporary files\n"\
-  "                      (default: " DEFAULT_TMPDIR ")\n"\
-  "\n"\
-  COMMON_OPTS_HELP
 
 /* the tests which need it get the directory for temporary files */
 static const char *tmpdir = DEFAULT_TMPDIR;
@@ -395,7 +354,7 @@ typedef struct {
 } test_group_t;
 
 static test_group_t test_groups[] = {
-  {'s', "string utilities", strutils_test, false},
+  {'s', "string utilities and string buffer", strutils_test, false},
   {'N', "numeric utilities", numutils_test, false},
   {'k', "file and directory utilities", file_utils_test, false},
   {'a', "argument parsing", argparse_test, false},
@@ -416,7 +375,7 @@ static test_group_t test_groups[] = {
   {'S', "SAM tags", sam_tags_test, false},
   {'A', "SAM header", sam_header_test, false},
   {'j', "MinKNOW read metadata", minknow_metadata_test, false},
-  {'d', "reads reader", run_reads_reader_test, false},
+  {'d', "reads reader (FASTQ or BAM)", run_reads_reader_test, false},
   {'t', "output files", run_outfiles_test, false},
   {'w', "barcode whitelist", run_whitelist_test, false},
   {'l', "cell caller", run_cell_caller_test, false},
@@ -428,19 +387,40 @@ static test_group_t test_groups[] = {
 };
 #define N_TEST_GROUPS (sizeof(test_groups) / sizeof(test_groups[0]))
 
+static void print_purpose(FILE *stream, const char *progname) {
+  fprintf(stream, "Unit tests of libcbaia\n"
+          "\n"
+          "Usage:\n"
+          "   %s [options]\n"
+          "\n"
+          "Test options (default: run all tests):\n", progname);
+  for (size_t i = 0; i < N_TEST_GROUPS; i++)
+    fprintf(stream, " -%c : test %s\n", test_groups[i].option,
+            test_groups[i].description);
+  fputs("\n"
+        "Other options:\n"
+        " -T, --tmpdir <dir> : directory for temporary files\n"
+        "                      (default: " DEFAULT_TMPDIR ")\n"
+        "\n"
+        COMMON_OPTS_HELP, stream);
+}
+
 void parseargs(int argc, char *argv[],
     Logger **logger)
 {
   PARSE_START;
   int c = 0;
   bool any = false;
-  char optstring[64] = COMMON_OPTS_STR "T:";
+  /* the other options, then one letter for each test group */
+  char optstring[sizeof(COMMON_OPTS_STR "T:") + N_TEST_GROUPS] =
+    COMMON_OPTS_STR "T:";
+  size_t len = strlen(optstring);
   for (size_t i = 0; i < N_TEST_GROUPS; i++) {
-    size_t len = strlen(optstring);
     /* the test options must not be used by other options */
     assert(strchr(optstring, test_groups[i].option) == NULL);
-    optstring[len] = test_groups[i].option;
-    optstring[len + 1] = '\0';
+    assert(len + 1 < sizeof(optstring));
+    optstring[len++] = test_groups[i].option;
+    optstring[len] = '\0';
   }
   static struct option longopts[] = {
     {"tmpdir", required_argument, NULL, 'T'},

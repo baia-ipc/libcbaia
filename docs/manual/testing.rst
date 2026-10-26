@@ -46,7 +46,8 @@ without options, all tests are run. ``make test`` runs it under valgrind
 --errors-for-leak-kinds=definite``): memory errors and leaks make the
 tests fail. A new module adds its test function to the table of the test
 groups, with an option letter which is not used by the common options
-(``q v D L h V``) or by another group.
+(``q v D L h V``), by ``-T`` or by another group; the option string and
+the list of the test options in the help are generated from the table.
 
 The projects have their own test program (e.g. ``bin/lp-tests`` of
 Lumipore), with the same structure.

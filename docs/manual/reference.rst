@@ -30,6 +30,7 @@ Memory allocation macros
    #define STR(S)
    #define XSTR(S)
    #define BOOLSTR(BOOL)
+   #define PRINT_PURPOSE(STREAM)
    #define HELP_AND_EXIT
    #define PURPOSE_AND_EXIT
    #define VERSION_AND_EXIT
