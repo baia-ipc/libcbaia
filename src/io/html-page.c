@@ -39,6 +39,8 @@ const char *const html_page_css =
   ".head{display:flex;flex-wrap:wrap;align-items:center;gap:0 32px}"
   ".head .brand{text-align:center}.head .updated{font-size:0.8em}"
   ".head .side{flex:1 1 420px;min-width:0}"
+  ".head .side td{text-align:left}"
+  ".head .side td:first-child{white-space:nowrap}"
   ".head .side>h2:first-child{border-top:none;margin-top:0.4em;"
   "padding-top:0}\n"
   "h2{font-size:1.3em;margin:1.6em 0 0.4em;padding-top:0.6em;"
