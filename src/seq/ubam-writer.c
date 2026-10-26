@@ -13,6 +13,7 @@
 #include "alloc.h"
 #include "bam-reader.h"
 #include "ubam-writer.h"
+#include "sam-tags.h"
 #include "bgzf-compressor.h"
 #include "strutils.h"
 #include "test.h"
@@ -148,8 +149,7 @@ invalid:
 
 /* append a tag given in SAM text format (e.g. "RG:Z:x"), if valid */
 static void put_tag(strbuf_t *out, const char *t, size_t len) {
-  if (len < 5 || !isalpha((unsigned char)t[0]) ||
-      !isalnum((unsigned char)t[1]) || t[2] != ':' || t[4] != ':')
+  if (!sam_tag_is_valid(t, len))
     return;
   const char *v = t + 5;
   size_t vlen = len - 5;

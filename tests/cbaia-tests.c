@@ -30,6 +30,7 @@
 #include "outfiles.h"
 #include "progress.h"
 #include "reads-reader.h"
+#include "sam-tags.h"
 #include "sequtil.h"
 #include "set.h"
 #include "strbuf.h"
@@ -300,6 +301,7 @@ static test_group_t test_groups[] = {
   {'x', "FASTQ writer", fastq_writer_test, false},
   {'m', "BAM reader", run_bam_reader_test, false},
   {'n', "uBAM writer", run_ubam_writer_test, false},
+  {'g', "SAM tags", sam_tags_test, false},
   {'d', "reads reader", run_reads_reader_test, false},
   {'t', "output files", run_outfiles_test, false},
   {'w', "barcode whitelist", run_whitelist_test, false},
