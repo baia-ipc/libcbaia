@@ -30,6 +30,7 @@
 #include "outfiles.h"
 #include "progress.h"
 #include "reads-reader.h"
+#include "edit-distance.h"
 #include "minknow-metadata.h"
 #include "numutils.h"
 #include "sam-tags.h"
@@ -323,6 +324,7 @@ static test_group_t test_groups[] = {
   {'y', "HyperLogLog", hll_test, false},
   {'f', "file sorting and merging", file_sorter_test, false},
   {'u', "sequence utilities", sequtil_test, false},
+  {'E', "edit distance of short sequences", edit_distance_test, false},
   {'r', "FASTQ reader", run_fastq_reader_test, false},
   {'x', "FASTQ writer", fastq_writer_test, false},
   {'m', "BAM reader", run_bam_reader_test, false},
