@@ -140,16 +140,19 @@ HTML reports (``html-page.h``)
 
 A program can summarize its results in an HTML report, to be opened in a
 browser. The pages are **self-contained**: the style is included in the
-page and the plots are inline SVG, so that a report can be copied or sent
+page and the plots are inline SVG (JavaScript only for the reload of a
+report rewritten during a run), so that a report can be copied or sent
 as a single file, and viewed offline; the style follows the light or
 dark theme of the browser. A report is written as:
 
 ``void html_page_start(FILE *f, const char *title, long refresh)``
    the head of the page (title, style) and the start of the body: the
    title as ``h1`` heading, and the time of writing ("Updated: ...");
-   if ``refresh`` > 0, the browser reloads the page every ``refresh``
-   seconds (for a report rewritten during a run, see
-   :ref:`recipe-realtime`);
+   if ``refresh`` > 0, the browser reloads the page (for a report
+   rewritten during a run, see :ref:`recipe-realtime`), at an adaptive
+   interval: halved, down to 1 s, when the page has changed since the
+   last reload, doubled, up to ``refresh`` seconds, when not (a few lines
+   of JavaScript; without it, every ``refresh`` seconds);
    or ``void html_page_start_logo(FILE *f, const char *title, const html_logo_t *logo, const char *heading, long refresh)``,
    a head in two columns: on the left, a logo with ``heading`` under it
    (bold spaced capitals, centered; e.g. "report", under the name shown by

@@ -201,7 +201,8 @@ stops if no new files arrive) are parsed with ``parse_duration()``
 (``strutils.h``), which accepts e.g. ``90s``, ``5m`` or ``1.5h``. A
 report of the results so far can be rewritten after each file, with
 ``html_page_start()`` called with a ``refresh`` interval, so that the
-page open in the browser follows the run (:ref:`html-reports`).
+page open in the browser follows the run (:ref:`html-reports`): it is
+reloaded often while it changes, and less often when the run is quiet.
 
 A two-pass analysis of single-cell reads
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
