@@ -57,7 +57,8 @@ def components(outdir):
     ("ds", 4.4, 1, ["bitwise", "bloom-filter", "set", "heap",
                      "hyperloglog"]),
     ("io", 6.65, 1, ["file-sorter", "file-merger", "gzip-compressor",
-                      "bgzf-compressor", "md5", "html-page"]),
+                      "bgzf-compressor", "md5", "html-writer",
+                      "html-template", "html-page"]),
   ]
   top = 4.6
   pos = {}
@@ -113,6 +114,8 @@ def components(outdir):
   edge("ubam-writer", "sam-tags")
   edge("minknow-metadata", "sam-tags")
   edge("file-merger", "heap")
+  edge("html-page", "html-template")
+  edge("html-template", "html-writer")
   # external code
   ex, ey = 7.3, stop - h
   box(ax, ex, ey + 1.0, 1.9, 0.42, "ext/zlib", COLORS["ext"], alpha=0.5)
