@@ -15,6 +15,7 @@
 #include "file.h"
 #include "logger.h"
 #include "outfiles.h"
+#include "reads-reader.h"
 #include "strutils.h"
 #include "test.h"
 
@@ -28,11 +29,6 @@ struct outfiles_t {
   size_t *bam_header_lens;
   Logger *logger;
 };
-
-static bool endswith(const char *s, size_t len, const char *sfx) {
-  size_t sfxlen = strlen(sfx);
-  return len >= sfxlen && strcmp(s + len - sfxlen, sfx) == 0;
-}
 
 /* create the handler with the given prefix of the file names (copied) */
 static outfiles_t* new_with_prefix(const char *prefix,
@@ -57,13 +53,7 @@ outfiles_t* outfiles_new(const char *outdir, const char *reads_file,
   xmakedirs(outdir, logger);
   const char *base = strrchr(reads_file, '/');
   base = base == NULL ? reads_file : base + 1;
-  size_t len = strlen(base);
-  if (endswith(base, len, ".fastq.gz"))
-    len -= 9;
-  else if (endswith(base, len, ".fastq"))
-    len -= 6;
-  else if (endswith(base, len, ".bam"))
-    len -= 4;
+  size_t len = strlen(base) - reads_reader_filename_suffix_len(base);
   size_t dirlen = strlen(outdir);
   char *prefix;
   XMALLOC(prefix, dirlen + len + 3);
@@ -212,6 +202,14 @@ void outfiles_test(const char *tmpdir) {
   char *path2 = strcat_alloc(outdir, "/run1.S1" OUTFILES_FASTQ_SFX);
   test_assert(file_exists(path2, ""));
   unlink(path2);
+  /* also the other suffixes of the files of reads (e.g. .fq.gz) */
+  o = outfiles_new(outdir, "run2.fq.gz", 1, logger);
+  outfiles_write(o, 0, "S1", "x", 1);
+  outfiles_delete(o);
+  char *path3 = strcat_alloc(outdir, "/run2.S1" OUTFILES_FASTQ_SFX);
+  test_assert(file_exists(path3, ""));
+  unlink(path3);
+  free(path3);
   char *groupdir = strcat_alloc(outdir, "/g1");
   rmdir(groupdir);
   rmdir(outdir);

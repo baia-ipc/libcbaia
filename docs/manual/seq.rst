@@ -108,6 +108,9 @@ Further functions:
 ``bool reads_reader_is_reads_filename(const char *name)``
    whether a name is that of a file of reads: suffix ``.fastq``, ``.fq``
    (optionally ``.gz``) or ``.bam``; e.g. as a filter of ``list_dir()``;
+``size_t reads_reader_filename_suffix_len(const char *name)``
+   the length of that suffix at the end of the name (0 if none), e.g. to
+   remove it;
 ``size_t reads_reader_count(const char *filename, Logger *logger)``
    the number of reads of a file (e.g. for the total of a progress bar);
 ``bool reads_reader_file_complete(const char *path)``
@@ -334,7 +337,8 @@ A demultiplexer, or any program distributing the reads to several
   file name;
 * for an input file, the files are
   ``<outdir>/<input basename>.<destination>.fastq.gz`` (the suffix
-  ``.fastq.gz``, ``.fastq`` or ``.bam`` of the input is removed); for a
+  of a file of reads of the input, ``.fastq``, ``.fq`` (optionally
+  ``.gz``) or ``.bam``, is removed); for a
   group of input files (e.g. the files of a barcode directory),
   ``<outdir>/<group>/<destination>.fastq.gz``;
 * a file is created when the first data are written to it, so that

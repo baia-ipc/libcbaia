@@ -5,8 +5,8 @@
    e.g. a demultiplexer (a destination for each sample), with one
    compressed file for each destination:
    - for an input file: <outdir>/<input basename>.<destination>.fastq.gz,
-     where the suffix .fastq.gz, .fastq or .bam of the input file is
-     removed;
+     where the suffix of the input file (.fastq, .fq, optionally followed
+     by .gz, or .bam; see reads_reader_is_reads_filename) is removed;
    - for a group of input files (directory mode):
      <outdir>/<group>/<destination>.fastq.gz.
 

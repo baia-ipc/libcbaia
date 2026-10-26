@@ -54,10 +54,20 @@ void reads_reader_delete(reads_reader_t *self) {
   free(self);
 }
 
+/* the suffixes of the files of reads (also removed from the input name by
+   outfiles_new(), thus a single list) */
+static const char *const reads_filename_suffixes[] =
+  {".fastq", ".fastq.gz", ".fq", ".fq.gz", ".bam", NULL};
+
+size_t reads_reader_filename_suffix_len(const char *name) {
+  for (const char *const *sfx = reads_filename_suffixes; *sfx != NULL; sfx++)
+    if (str_has_suffix(name, *sfx))
+      return strlen(*sfx);
+  return 0;
+}
+
 bool reads_reader_is_reads_filename(const char *name) {
-  return str_has_suffix(name, ".fastq") || str_has_suffix(name, ".fastq.gz") ||
-         str_has_suffix(name, ".fq") || str_has_suffix(name, ".fq.gz") ||
-         str_has_suffix(name, ".bam");
+  return reads_reader_filename_suffix_len(name) > 0;
 }
 
 size_t reads_reader_count(const char *filename, Logger *logger) {
@@ -117,6 +127,9 @@ void reads_reader_test(const char *tmpdir) {
   test_assert(reads_reader_is_reads_filename("a.bam"));
   test_assert(!reads_reader_is_reads_filename("a.txt"));
   test_assert(!reads_reader_is_reads_filename(".fastq"));
+  test_eq_size(reads_reader_filename_suffix_len("a.fq.gz"), 6);
+  test_eq_size(reads_reader_filename_suffix_len("a.fastq"), 6);
+  test_eq_size(reads_reader_filename_suffix_len("a.gz"), 0);
   const char *fq = "@r1\nACGT\n+\nIIII\n@r2\nGG\n+\nII\n";
   char *path = write_gz(tmpdir, "reads_reader_test.fastq.gz", fq,
                         strlen(fq));

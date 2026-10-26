@@ -530,7 +530,7 @@ Read metadata of MinKNOW: the FASTQ files written by MinKNOW contain the read me
 
 **outfiles.h**
 
-Output files of a program writing the reads to several destinations, e.g. a demultiplexer (a destination for each sample), with one compressed file for each destination: - for an input file: <outdir>/<input basename>.<destination>.fastq.gz, where the suffix .fastq.gz, .fastq or .bam of the input file is removed; - for a group of input files (directory mode): <outdir>/<group>/<destination>.fastq.gz.
+Output files of a program writing the reads to several destinations, e.g. a demultiplexer (a destination for each sample), with one compressed file for each destination: - for an input file: <outdir>/<input basename>.<destination>.fastq.gz, where the suffix of the input file (.fastq, .fq, optionally followed by .gz, or .bam; see reads_reader_is_reads_filename) is removed; - for a group of input files (directory mode): <outdir>/<group>/<destination>.fastq.gz.
 
 .. code-block:: c
 
@@ -562,6 +562,7 @@ Reader of the reads of a FASTQ file (optionally gzipped) or of an unaligned BAM 
        size_t max_records);
    void reads_reader_delete(reads_reader_t *self);
    bool reads_reader_is_reads_filename(const char *name);
+   size_t reads_reader_filename_suffix_len(const char *name);
    size_t reads_reader_count(const char *filename, Logger *logger);
    bool reads_reader_file_complete(const char *path);
 

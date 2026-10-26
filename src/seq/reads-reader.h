@@ -44,6 +44,12 @@ void reads_reader_delete(reads_reader_t *self);
 */
 bool reads_reader_is_reads_filename(const char *name);
 
+/*
+   Length of the suffix of a file of reads (see
+   reads_reader_is_reads_filename) at the end of the name, 0 if none
+*/
+size_t reads_reader_filename_suffix_len(const char *name);
+
 /* Number of reads of a FASTQ or BAM file */
 size_t reads_reader_count(const char *filename, Logger *logger);
 
