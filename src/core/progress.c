@@ -23,13 +23,18 @@ struct progress_t {
   bool finished;
 };
 
+/* seconds from an arbitrary start (the wall clock, with a resolution of a
+   second, if the monotonic clock is not available) */
 static double now(void) {
   struct timespec ts;
-  clock_gettime(CLOCK_MONOTONIC, &ts);
+  if (clock_gettime(CLOCK_MONOTONIC, &ts) != 0)
+    return (double)time(NULL);
   return (double)ts.tv_sec + (double)ts.tv_nsec / 1e9;
 }
 
-/* format a time interval as [h:]mm:ss */
+/* format a time interval as [h:]mm:ss (truncated), as tqdm; not
+   format_duration() of strutils.h, whose format is [D d ]HH:MM:SS
+   (rounded), e.g. 00:01:05 instead of 01:05 */
 static void format_time(char *buf, size_t size, double seconds) {
   unsigned long s = seconds < 0 ? 0 : (unsigned long)seconds;
   if (s >= 3600)
