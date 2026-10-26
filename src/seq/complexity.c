@@ -17,7 +17,9 @@ void complexity_estimate(size_t reads, double distinct_keys,
   double n = (double)reads;
   out->error_free = pow(1.0 - error_rate, mean_key_length);
   double n_correct = out->error_free * n;
-  out->high_error_rate = out->error_free < COMPLEXITY_MIN_ERROR_FREE;
+  /* (too few reads takes precedence) */
+  out->high_error_rate = reads >= COMPLEXITY_MIN_READS &&
+                         out->error_free < COMPLEXITY_MIN_ERROR_FREE;
   out->estimated = n_correct >= COMPLEXITY_MIN_READS && !out->high_error_rate;
   out->saturated_unknown = false;
   out->molecules_seen = out->duplication = out->molecules =
@@ -83,6 +85,9 @@ void complexity_test(void) {
   complexity_estimate(20000, 19000, 24, 0.10, &c);
   test_assert(!c.estimated && c.high_error_rate);
   test_assert(fabs(c.error_free - pow(0.9, 24)) < 1e-9);
+  /* ... but too few reads */
+  complexity_estimate(50, 50, 24, 0.10, &c);
+  test_assert(!c.estimated && !c.high_error_rate);
   /* 3%: estimated */
   test_assert(pow(0.97, 24) >= COMPLEXITY_MIN_ERROR_FREE);
 }

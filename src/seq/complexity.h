@@ -38,7 +38,8 @@
 
 typedef struct {
   bool estimated;          /* false: too few reads or too many errors */
-  bool high_error_rate;    /* not estimated: p < COMPLEXITY_MIN_ERROR_FREE */
+  bool high_error_rate;    /* not estimated: p < COMPLEXITY_MIN_ERROR_FREE
+                              (with at least COMPLEXITY_MIN_READS reads) */
   double error_free;       /* p: fraction of the keys without errors */
   double molecules_seen;   /* distinct molecules in the N reads */
   double duplication;      /* fraction of duplicate reads */
