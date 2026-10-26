@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "alloc.h"
+#include "bitwise.h"
 #include "bloom-filter.h"
 #include "test.h"
 
@@ -29,13 +30,6 @@ void bloom_filter_delete(bloom_filter_t *self) {
   free(self);
 }
 
-/* https://xoshiro.di.unimi.it/splitmix64.c */
-static uint64_t split_mix_64(uint64_t key) {
-  key = (key ^ (key >> 30)) * 0xbf58476d1ce4e5b9ULL;
-  key = (key ^ (key >> 27)) * 0x94d049bb133111ebULL;
-  return key ^ (key >> 31);
-}
-
 /* the second hash value: the halves of the first one swapped */
 static inline uint64_t swap_halves(uint64_t hash) {
   return hash >> 32 | hash << 32;
@@ -53,18 +47,20 @@ static inline bool get_bit(const bloom_filter_t *self, uint64_t hash) {
 
 void bloom_filter_insert(bloom_filter_t *self, size_t key) {
   assert(self != NULL);
-  uint64_t hash = split_mix_64(key);
+  uint64_t hash = bitwise_mix64(key);
   set_bit(self, hash);
   set_bit(self, swap_halves(hash));
 }
 
 bool bloom_filter_query(const bloom_filter_t *self, size_t key) {
   assert(self != NULL);
-  uint64_t hash = split_mix_64(key);
+  uint64_t hash = bitwise_mix64(key);
   return get_bit(self, hash) && get_bit(self, swap_halves(hash));
 }
 
 void bloom_filter_test(void) {
+  /* the hash of the keys: the first output of splitmix64 with seed 0 */
+  test_assert(bitwise_mix64(0x9e3779b97f4a7c15ULL) == 0xe220a8397b1dcdafULL);
   bloom_filter_t *bf = bloom_filter_new(16);
   for (size_t key = 0; key < 1000; key++)
     bloom_filter_insert(bf, key * 7);

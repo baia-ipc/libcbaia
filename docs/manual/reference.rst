@@ -246,6 +246,7 @@ Data structures (``ds``)
    #define GET_BIT(E, BITNUM)
    #define SET_BIT(E, BITNUM)
    #define UNSET_BIT(E, BITNUM)
+   static inline uint64_t bitwise_mix64(uint64_t x);
 
 **bloom-filter.h**
 

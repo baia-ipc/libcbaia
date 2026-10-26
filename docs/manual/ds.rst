@@ -15,6 +15,11 @@ Macros for single bits of an integer of any width: ``GET_BIT(e, n)``,
 ``SET_BIT(e, n)``, ``UNSET_BIT(e, n)`` (the bit number can be up to the
 width of the type of ``e`` minus 1).
 
+``bitwise_mix64(x)`` mixes the bits of a 64-bit integer, so that each bit
+of the result depends on all bits of ``x`` (the finalizer of splitmix64):
+e.g. to hash an integer key, as the Bloom filter does, or to improve a
+weak hash value, as ``hll_hash()`` does.
+
 Bloom filter (``bloom-filter.h``)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

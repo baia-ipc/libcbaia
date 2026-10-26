@@ -3,22 +3,13 @@
 #include <assert.h>
 #include <math.h>
 #include <string.h>
+#include "bitwise.h"
 #include "hyperloglog.h"
 #include "test.h"
 
 void hll_init(hll_t *self) {
   assert(self != NULL);
   memset(self->registers, 0, HLL_REGISTERS);
-}
-
-/* finalizer of splitmix64: mixes all bits */
-static uint64_t mix64(uint64_t x) {
-  x ^= x >> 30;
-  x *= 0xbf58476d1ce4e5b9ULL;
-  x ^= x >> 27;
-  x *= 0x94d049bb133111ebULL;
-  x ^= x >> 31;
-  return x;
 }
 
 uint64_t hll_hash(const void *data, size_t len) {
@@ -30,7 +21,7 @@ uint64_t hll_hash(const void *data, size_t len) {
     h ^= p[i];
     h *= 0x100000001b3ULL;
   }
-  return mix64(h);
+  return bitwise_mix64(h);
 }
 
 void hll_add(hll_t *self, uint64_t hash) {
