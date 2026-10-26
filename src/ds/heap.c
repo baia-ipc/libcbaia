@@ -1,7 +1,6 @@
 /* (c) 2026 Giorgio Gonnella */
 
 #include <assert.h>
-#include <stdio.h>
 #include <stdlib.h>
 #include "alloc.h"
 #include "heap.h"
