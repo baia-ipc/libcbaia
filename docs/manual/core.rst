@@ -411,8 +411,9 @@ Other modules
 ~~~~~~~~~~~~~
 
 * ``colors.h``: ANSI colors for the terminal (``START_COLOR(stream,
-  RED);``, ``STOP_COLOR(stream);``), used by the logger; the example
-  program ``colors`` writes the name of each color in that color:
+  COLOR_RED);``, ``STOP_COLOR(stream);``; the colors ``COLOR_RED``,
+  ``COLOR_BRIGHT_RED``, ...), used by the logger; the example program
+  ``colors`` writes the name of each color in that color:
 
   .. literalinclude:: examples/colors.c
      :language: c

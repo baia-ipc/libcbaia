@@ -71,22 +71,22 @@ ANSI colors of the text written to a terminal
 
    #define START_COLOR(STREAM, COLOR)
    #define STOP_COLOR(STREAM)
-   #define BLACK
-   #define RED
-   #define GREEN
-   #define YELLOW
-   #define BLUE
-   #define MAGENTA
-   #define CYAN
-   #define WHITE
-   #define BRIGHT_BLACK
-   #define BRIGHT_RED
-   #define BRIGHT_GREEN
-   #define BRIGHT_YELLOW
-   #define BRIGHT_BLUE
-   #define BRIGHT_MAGENTA
-   #define BRIGHT_CYAN
-   #define BRIGHT_WHITE
+   #define COLOR_BLACK
+   #define COLOR_RED
+   #define COLOR_GREEN
+   #define COLOR_YELLOW
+   #define COLOR_BLUE
+   #define COLOR_MAGENTA
+   #define COLOR_CYAN
+   #define COLOR_WHITE
+   #define COLOR_BRIGHT_BLACK
+   #define COLOR_BRIGHT_RED
+   #define COLOR_BRIGHT_GREEN
+   #define COLOR_BRIGHT_YELLOW
+   #define COLOR_BRIGHT_BLUE
+   #define COLOR_BRIGHT_MAGENTA
+   #define COLOR_BRIGHT_CYAN
+   #define COLOR_BRIGHT_WHITE
 
 **file.h**
 

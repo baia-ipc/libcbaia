@@ -51,15 +51,15 @@ void delete_logger(Logger* logger) {
                              "DEBUG"
 
 #define LEVEL_COLOR(LEVEL) \
-   (LEVEL) == LOG_ERROR    ? BRIGHT_RED     : \
-   (LEVEL) == LOG_WARN     ? BRIGHT_MAGENTA : \
-   (LEVEL) == LOG_SUCCESS  ? BRIGHT_GREEN   : \
-   (LEVEL) == LOG_PHASE    ? BRIGHT_YELLOW  : \
-   (LEVEL) == LOG_INFO     ? YELLOW  : \
-   (LEVEL) == LOG_PARAM    ? BRIGHT_BLUE  : \
-   (LEVEL) == LOG_TRACE    ? BRIGHT_BLACK : \
-   (LEVEL) == LOG_MEM      ? MAGENTA : \
-                             CYAN
+   (LEVEL) == LOG_ERROR    ? COLOR_BRIGHT_RED     : \
+   (LEVEL) == LOG_WARN     ? COLOR_BRIGHT_MAGENTA : \
+   (LEVEL) == LOG_SUCCESS  ? COLOR_BRIGHT_GREEN   : \
+   (LEVEL) == LOG_PHASE    ? COLOR_BRIGHT_YELLOW  : \
+   (LEVEL) == LOG_INFO     ? COLOR_YELLOW         : \
+   (LEVEL) == LOG_PARAM    ? COLOR_BRIGHT_BLUE    : \
+   (LEVEL) == LOG_TRACE    ? COLOR_BRIGHT_BLACK   : \
+   (LEVEL) == LOG_MEM      ? COLOR_MAGENTA        : \
+                             COLOR_CYAN
 
 /* localtime_r: the loggers can be used by several threads */
 #define GET_TIME(S) {\
