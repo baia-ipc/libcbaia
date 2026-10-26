@@ -31,6 +31,7 @@
 #include "progress.h"
 #include "reads-reader.h"
 #include "minknow-metadata.h"
+#include "numutils.h"
 #include "sam-tags.h"
 #include "sequtil.h"
 #include "set.h"
@@ -310,6 +311,7 @@ typedef struct {
 
 static test_group_t test_groups[] = {
   {'s', "string utilities", strutils_test, false},
+  {'N', "numeric utilities", numutils_test, false},
   {'k', "file and directory utilities", file_utils_test, false},
   {'a', "argument parsing", argparse_test, false},
   {'o', "progress display", progress_test, false},
