@@ -122,11 +122,6 @@ static bool read_line(fastq_reader_t *self, strbuf_t *out) {
   return any;
 }
 
-/* whitespace, as for the Python str.rstrip() (ASCII characters) */
-static inline bool is_space(char c) {
-  return c == ' ' || (c >= '\t' && c <= '\r') || (c >= '\x1c' && c <= '\x1f');
-}
-
 /* remove trailing whitespace from data[from..] */
 static size_t rstrip(strbuf_t *data, size_t from) {
   while (data->len > from && is_space(data->s[data->len - 1]))

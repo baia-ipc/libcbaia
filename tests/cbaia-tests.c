@@ -107,6 +107,20 @@ static void strutils_test(void) {
   test_eq_str(dur, "1 d 01:01:01");
   format_duration(-3, dur, sizeof(dur));
   test_eq_str(dur, "00:00:00");
+  long sec;
+  test_assert(parse_duration("30s", 60, &sec) && sec == 30);
+  test_assert(parse_duration("2m", 1, &sec) && sec == 120);
+  test_assert(parse_duration("1.5h", 1, &sec) && sec == 5400);
+  test_assert(parse_duration("5", 60, &sec) && sec == 300);
+  test_assert(parse_duration("0", 1, &sec) && sec == 0);
+  test_assert(!parse_duration("", 1, &sec));
+  test_assert(!parse_duration("-1s", 1, &sec));
+  test_assert(!parse_duration("5x", 1, &sec));
+  test_assert(!parse_duration("5ms", 1, &sec));
+  test_assert(!parse_duration("s", 1, &sec));
+  test_assert(is_space(' ') && is_space('\t') && is_space('\r') &&
+              is_space('\x1f'));
+  test_assert(!is_space('a') && !is_space('\0') && !is_space('\x1b'));
   char *out = NULL;
   size_t outsize = 0;
   FILE *f = open_memstream(&out, &outsize);

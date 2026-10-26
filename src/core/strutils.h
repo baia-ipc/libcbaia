@@ -29,4 +29,16 @@ void fputs_html_escaped(const char *s, FILE *f);
    second; negative durations as 0) into buf, of the given size */
 void format_duration(double seconds, char *buf, size_t size);
 
+/* Parse a duration: a non-negative number with an optional unit s, m or h
+   (e.g. "30s", "1.5h"; without unit: in units of default_unit seconds,
+   e.g. 60 for minutes) into seconds (rounded); false if invalid */
+bool parse_duration(const char *s, double default_unit, long *seconds);
+
+/* Whether c is whitespace, as for the split() of Python (ASCII: space,
+   \t, \n, \v, \f, \r and the separators \x1c-\x1f) */
+static inline bool is_space(char c) {
+  return c == ' ' || (c >= '\t' && c <= '\r') ||
+         (c >= '\x1c' && c <= '\x1f');
+}
+
 #endif
