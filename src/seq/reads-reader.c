@@ -8,6 +8,7 @@
 #include <zlib.h>
 #include "alloc.h"
 #include "bam-reader.h"
+#include "file.h"
 #include "reads-reader.h"
 #include "strutils.h"
 #include "test.h"
@@ -101,9 +102,7 @@ bool reads_reader_file_complete(const char *path) {
 
 static char *write_gz(const char *tmpdir, const char *name, const char *data,
     size_t len) {
-  char *dir_slash = strcat_alloc(tmpdir, "/");
-  char *path = strcat_alloc(dir_slash, name);
-  free(dir_slash);
+  char *path = path_join(tmpdir, name);
   gzFile f = gzopen(path, "wb");
   test_assert(f != NULL);
   test_assert(gzwrite(f, data, (unsigned)len) == (int)len);

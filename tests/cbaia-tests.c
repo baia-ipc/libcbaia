@@ -141,6 +141,15 @@ static bool only_txt(const char *name, const char *path, void *data) {
 }
 
 static void file_utils_test(void) {
+  char *joined = path_join("out", "S01.fastq.gz");
+  test_eq_str(joined, "out/S01.fastq.gz");
+  free(joined);
+  joined = path_join("out/", "S01");
+  test_eq_str(joined, "out/S01");
+  free(joined);
+  joined = path_join("", "S01");
+  test_eq_str(joined, "S01");
+  free(joined);
   char *base = path_basename("run/fastq_pass/");
   test_eq_str(base, "fastq_pass");
   free(base);

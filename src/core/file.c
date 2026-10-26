@@ -335,6 +335,20 @@ void xmakedirs(const char *path, Logger *logger)
   free(p);
 }
 
+char *path_join(const char *dir, const char *name) {
+  assert(dir != NULL);
+  assert(name != NULL);
+  size_t len = strlen(dir), name_len = strlen(name);
+  bool slash = len > 0 && dir[len - 1] != '/';
+  char *path;
+  XMALLOC(path, len + slash + name_len + 1);
+  memcpy(path, dir, len);
+  if (slash)
+    path[len] = '/';
+  memcpy(path + len + slash, name, name_len + 1);
+  return path;
+}
+
 char *path_basename(const char *path)
 {
   size_t len = strlen(path);
@@ -361,7 +375,6 @@ char **list_dir(const char *dir, list_dir_filter_t filter, void *data,
   DIR *d = opendir(dir);
   LCHECK(d != NULL, logger, "Opening directory '%s' failed, %s\n", dir,
          strerror(errno));
-  char *dir_slash = strcat_alloc(dir, "/");
   char **paths = NULL;
   size_t cap = 0;
   *n = 0;
@@ -369,14 +382,13 @@ char **list_dir(const char *dir, list_dir_filter_t filter, void *data,
   while ((e = readdir(d)) != NULL) {
     if (e->d_name[0] == '.')
       continue;
-    char *path = strcat_alloc(dir_slash, e->d_name);
+    char *path = path_join(dir, e->d_name);
     if (filter == NULL || filter(e->d_name, path, data)) {
       XCHECKSPACEINCPERC(paths, &cap, (*n + 1) * sizeof(char *), 50);
       paths[(*n)++] = path;
     } else
       free(path);
   }
-  free(dir_slash);
   closedir(d);
   if (*n > 1)
     qsort(paths, *n, sizeof(char *), cmpstrptr);

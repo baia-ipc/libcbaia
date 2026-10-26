@@ -227,6 +227,10 @@ bool is_directory(const char *path);
    the program is exited with an error message if this fails */
 void xmakedirs(const char *path, Logger *logger);
 
+/* <dir>/<name> (allocated, to be freed by the caller), without doubling
+   a slash at the end of dir; name if dir is empty */
+char *path_join(const char *dir, const char *name);
+
 /* Last component of a path, without trailing slashes (allocated, to be
    freed by the caller); e.g. "run/fastq_pass/" -> "fastq_pass" */
 char *path_basename(const char *path);

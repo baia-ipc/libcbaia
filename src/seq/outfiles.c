@@ -81,14 +81,12 @@ outfiles_t* outfiles_new_group(const char *outdir, const char *group,
     size_t n_destinations, Logger *logger) {
   assert(outdir != NULL);
   assert(group != NULL);
-  char *dir_slash = strcat_alloc(outdir, "/");
-  char *dir = strcat_alloc(dir_slash, group);
+  char *dir = path_join(outdir, group);
   xmakedirs(dir, logger);
   char *prefix = strcat_alloc(dir, "/");
   outfiles_t *self = new_with_prefix(prefix, n_destinations, logger);
   free(prefix);
   free(dir);
-  free(dir_slash);
   return self;
 }
 
