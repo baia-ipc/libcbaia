@@ -33,7 +33,7 @@ def description(text):
 
 def declarations(text):
     """the declarations, without comments, preprocessor guards, includes,
-    test functions and the internal __ functions"""
+    test functions and the internal _ and __ functions"""
     text = re.sub(r"/\*.*?\*/", "", text, flags=re.S)
     text = re.sub(r"//[^\n]*", "", text)
     out = []
@@ -57,7 +57,7 @@ def declarations(text):
                 full = full.rstrip("\\").rstrip() + " " + lines[i].strip()
             i += 1
             m = re.match(r"(#define\s+(\w+)(\([^)]*\))?)", full)
-            if m and not m.group(2).startswith("__") and \
+            if m and not m.group(2).startswith("_") and \
                m.group(2) not in macros:
                 macros.add(m.group(2))
                 out.append(m.group(1))
@@ -74,7 +74,7 @@ def declarations(text):
         decl = "\n".join(block)
         name = re.search(r"(\w+)\s*\(", decl)
         if name and (name.group(1).endswith("_test") or
-                     name.group(1).startswith(("__", "test_"))):
+                     name.group(1).startswith(("_", "test_"))):
             continue
         if "static inline" in decl:
             decl = decl.split("{")[0].rstrip() + ";"
@@ -87,7 +87,7 @@ def main():
            "from the headers by ``docs/manual/make_reference.py``; the "
            "documentation of each function is in the header, before its "
            "declaration). The unit test functions (``<module>_test()``) "
-           "and the internal functions (``__`` prefix, called by macros) "
+           "and the internal functions (``_`` or ``__`` prefix, called by macros) "
            "are not listed.", ""]
     for comp, title in COMPONENTS:
         rst += [title + " (``" + comp + "``)",

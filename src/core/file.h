@@ -20,14 +20,14 @@
    - <description> description of the file
    - <logger> logger for the verbose msg (may be NULL)
 
-   The function calls fopen() and the program is exited if
-   fopen() does not return 0.
+   The function calls fopen() and the program is exited with an error
+   message if it fails (returns NULL).
 */
-FILE* __xfopen(const char *fname, const char *sfx, const char *mode,
-             const char *description, Logger *logger, const char *_file,
-             int _line);
+FILE* _xfopen(const char *fname, const char *sfx, const char *mode,
+            const char *description, Logger *logger, const char *_file,
+            int _line);
 #define xfopen(fname, sfx, mode, description, logger) \
-  __xfopen(fname, sfx, mode, description, logger, __FILE__, __LINE__)
+  _xfopen(fname, sfx, mode, description, logger, __FILE__, __LINE__)
 
 /*
    Close a file pointer and exit the program on failure.
@@ -38,8 +38,8 @@ FILE* __xfopen(const char *fname, const char *sfx, const char *mode,
    The function calls fclose() and the program is exited if
    fclose() does not return 0.
 */
-void __xfclose(FILE** file, Logger *logger, const char *_file, int _line);
-#define xfclose(file, logger) __xfclose(file, logger, __FILE__, __LINE__)
+void _xfclose(FILE** file, Logger *logger, const char *_file, int _line);
+#define xfclose(file, logger) _xfclose(file, logger, __FILE__, __LINE__)
 
 /*
    Delete the specified file.
@@ -74,11 +74,14 @@ void xfrename(const char *fname_old, const char *sfx_old,
    and read the file content into the buffer.
 
    Input parameters:
-   - <file> the input file
+   - <file> the input file (seekable)
 
    Output parameters:
-   - <buffer> set to the allocated buffer
-   - <bufsize> set to the size of the buffer
+   - <buffer> set to the allocated buffer, containing the content followed
+              by a \0 (so that a text can be used as a string)
+   - <bufsize> set to the size of the content (0 for an empty file)
+
+   The program is exited with an error message if the file cannot be read.
 */
 void read_file(FILE *file, char **buffer, size_t *bufsize, Logger* logger);
 
@@ -158,10 +161,10 @@ bool xgetdelim(char **line, size_t *line_size, int delim, FILE *file,
                Logger *logger);
 
 /* Map file using mmap */
-void* __xfmap(const char *fname, const char *sfx, bool writable,
+void* _xfmap(const char *fname, const char *sfx, bool writable,
     size_t *fsize, int *fd, Logger *logger, const char *_file, int _line);
 #define xfmap(fname, sfx, writable, fsize, fd, logger) \
-   __xfmap(fname, sfx, writable, fsize, fd, logger, __FILE__, __LINE__)
+   _xfmap(fname, sfx, writable, fsize, fd, logger, __FILE__, __LINE__)
 
 /* Unmap file mapped using mmap */
 void xfunmap(void *map, size_t fsize, int fd, Logger *logger);
@@ -169,7 +172,8 @@ void xfunmap(void *map, size_t fsize, int fd, Logger *logger);
 /* check if a file exists */
 bool file_exists(const char *fname, const char *sfx);
 
-/* get file size */
+/* get file size (the file must be seekable; the program is exited with an
+   error message otherwise); the position in the file is not changed */
 size_t file_size(FILE *file);
 
 /* check that a file contains the given expected signature;
@@ -190,34 +194,34 @@ void xchksig(const char *signature, const char *expected,
 /* same as xfopen (see above), but also checks the signature;
    the mode string must start with 'r';
    the offset in the file is set to just after the signature */
-FILE* __xfopen_chksig(const char *fname, const char *sfx, const char *mode,
-                      const char *description,
-                      const char *expected_signature, const char *helpmsg,
-                      Logger *logger, const char *_file, int line);
+FILE* _xfopen_chksig(const char *fname, const char *sfx, const char *mode,
+                     const char *description,
+                     const char *expected_signature, const char *helpmsg,
+                     Logger *logger, const char *_file, int _line);
 #define xfopen_chksig(fname, sfx, mode, description, \
                     expected_signature, helpmsg, logger) \
- __xfopen_chksig(fname, sfx, mode, description, \
+ _xfopen_chksig(fname, sfx, mode, description, \
                  expected_signature, helpmsg, logger, __FILE__, __LINE__)
 
 /* same as xfopen (see above), but also writes the signature;
    the mode string must start with 'w';
    the offset in the file is set to just after the signature */
-FILE* __xfopen_putsig(const char *fname, const char *sfx, const char *mode,
-                      const char *description,
-                      const char *signature, Logger *logger, const char *_file,
-                      int line);
+FILE* _xfopen_putsig(const char *fname, const char *sfx, const char *mode,
+                     const char *description,
+                     const char *signature, Logger *logger, const char *_file,
+                     int _line);
 #define xfopen_putsig(fname, sfx, mode, description, signature, logger) \
-  __xfopen_putsig(fname, sfx, mode, description, signature, logger,\
+  _xfopen_putsig(fname, sfx, mode, description, signature, logger,\
       __FILE__, __LINE__)
 
 /* Map file for reading using mmap and check the signature */
-void* __xfmap_chksig(const char *fname, const char *sfx,
+void* _xfmap_chksig(const char *fname, const char *sfx,
     size_t *fsize, int *fd, const char *expected_signature,
     const char *filedesc, const char *helpmsg, Logger *logger,
     const char *_file, int _line);
 #define xfmap_chksig(fname, sfx, fsize, fd, expected_signature, \
                      filedesc, helpmsg, logger) \
-  __xfmap_chksig(fname, sfx, fsize, fd, expected_signature, \
+  _xfmap_chksig(fname, sfx, fsize, fd, expected_signature, \
                  filedesc, helpmsg, logger, __FILE__, __LINE__)
 
 /* Whether path is an existing directory */

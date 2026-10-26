@@ -18,7 +18,7 @@
 
 bool xgetline(char **line, size_t *line_size, FILE *file, Logger *logger)
 {
-  int getline_retval;
+  ssize_t getline_retval;
   getline_retval = getline(line, line_size, file);
   if (getline_retval == -1)
   {
@@ -32,7 +32,7 @@ bool xgetline(char **line, size_t *line_size, FILE *file, Logger *logger)
 bool xgetdelim(char **line, size_t *line_size, int delim, FILE *file,
     Logger *logger)
 {
-  int getdelim_retval;
+  ssize_t getdelim_retval;
   getdelim_retval = getdelim(line, line_size, delim, file);
   if (getdelim_retval == -1)
   {
@@ -48,23 +48,23 @@ char *compute_nth_filename(const char *basename, const char *sfx, size_t n)
   char *fname;
   int reqsize;
   reqsize = (sfx == NULL) ?
-    snprintf(NULL, 0, "%s.%lu", basename, n) :
-    snprintf(NULL, 0, "%s%s.%lu", basename, sfx, n);
+    snprintf(NULL, 0, "%s.%zu", basename, n) :
+    snprintf(NULL, 0, "%s%s.%zu", basename, sfx, n);
   reqsize++;
   XMALLOC(fname, reqsize);
   if (sfx == NULL)
-    snprintf(fname, reqsize, "%s.%lu", basename, n);
+    snprintf(fname, reqsize, "%s.%zu", basename, n);
   else
-    snprintf(fname, reqsize, "%s%s.%lu", basename, sfx, n);
+    snprintf(fname, reqsize, "%s%s.%zu", basename, sfx, n);
   return fname;
 }
 
 #define MODEDESC(MODE) \
   (((MODE)[0] == 'r') ? "for reading" : "for writing")
 
-FILE* __xfopen(const char *fname, const char *sfx, const char *mode,
-             const char *description, Logger *logger,
-             const char *_file, int _line) {
+FILE* _xfopen(const char *fname, const char *sfx, const char *mode,
+            const char *description, Logger *logger,
+            const char *_file, int _line) {
   FILE* file = NULL;
   char *fname_and_sfx;
   assert(fname != NULL && mode != NULL);
@@ -81,7 +81,7 @@ FILE* __xfopen(const char *fname, const char *sfx, const char *mode,
   return file;
 }
 
-void* __xfmap(const char *fname, const char *sfx, bool writable,
+void* _xfmap(const char *fname, const char *sfx, bool writable,
     size_t *fsize, int *fd, Logger *logger, const char *_file, int _line)
 {
   char *fname_and_sfx;
@@ -97,11 +97,11 @@ void* __xfmap(const char *fname, const char *sfx, bool writable,
   *fsize = sb.st_size;
   map = mmap(0, sb.st_size, PROT_READ | (writable ? PROT_WRITE : 0),
              MAP_SHARED, *fd, 0);
-  __lprintf(logger, LOG_DEBUG, _file, _line,
-      "Mapped file %s for %s (%p)\n", fname_and_sfx,
-      writable ? "writing" : "reading", fd);
   LCHECK(map != MAP_FAILED, logger, "Mapping file '%s' failed, %s\n",
               fname_and_sfx, strerror(errno));
+  __lprintf(logger, LOG_DEBUG, _file, _line,
+      "Mapped file %s for %s (%p)\n", fname_and_sfx,
+      writable ? "writing" : "reading", map);
   if (sfx != NULL)
     free(fname_and_sfx);
   return map;
@@ -114,7 +114,7 @@ void xfunmap(void *map, size_t fsize, int fd, Logger *logger)
          strerror(errno));
 }
 
-void __xfclose(FILE** file, Logger *logger, const char *_file, int _line)
+void _xfclose(FILE** file, Logger *logger, const char *_file, int _line)
 {
   assert(file != NULL);
   assert(*file != NULL);
@@ -169,29 +169,32 @@ bool file_exists(const char *fname, const char *sfx)
   return result;
 }
 
+/* size of a seekable file, by seeking to its end; the position is then
+   set to <pos> (-1: the previous one) */
+static long seek_size(FILE *file, long pos, Logger *logger)
+{
+  long curpos = ftell(file), fsize;
+  LCHECK(curpos >= 0 && fseek(file, 0, SEEK_END) == 0 &&
+         (fsize = ftell(file)) >= 0 &&
+         fseek(file, pos < 0 ? curpos : pos, SEEK_SET) == 0, logger,
+         "Determining the size of a file failed, %s\n", strerror(errno));
+  return fsize;
+}
+
 size_t file_size(FILE *file)
 {
-  long fsize, curpos;
-  curpos = ftell(file);
-  assert(curpos >= 0);
-  fseek(file, 0, SEEK_END);
-  fsize = ftell(file);
-  assert(fsize >= 0);
-  fseek(file, curpos, SEEK_SET);
-  return (size_t)fsize;
+  assert(file != NULL);
+  return (size_t)seek_size(file, -1, NULL);
 }
 
 void read_file(FILE *file, char **buffer, size_t *bufsize, Logger *logger)
 {
-  long fsize;
   assert(file != NULL);
-  fseek(file, 0, SEEK_END);
-  fsize = ftell(file);
-  assert(fsize > 0);
-  *bufsize = fsize;
-  XMALLOC(*buffer, *bufsize);
-  fseek(file, 0, SEEK_SET);
-  xfread(*buffer, 1, *bufsize, file, logger);
+  *bufsize = (size_t)seek_size(file, 0, logger);
+  XMALLOC(*buffer, *bufsize + 1);
+  if (*bufsize > 0)
+    xfread(*buffer, 1, *bufsize, file, logger);
+  (*buffer)[*bufsize] = '\0';
 }
 
 #define LONG_LINE_PFXLEN 40
@@ -238,7 +241,7 @@ size_t read_lines_in_buffer(FILE *file, char *buffer, const size_t bufsize,
     if (bufsize > LONG_LINE_PFXLEN) buffer[LONG_LINE_PFXLEN] = '\0';
     else buffer[bufsize-1] = '\0';
     lprintf(logger, LOG_ERROR, "A line of the input file is larger "
-        "than the available buffer size (%lu bytes).\n", bufsize);
+        "than the available buffer size (%zu bytes).\n", bufsize);
     lprintf(logger, LOG_ERROR, "Long line%s: %s\n",
         bufsize > LONG_LINE_PFXLEN ? " starts with" : "", buffer);
     lprintf(logger, LOG_ERROR, "Suggestion: determine the maximal length "
@@ -251,7 +254,8 @@ size_t read_lines_in_buffer(FILE *file, char *buffer, const size_t bufsize,
   if (!feof(file))
   {
     long rel_offset = ((long)lastnewline - ((long)nitemsread-1));
-    fseek(file, rel_offset, SEEK_CUR);
+    LCHECK(fseek(file, rel_offset, SEEK_CUR) == 0, logger,
+           "Seeking in a file failed, %s\n", strerror(errno));
   }
   return nlines;
 }
@@ -275,12 +279,12 @@ void xchksig(const char *signature, const char *expected,
     wrongsig(fname, sfx, desc, helpmsg, logger);
 }
 
-FILE* __xfopen_chksig(const char *fname, const char *sfx, const char *mode,
-                    const char *description,
-                    const char *expected_signature, const char *helpmsg,
-                    Logger *logger, const char *_file, int _line)
+FILE* _xfopen_chksig(const char *fname, const char *sfx, const char *mode,
+                     const char *description,
+                     const char *expected_signature, const char *helpmsg,
+                     Logger *logger, const char *_file, int _line)
 {
-  FILE *result = __xfopen(fname, sfx, mode, description, logger, _file, _line);
+  FILE *result = _xfopen(fname, sfx, mode, description, logger, _file, _line);
   char *signature;
   int len = strlen(expected_signature);
   assert(mode[0] == 'r');
@@ -292,24 +296,24 @@ FILE* __xfopen_chksig(const char *fname, const char *sfx, const char *mode,
   return result;
 }
 
-FILE* __xfopen_putsig(const char *fname, const char *sfx, const char *mode,
-                      const char *description,
-                      const char *signature, Logger *logger,
-                      const char *_file, int _line)
+FILE* _xfopen_putsig(const char *fname, const char *sfx, const char *mode,
+                     const char *description,
+                     const char *signature, Logger *logger,
+                     const char *_file, int _line)
 {
-  FILE *result = __xfopen(fname, sfx, mode, description, logger, _file, _line);
+  FILE *result = _xfopen(fname, sfx, mode, description, logger, _file, _line);
   size_t len = strlen(signature);
   assert(mode[0] == 'w');
   xfwrite(signature, (size_t)1, len, result, logger);
   return result;
 }
 
-void *__xfmap_chksig(const char *fname, const char *sfx,
+void *_xfmap_chksig(const char *fname, const char *sfx,
     size_t *fsize, int *fd, const char *expected_signature,
     const char *filedesc, const char *helpmsg, Logger *logger,
     const char *_file, int _line)
 {
-  void *result = __xfmap(fname, sfx, false, fsize, fd, logger, _file, _line);
+  void *result = _xfmap(fname, sfx, false, fsize, fd, logger, _file, _line);
   xchksig((char*)result, expected_signature, fname, sfx, filedesc, helpmsg,
       logger);
   return result;

@@ -330,12 +330,13 @@ which have the name of the standard function with a prepended `x`
   `FILESFX_SORTED`);
 - a description of the file (used in the messages) and a logger are
   passed;
-- the implementation function is called `__xfopen` and takes the
+- the implementation function is called `_xfopen` and takes the
   source file and line, added by the `xfopen` macro.
 
-The same pattern (a `__` function and a macro adding `__FILE__` and
+The same pattern (a `_` function and a macro adding `__FILE__` and
 `__LINE__`) is used for any other function that reports errors on behalf
-of its caller.
+of its caller (the logger keeps its historical `__` names, e.g.
+`__lprintf`).
 
 ## Command line programs
 

@@ -188,6 +188,27 @@ static void file_utils_test(void) {
     free(dir_slash);
     free(path);
   }
+  /* read_file: an empty file (z.txt), then with a content */
+  char *zpath = path_join(dir, "z.txt");
+  FILE *zf = fopen(zpath, "r+");
+  test_assert(zf != NULL);
+  char *content;
+  size_t content_size;
+  read_file(zf, &content, &content_size, NULL);
+  test_eq_size(content_size, 0);
+  test_eq_str(content, "");
+  free(content);
+  test_assert(fputs("abc\n", zf) >= 0);
+  test_eq_size(file_size(zf), 4);
+  read_file(zf, &content, &content_size, NULL);
+  test_eq_size(content_size, 4);
+  test_eq_str(content, "abc\n");
+  free(content);
+  fclose(zf);
+  free(zpath);
+  char *nth = compute_nth_filename("x", ".y", 12);
+  test_eq_str(nth, "x.y.12");
+  free(nth);
   size_t n, calls = 0;
   char **paths = list_dir(dir, only_txt, &calls, &n, NULL);
   test_eq_size(n, 2);
