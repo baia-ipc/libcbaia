@@ -1,0 +1,78 @@
+/* (c) 2026 Giorgio Gonnella */
+
+/*
+   Self-contained HTML reports: a page with a style for light and dark
+   themes (no external resources), tiles with the main values, and plots as
+   inline SVG (horizontal bar chart, histogram, barcode rank plot).
+
+   A report is written as: html_page_start(), the content (headings,
+   paragraphs, tables, tiles, plots), html_page_end(). The style defines:
+   - text: h1, h2, h3; p.sub (subtitle), p.note (small, muted), p.running
+     (highlighted box); tables (numbers right-aligned, td.seq: monospace);
+   - div.tiles containing the tiles (html_tile());
+   - SVG classes: s (main color, e.g. samples), p (secondary, muted color),
+     a (accent line), line, grid, axis, muted, halo.
+*/
+
+#ifndef HTML_PAGE_H
+#define HTML_PAGE_H
+
+#include <stddef.h>
+#include <stdint.h>
+#include <stdio.h>
+
+/* the CSS of the page (written by html_page_start()) */
+extern const char *const html_page_css;
+
+/*
+   Start the page: head (title, style; if <refresh> > 0, the page is
+   reloaded every <refresh> seconds, e.g. for a report updated during a
+   run), the title as h1 heading and the time of writing ("Updated: ...")
+*/
+void html_page_start(FILE *f, const char *title, long refresh);
+
+/* End the page, with a <footer> note (NULL: none) */
+void html_page_end(FILE *f, const char *footer);
+
+/* A tile with a value (HTML) and its label (HTML), in a div.tiles */
+void html_tile(FILE *f, const char *value, const char *label);
+
+/*
+   A number with thousands separators (e.g. 1,234,567): in a static
+   buffer, overwritten after 4 calls (not thread-safe)
+*/
+const char *html_num(size_t n);
+
+/* 100 * a / b (0 if b is 0) */
+double html_percent(size_t a, size_t b);
+
+/*
+   Horizontal bar chart: for each of the <n> values, its label, a bar of
+   the class classes[i] (e.g. "s" or "p") and the value with the percentage
+   of <total>; if <mean> > 0, a dashed line at this value
+*/
+void html_hbars(FILE *f, size_t n, const char *const *labels,
+    const size_t *values, const char *const *classes, size_t total,
+    double mean);
+
+/*
+   Histogram of the counts of <n_bins> bins of width <bin_width> (bin b:
+   values from b * bin_width to (b + 1) * bin_width - 1), up to the bin of
+   the 99.5th percentile; x axis: "<what> (<unit>)"; if all counts are 0,
+   the note <empty> instead
+*/
+void html_histogram(FILE *f, const size_t *hist, size_t n_bins,
+    size_t bin_width, const char *what, const char *unit,
+    const char *empty);
+
+/*
+   Barcode rank plot (log-log): the <n> counts of reads of the barcodes,
+   in decreasing order; if <n_cells> > 0, a dashed line at that rank (the
+   barcodes identified as cells)
+*/
+void html_knee(FILE *f, const uint64_t *counts, size_t n, size_t n_cells);
+
+/* Unit tests */
+void html_page_test(void);
+
+#endif
