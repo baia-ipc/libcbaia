@@ -233,9 +233,10 @@ browser. The pages are **self-contained**: the style is included in the
 page and the plots are inline SVG (JavaScript only for the reload of a
 report rewritten during a run), so that a report can be copied or sent
 as a single file, and viewed offline; the style follows the light or
-dark theme of the browser. A report is written as:
+dark theme of the browser. A report is written by an element writer
+(:ref:`html-writer`), with which the program also writes its own content:
 
-``void html_page_start(FILE *f, const char *title, long refresh)``
+``void html_page_start(html_writer_t *w, const char *title, long refresh)``
    the head of the page (title, style) and the start of the body: the
    title as ``h1`` heading, and the time of writing ("Updated: ...");
    if ``refresh`` > 0, the browser reloads the page (for a report
@@ -243,40 +244,41 @@ dark theme of the browser. A report is written as:
    interval: halved, down to 1 s, when the page has changed since the
    last reload, doubled, up to ``refresh`` seconds, when not (a few lines
    of JavaScript; without it, every ``refresh`` seconds);
-   or ``void html_page_start_logo(FILE *f, const char *title, const html_logo_t *logo, const char *heading, long refresh)``,
+   or ``void html_page_start_logo(html_writer_t *w, const char *title, const html_logo_t *logo, const char *heading, long refresh)``,
    a head in two columns: on the left, a logo with ``heading`` under it
    (bold spaced capitals, centered; e.g. "report", under the name shown by
    the logo), centered over the time of writing; on the right, the content written next
    (e.g. a table of the parameters), up to
-   ``void html_page_head_end(FILE *f)`` (on narrow screens, the right
+   ``void html_page_head_end(html_writer_t *w)`` (on narrow screens, the right
    column goes below the left one). The logo (``html_logo_t``) is an
    image URL ``src``, usually a data URI (``data:image/webp;base64,...``)
    to keep the page self-contained, an optional variant for the dark
    theme ``src_dark`` (``NULL``: none), the alternative text ``alt`` and
    the ``height`` in pixels;
 the content
-   written by the program (headings ``h2``, paragraphs, tables), with the
-   functions below for the tiles and the plots;
-``void html_page_end(FILE *f, const char *footer)``
-   the end of the page, with a footer note (``NULL``: none).
+   written by the program with the writer (headings ``h2``, paragraphs,
+   tables), and the functions below for the tiles and the plots;
+``void html_page_end(html_writer_t *w, const char *footer)``
+   the end of the page, with a footer note (``NULL``: none); the
+   elements opened by the content must have been closed.
 
 **Reports and dashboards.** A report is a vertical page, to be read,
 printed or archived (e.g. at the end of an analysis). A page followed
 on a screen during a run is better laid out as a **dashboard**, which
 fits the window, so that everything is visible at once:
 
-``void html_dashboard_start(FILE *f, const char *title, const html_logo_t *logo, const char *heading, long refresh)``
+``void html_dashboard_start(html_writer_t *w, const char *title, const html_logo_t *logo, const char *heading, long refresh)``
    the head of the page and a top bar: the logo (``NULL``: none), with
    ``heading`` under it and the time of writing, then the content
    written next (e.g. the state and the parameters of the run), up to
-   ``void html_dashboard_bar_end(FILE *f)``; ``refresh``: as above;
+   ``void html_dashboard_bar_end(html_writer_t *w)``; ``refresh``: as above;
 the content
    e.g. tiles (``div.tiles``) and a grid of panels (``div.dgrid``: three
    columns, rows of equal height filling the window);
-``void html_panel_start(FILE *f, const char *title, const char *cls)``
+``void html_panel_start(html_writer_t *w, const char *title, const char *cls)``
    a panel, with a title (``h3``); ``cls``: ``"tall"`` (two rows),
    ``"wide"`` (two columns) or ``NULL``; its content scrolls if needed;
-   ``void html_panel_end(FILE *f)`` ends it;
+   ``void html_panel_end(html_writer_t *w)`` ends it;
 ``html_page_end()``
    as for a report.
 
@@ -285,22 +287,22 @@ scrolls. The plots (below) are scaled to the width of the panels.
 
 The content:
 
-``void html_tile(FILE *f, const char *value, const char *label)``
-   a tile with a main value and its label (both HTML); the tiles are
-   written inside a ``<div class="tiles">``, which shows them in a row;
-``void html_hbars(FILE *f, size_t n, const char *const *labels, const size_t *values, const char *const *classes, size_t total, double mean)``
+``void html_tile(html_writer_t *w, const char *value, const char *label)``
+   a tile with a main value and its label (text); the tiles are written
+   inside a ``<div class="tiles">``, which shows them in a row;
+``void html_hbars(html_writer_t *w, size_t n, const char *const *labels, const size_t *values, const char *const *classes, size_t total, double mean)``
    a horizontal bar chart: for each of the ``n`` values, its label, a bar
    and the value with its percentage of ``total``; ``classes[i]`` is the
    class of the bar: ``"s"`` (main color, e.g. the samples) or ``"p"``
    (muted, e.g. the unassigned reads); if ``mean`` > 0, a dashed line at
    that value;
-``void html_histogram(FILE *f, const size_t *hist, size_t n_bins, size_t bin_width, const char *what, const char *unit, const char *empty)``
+``void html_histogram(html_writer_t *w, const size_t *hist, size_t n_bins, size_t bin_width, const char *what, const char *unit, const char *empty)``
    a histogram of counts in bins of width ``bin_width`` (> 0; bin ``b``: the
    values from ``b * bin_width`` to ``(b + 1) * bin_width - 1``, as for
    ``hist_median()``), up to the bin of the 99.5th percentile; the x axis
    is labelled ``what (unit)``; if all counts are 0, the note ``empty`` is
    written instead;
-``void html_knee(FILE *f, const uint64_t *counts, size_t n, size_t n_selected, const char *x_label, const char *y_label, const char *selected_label)``
+``void html_knee(html_writer_t *w, const uint64_t *counts, size_t n, size_t n_selected, const char *x_label, const char *y_label, const char *selected_label)``
    a rank plot ("knee plot", log-log): counts in decreasing order (e.g.
    the reads of the barcodes, from ``cell_caller_sorted_counts()``), with
    the axes titled ``x_label (log scale)`` and ``y_label (log scale)``,
@@ -308,29 +310,30 @@ The content:
    the number and ``selected_label``; e.g. for the cells of a
    single-cell library::
 
-      html_knee(f, counts, n, n_cells, "barcodes, by decreasing number "
+      html_knee(w, counts, n, n_cells, "barcodes, by decreasing number "
                 "of reads", "reads", "cells");
 
-``const char *html_num(size_t n)``
+``html_num_t html_num(size_t n)``
    a number with thousands separators (``1,234,567``), for the text of
-   the report; the result is in a static buffer, overwritten after four
-   calls, so that up to four numbers can be used in one ``fprintf()``
-   (not thread-safe: write the report from one thread);
+   the report, in the string ``html_num(n).s``: the result is a small
+   structure returned by value (not a static buffer), valid up to the end
+   of the statement, so that any number of them can be used in one call,
+   e.g. ``html_textf(w, "%s of %s", html_num(a).s, html_num(b).s)``;
 ``double html_percent(size_t a, size_t b)``
    ``100 * a / b`` (0 if ``b`` is 0).
 
-The strings given as labels, titles and notes of the plots are escaped;
-the values and labels of the tiles are HTML (e.g. ``92.5%`` or
-``<code>ACGT</code>``): text from the input must be escaped with
-``fputs_html_escaped()`` (``strutils.h``). ``html_page_css`` contains the
-style, e.g. for a page written otherwise; besides the headings and tables
-(numbers right-aligned), it defines the classes ``p.sub`` (subtitle),
-``p.note`` (small, muted text), ``p.running`` (a highlighted box, e.g.
-"run in progress") and ``td.seq`` (sequences, in monospace), and the
-colors as CSS variables (e.g. ``--primary`` and ``--secondary``, the
-colors of the bars of the classes ``s`` and ``p``). The style is written
-in ``src/io/html-page.css``; the Makefile of the library converts it to
-a C string, included by ``html-page.c``.
+All strings given to these functions (titles, labels, values of the
+tiles, notes) are text, escaped by the writer. ``html_page_css`` contains
+the style, e.g. for a page written otherwise; besides the headings and
+tables (numbers right-aligned), it defines the classes ``p.sub``
+(subtitle), ``p.note`` (small, muted text), ``p.running`` (a highlighted
+box, e.g. "run in progress") and ``td.seq`` (sequences, in monospace),
+and the colors as CSS variables (e.g. ``--primary`` and ``--secondary``,
+the colors of the bars of the classes ``s`` and ``p``). The style is
+written in ``src/io/html-page.css``, and the static parts of the pages
+(the head, the heading with the logo, the end) are templates in
+``src/io/html-page-*.html``; the Makefile of the library embeds them in
+``html-page.c``.
 
 The example program ``htmlreport`` (``docs/manual/examples/htmlreport.c``)
 writes the report of a demultiplexer (with example values,

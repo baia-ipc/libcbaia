@@ -356,6 +356,36 @@ The same pattern (a `_` function and a macro adding `__FILE__` and
 of its caller (the logger keeps its historical `__` names, e.g.
 `__lprintf`).
 
+## HTML output
+
+HTML (and inline SVG) is not written as markup in C string literals, but:
+
+- static markup (page skeletons, fixed blocks of text) as templates:
+  HTML files, indented normally, with named placeholders (`{{name}}`,
+  escaped; `{{{name}}}`, trusted markup; `{{#name}}...{{/name}}`,
+  optional sections), embedded at compile time (see "Building") and
+  written by `html_template()` (`html-template.h`);
+- dynamic markup (tables, plots) by the element writer `html_writer_t`
+  (`html-writer.h`): one call to open an element, one for each attribute
+  (with a printf format checked by the compiler), one to close it; the
+  calls are indented in the code as the elements in the page:
+
+```c
+html_open(w, "tr");
+  html_inline(w);
+  html_tag_text(w, "td", name);
+  html_open(w, "td");
+    html_textf(w, "%s", html_num(count).s);
+  html_close(w);
+html_close(w);
+```
+
+Text and attribute values are escaped by the writer (or the template), so
+that no other code escapes HTML; trusted markup is passed explicitly with
+`html_raw()` or `{{{name}}}`. The output is indented, one element per
+line (elements containing text on one line), so that a report can be read
+and compared with a diff.
+
 ## Command line programs
 
 Each program is a `src/<program>.c` file with the following parts:

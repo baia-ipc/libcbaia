@@ -96,9 +96,7 @@ tests and in small tools.
 Threads
 ~~~~~~~
 
-The modules have no global state (except constants; the one exception
-is ``html_num()`` of the HTML reports, which returns its result in a
-static buffer). Different objects
+The modules have no global state (except constants). Different objects
 can thus be used by different threads at the same time; an object is
 not protected by locks, and is used by one thread at a time (or only
 read, e.g. a whitelist shared by the threads after its construction).

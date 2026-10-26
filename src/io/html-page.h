@@ -5,8 +5,9 @@
    themes (no external resources), tiles with the main values, and plots as
    inline SVG (horizontal bar chart, histogram, rank plot).
 
-   A report is written as: html_page_start(), the content (headings,
-   paragraphs, tables, tiles, plots), html_page_end(). The style defines:
+   A report is written by a html_writer_t (html-writer.h) as:
+   html_page_start(), the content (headings, paragraphs, tables, tiles,
+   plots), html_page_end(). The style defines:
    - text: h1, h2, h3; p.sub (subtitle), p.note (small, muted), p.running
      (highlighted box); tables (numbers right-aligned, td.seq: monospace);
    - div.tiles containing the tiles (html_tile());
@@ -14,8 +15,9 @@
      a (accent line), line, grid, axis, muted, halo; the colors are the
      CSS variables --primary (s, line), --secondary (p) and --accent (a).
 
-   The style is in html-page.css, from which the Makefile generates the C
-   string included by html-page.c.
+   The style is in html-page.css, the static parts of the pages (head,
+   heading with the logo, end) are templates (html-template.h) in
+   html-page-*.html: the Makefile embeds them in html-page.c.
 */
 
 #ifndef HTML_PAGE_H
@@ -23,7 +25,7 @@
 
 #include <stddef.h>
 #include <stdint.h>
-#include <stdio.h>
+#include "html-writer.h"
 
 /* the CSS of the page (written by html_page_start()) */
 extern const char *const html_page_css;
@@ -32,14 +34,15 @@ extern const char *const html_page_css;
 #define HTML_PAGE_MIN_RELOAD 1
 
 /*
-   Start the page: head (title, style; if <refresh> > 0, the page is
-   reloaded, e.g. for a report rewritten during a run: at an interval
-   halved, down to HTML_PAGE_MIN_RELOAD seconds, if the page has changed
-   since the last reload, otherwise doubled, up to <refresh> seconds; this
-   requires JavaScript, otherwise every <refresh> seconds), the title as
-   h1 heading and the time of writing ("Updated: ...")
+   Start the page (the writer must be at the top level): head (title,
+   style; if <refresh> > 0, the page is reloaded, e.g. for a report
+   rewritten during a run: at an interval halved, down to
+   HTML_PAGE_MIN_RELOAD seconds, if the page has changed since the last
+   reload, otherwise doubled, up to <refresh> seconds; this requires
+   JavaScript, otherwise every <refresh> seconds), the title as h1 heading
+   and the time of writing ("Updated: ...")
 */
-void html_page_start(FILE *f, const char *title, long refresh);
+void html_page_start(html_writer_t *w, const char *title, long refresh);
 
 /* A logo: image URL (e.g. a data URI, "data:image/webp;base64,..."), an
    optional variant for the dark color scheme (NULL: none), the alternative
@@ -58,11 +61,11 @@ typedef struct {
    html_page_head_end(); on narrow screens, the right column is moved
    below the left one
 */
-void html_page_start_logo(FILE *f, const char *title,
+void html_page_start_logo(html_writer_t *w, const char *title,
     const html_logo_t *logo, const char *heading, long refresh);
 
 /* End the head started by html_page_start_logo() */
-void html_page_head_end(FILE *f);
+void html_page_head_end(html_writer_t *w);
 
 /*
    Start a dashboard: a page made to be seen on a screen, e.g. during a
@@ -74,33 +77,41 @@ void html_page_head_end(FILE *f);
    panels (div.dgrid, see html_panel_start()); <refresh>: see
    html_page_start(); end with html_page_end()
 */
-void html_dashboard_start(FILE *f, const char *title,
+void html_dashboard_start(html_writer_t *w, const char *title,
     const html_logo_t *logo, const char *heading, long refresh);
 
 /* End the top bar of a dashboard */
-void html_dashboard_bar_end(FILE *f);
+void html_dashboard_bar_end(html_writer_t *w);
 
 /*
    Start a panel of a dashboard grid (in a div.dgrid: three columns, rows
    of equal height), with a <title>; <cls> (NULL: none): "tall" (two rows)
    or "wide" (two columns); the content scrolls if needed
 */
-void html_panel_start(FILE *f, const char *title, const char *cls);
+void html_panel_start(html_writer_t *w, const char *title, const char *cls);
 
 /* End a panel */
-void html_panel_end(FILE *f);
+void html_panel_end(html_writer_t *w);
 
-/* End the page, with a <footer> note (NULL: none) */
-void html_page_end(FILE *f, const char *footer);
+/* End the page, with a <footer> note (NULL: none); all elements opened
+   by the content must be closed (it ends the writer) */
+void html_page_end(html_writer_t *w, const char *footer);
 
-/* A tile with a value (HTML) and its label (HTML), in a div.tiles */
-void html_tile(FILE *f, const char *value, const char *label);
+/* A tile with a value and its label (text), in a div.tiles */
+void html_tile(html_writer_t *w, const char *value, const char *label);
+
+/* a number formatted by html_num() */
+typedef struct {
+  char s[32];
+} html_num_t;
 
 /*
-   A number with thousands separators (e.g. 1,234,567): in a static
-   buffer, overwritten after 4 calls (not thread-safe)
+   A number with thousands separators (e.g. 1,234,567): the string is
+   html_num(n).s, valid up to the end of the statement (a value, not a
+   static buffer: any number of calls can be used in one statement, e.g.
+   html_textf(w, "%s of %s", html_num(a).s, html_num(b).s))
 */
-const char *html_num(size_t n);
+html_num_t html_num(size_t n);
 
 /* 100 * a / b (0 if b is 0) */
 double html_percent(size_t a, size_t b);
@@ -110,7 +121,7 @@ double html_percent(size_t a, size_t b);
    the class classes[i] (e.g. "s" or "p") and the value with the percentage
    of <total>; if <mean> > 0, a dashed line at this value
 */
-void html_hbars(FILE *f, size_t n, const char *const *labels,
+void html_hbars(html_writer_t *w, size_t n, const char *const *labels,
     const size_t *values, const char *const *classes, size_t total,
     double mean);
 
@@ -120,7 +131,7 @@ void html_hbars(FILE *f, size_t n, const char *const *labels,
    all larger values), up to the bin of the 99.5th percentile; x axis:
    "<what> (<unit>)"; if all counts are 0, the note <empty> instead
 */
-void html_histogram(FILE *f, const size_t *hist, size_t n_bins,
+void html_histogram(html_writer_t *w, const size_t *hist, size_t n_bins,
     size_t bin_width, const char *what, const char *unit,
     const char *empty);
 
@@ -132,7 +143,7 @@ void html_histogram(FILE *f, const size_t *hist, size_t n_bins,
    (e.g. the barcodes identified as cells: "cells"); the labels are text
    (HTML-escaped)
 */
-void html_knee(FILE *f, const uint64_t *counts, size_t n,
+void html_knee(html_writer_t *w, const uint64_t *counts, size_t n,
     size_t n_selected, const char *x_label, const char *y_label,
     const char *selected_label);
 

@@ -164,16 +164,20 @@ void html_text(html_writer_t *w, const char *text) {
     fputc('\n', w->f);
 }
 
-void html_textf(html_writer_t *w, const char *fmt, ...) {
+void html_vtextf(html_writer_t *w, const char *fmt, va_list ap) {
   assert(w != NULL);
   assert(fmt != NULL);
   bool own_line = begin_text(w);
-  va_list ap;
-  va_start(ap, fmt);
   write_escaped_vf(w->f, fmt, ap);
-  va_end(ap);
   if (own_line)
     fputc('\n', w->f);
+}
+
+void html_textf(html_writer_t *w, const char *fmt, ...) {
+  va_list ap;
+  va_start(ap, fmt);
+  html_vtextf(w, fmt, ap);
+  va_end(ap);
 }
 
 void html_raw(html_writer_t *w, const char *markup) {
@@ -211,12 +215,9 @@ void html_tag_text(html_writer_t *w, const char *tag, const char *text) {
 void html_tag_textf(html_writer_t *w, const char *tag, const char *fmt,
     ...) {
   html_open(w, tag);
-  bool own_line = begin_text(w);
-  assert(!own_line);
-  (void)own_line;
   va_list ap;
   va_start(ap, fmt);
-  write_escaped_vf(w->f, fmt, ap);
+  html_vtextf(w, fmt, ap);
   va_end(ap);
   html_close(w);
 }

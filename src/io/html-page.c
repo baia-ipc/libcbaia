@@ -2,14 +2,17 @@
 
 #include <assert.h>
 #include <math.h>
+#include <stdarg.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
 #include "html-page.h"
+#include "html-template.h"
+#include "html-writer.h"
 #include "numutils.h"
-#include "strutils.h"
+#include "strbuf.h"
 #include "test.h"
 
 /* plots: width (the height depends on the plot) */
@@ -38,50 +41,22 @@
 #define HTML_KNEE_TITLE_DY 30
 #define HTML_MAX_KNEE_POINTS 400
 
-/* generated from html-page.css by the Makefile */
+/* the style and the templates of the pages, embedded by the Makefile */
 const char *const html_page_css =
 #include "html-page-css.inc"
   ;
-
-/*
-   reload of a page rewritten during a run: the script contains the time
-   the page was written (<updated>); at each reload, if it changed, the interval
-   is halved (down to HTML_PAGE_MIN_RELOAD seconds), otherwise doubled (up
-   to <max>); without JavaScript (or session storage), every <max> seconds
-*/
-static void write_reload(FILE *f, long max, const char *updated) {
-  fprintf(f, "<noscript><meta http-equiv=\"refresh\" content=\"%ld\">"
-          "</noscript>\n<script>\n(function () {\n"
-          "  var max = %ld, min = %d, updated = \"%s\", t = min,\n"
-          "      key = \"html_page_reload:\" + location.pathname;\n"
-          "  try {\n"
-          "    var last = JSON.parse(sessionStorage.getItem(key));\n"
-          "    if (last)\n"
-          "      t = last.updated !== updated ? Math.max(min, last.t / 2)\n"
-          "                                   : Math.min(max, last.t * 2);\n"
-          "    sessionStorage.setItem(key, JSON.stringify("
-          "{updated: updated, t: t}));\n"
-          "  } catch (e) {\n"
-          "    t = max;\n"
-          "  }\n"
-          "  setTimeout(function () { location.reload(); }, t * 1000);\n"
-          "})();\n</script>\n", max, max, HTML_PAGE_MIN_RELOAD, updated);
-}
-
-/* the head of the page and the start of the body */
-static void write_head(FILE *f, const char *title, long refresh,
-    const char *updated, const char *body_class) {
-  fputs("<!doctype html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8"
-        "\">\n<meta name=\"viewport\" content=\"width=device-width, "
-        "initial-scale=1\">\n", f);
-  if (refresh > 0)
-    write_reload(f, refresh, updated);
-  fputs("<title>", f);
-  fputs_html_escaped(title, f);
-  fprintf(f, "</title>\n<style>\n%s</style>\n</head>\n<body%s%s%s>\n"
-          "<main>\n", html_page_css, body_class != NULL ? " class=\"" : "",
-          body_class != NULL ? body_class : "", body_class != NULL ? "\"" : "");
-}
+static const char *const start_tmpl =
+#include "html-page-start-html.inc"
+  ;
+static const char *const end_tmpl =
+#include "html-page-end-html.inc"
+  ;
+static const char *const brand_tmpl =
+#include "html-page-brand-html.inc"
+  ;
+static const char *const dashboard_brand_tmpl =
+#include "html-page-dashboard-brand-html.inc"
+  ;
 
 /* the time of writing, in <date> (at least 32 bytes) */
 static void now_date(char *date, size_t size) {
@@ -89,131 +64,141 @@ static void now_date(char *date, size_t size) {
   strftime(date, size, "%Y-%m-%d %H:%M:%S", localtime(&now));
 }
 
-/* the time of writing, as a subtitle */
-static void write_updated(FILE *f, const char *date) {
-  fprintf(f, "<p class=\"sub updated\">Updated: %s</p>\n", date);
+/* the head of the page and the start of the body (<updated>: the time of
+   writing, for the reload) */
+static void write_start(html_writer_t *w, const char *title, long refresh,
+    const char *updated, const char *body_class) {
+  assert(w->depth == 0);
+  char max[32], min[32];
+  snprintf(max, sizeof(max), "%ld", refresh);
+  snprintf(min, sizeof(min), "%d", HTML_PAGE_MIN_RELOAD);
+  html_template(w, start_tmpl, "title", title,
+                "refresh", refresh > 0 ? max : NULL, "min_refresh", min,
+                "updated", updated, "css", html_page_css,
+                "body_class", body_class);
 }
 
-void html_page_start(FILE *f, const char *title, long refresh) {
-  assert(f != NULL);
+/* the logo (NULL: none) and the heading over the time of writing */
+static void write_brand(html_writer_t *w, const char *tmpl,
+    const html_logo_t *logo, const char *heading, const char *updated) {
+  assert(logo == NULL || logo->src != NULL);
+  char height[32];
+  snprintf(height, sizeof(height), "%d", logo != NULL ? logo->height : 0);
+  html_template(w, tmpl,
+                "logo", logo != NULL ? logo->src : NULL,
+                "logo_dark", logo != NULL ? logo->src_dark : NULL,
+                "logo_alt", logo == NULL ? NULL :
+                  logo->alt != NULL ? logo->alt : "",
+                "logo_height", logo != NULL ? height : NULL,
+                "heading", heading, "updated", updated);
+}
+
+void html_page_start(html_writer_t *w, const char *title, long refresh) {
+  assert(w != NULL);
   assert(title != NULL);
   char date[64];
   now_date(date, sizeof(date));
-  write_head(f, title, refresh, date, NULL);
-  fputs("<h1>", f);
-  fputs_html_escaped(title, f);
-  fputs("</h1>\n", f);
-  write_updated(f, date);
+  write_start(w, title, refresh, date, "page");
+  html_tag_text(w, "h1", title);
+  html_open(w, "p");
+  html_attr(w, "class", "sub updated");
+  html_textf(w, "Updated: %s", date);
+  html_close(w);
 }
 
-/* the logo, with its dark variant, if any */
-static void write_logo(FILE *f, const html_logo_t *logo) {
-  assert(logo->src != NULL);
-  fputs("<picture>", f);
-  if (logo->src_dark != NULL) {
-    fputs("<source media=\"(prefers-color-scheme: dark)\" srcset=\"", f);
-    fputs_html_escaped(logo->src_dark, f);
-    fputs("\">", f);
-  }
-  fputs("<img src=\"", f);
-  fputs_html_escaped(logo->src, f);
-  fputs("\" alt=\"", f);
-  fputs_html_escaped(logo->alt != NULL ? logo->alt : "", f);
-  fprintf(f, "\" height=\"%d\"></picture>", logo->height);
-}
-
-void html_page_start_logo(FILE *f, const char *title,
+void html_page_start_logo(html_writer_t *w, const char *title,
     const html_logo_t *logo, const char *heading, long refresh) {
-  assert(f != NULL);
+  assert(w != NULL);
   assert(title != NULL);
-  assert(logo != NULL && logo->src != NULL);
+  assert(logo != NULL);
   assert(heading != NULL);
   char date[64];
   now_date(date, sizeof(date));
-  write_head(f, title, refresh, date, NULL);
-  fputs("<div class=\"head\">\n<div class=\"brand\">\n<h1 class=\"logo\">",
-        f);
-  write_logo(f, logo);
-  fputs("<span>", f);
-  fputs_html_escaped(heading, f);
-  fputs("</span></h1>\n", f);
-  write_updated(f, date);
-  fputs("</div>\n<div class=\"side\">\n", f);
+  write_start(w, title, refresh, date, "page");
+  html_open(w, "div");
+  html_attr(w, "class", "head");
+  write_brand(w, brand_tmpl, logo, heading, date);
+  html_open(w, "div");
+  html_attr(w, "class", "side");
 }
 
-void html_dashboard_start(FILE *f, const char *title,
+void html_page_head_end(html_writer_t *w) {
+  assert(w != NULL);
+  html_close(w);  /* div.side */
+  html_close(w);  /* div.head */
+}
+
+void html_dashboard_start(html_writer_t *w, const char *title,
     const html_logo_t *logo, const char *heading, long refresh) {
-  assert(f != NULL);
+  assert(w != NULL);
   assert(title != NULL);
   assert(heading != NULL);
   char date[64];
   now_date(date, sizeof(date));
-  write_head(f, title, refresh, date, "dash");
-  fputs("<header class=\"dbar\">\n<div class=\"brand\">", f);
-  if (logo != NULL)
-    write_logo(f, logo);
-  fputs("<span>", f);
-  fputs_html_escaped(heading, f);
-  fputs("</span>\n", f);
-  write_updated(f, date);
-  fputs("</div>\n<div class=\"dinfo\">\n", f);
+  write_start(w, title, refresh, date, "dash");
+  html_open(w, "header");
+  html_attr(w, "class", "dbar");
+  write_brand(w, dashboard_brand_tmpl, logo, heading, date);
+  html_open(w, "div");
+  html_attr(w, "class", "dinfo");
 }
 
-void html_dashboard_bar_end(FILE *f) {
-  assert(f != NULL);
-  fputs("</div>\n</header>\n", f);
+void html_dashboard_bar_end(html_writer_t *w) {
+  assert(w != NULL);
+  html_close(w);  /* div.dinfo */
+  html_close(w);  /* header.dbar */
 }
 
-void html_panel_start(FILE *f, const char *title, const char *cls) {
-  assert(f != NULL);
+void html_panel_start(html_writer_t *w, const char *title,
+    const char *cls) {
+  assert(w != NULL);
   assert(title != NULL);
-  fprintf(f, "<section class=\"panel%s%s\"><h3>", cls != NULL ? " " : "",
-          cls != NULL ? cls : "");
-  fputs_html_escaped(title, f);
-  fputs("</h3>\n", f);
+  html_open(w, "section");
+  html_attr(w, "class", "panel%s%s", cls != NULL ? " " : "",
+            cls != NULL ? cls : "");
+  html_tag_text(w, "h3", title);
 }
 
-void html_panel_end(FILE *f) {
-  assert(f != NULL);
-  fputs("</section>\n", f);
+void html_panel_end(html_writer_t *w) {
+  assert(w != NULL);
+  html_close(w);
 }
 
-void html_page_head_end(FILE *f) {
-  assert(f != NULL);
-  fputs("</div>\n</div>\n", f);
+void html_page_end(html_writer_t *w, const char *footer) {
+  assert(w != NULL);
+  assert(w->depth == 0);
+  html_template(w, end_tmpl, "footer", footer);
+  html_writer_end(w);
 }
 
-void html_page_end(FILE *f, const char *footer) {
-  assert(f != NULL);
-  if (footer != NULL) {
-    fputs("<p class=\"note\">", f);
-    fputs_html_escaped(footer, f);
-    fputs("</p>\n", f);
-  }
-  fputs("</main>\n</body>\n</html>\n", f);
-}
-
-void html_tile(FILE *f, const char *value, const char *label) {
-  assert(f != NULL);
+void html_tile(html_writer_t *w, const char *value, const char *label) {
+  assert(w != NULL);
   assert(value != NULL);
   assert(label != NULL);
-  fprintf(f, "<div class=\"tile\"><div class=\"v\">%s</div>"
-          "<div class=\"l\">%s</div></div>\n", value, label);
+  html_open(w, "div");
+  html_attr(w, "class", "tile");
+  html_open(w, "div");
+  html_attr(w, "class", "v");
+  html_text(w, value);
+  html_close(w);
+  html_open(w, "div");
+  html_attr(w, "class", "l");
+  html_text(w, label);
+  html_close(w);
+  html_close(w);
 }
 
-/* number with thousands separators (static buffer, 4 in rotation) */
-const char *html_num(size_t n) {
-  static char bufs[4][32];
-  static int which = 0;
-  char tmp[32], *out = bufs[which];
-  which = (which + 1) % 4;
-  int len = snprintf(tmp, sizeof(tmp), "%zu", n), j = 0;
+html_num_t html_num(size_t n) {
+  html_num_t out;
+  char digits[32];
+  int len = snprintf(digits, sizeof(digits), "%zu", n), j = 0;
+  /* (at most 20 digits and 6 separators) */
   for (int i = 0; i < len; i++) {
     if (i > 0 && (len - i) % 3 == 0)
-      out[j++] = ',';
-    out[j++] = tmp[i];
+      out.s[j++] = ',';
+    out.s[j++] = digits[i];
   }
-  out[j] = '\0';
+  out.s[j] = '\0';
   return out;
 }
 
@@ -223,15 +208,52 @@ double html_percent(size_t a, size_t b) {
 
 /* --- plots --- */
 
-/*
-   horizontal bar chart: one bar for each value, with its label and the
-   value and percentage of <total>; <classes>: "s" or "p" for each bar;
-   <mean>: if > 0, a dashed line at this value
-*/
-void html_hbars(FILE *f, size_t n, const char *const *labels,
+/* start of a plot of the given height (the width is HTML_PLOT_WIDTH) */
+static void svg_start(html_writer_t *w, int height) {
+  html_open(w, "svg");
+  html_attr(w, "viewBox", "0 0 %d %d", HTML_PLOT_WIDTH, height);
+  html_attr(w, "width", "%d", HTML_PLOT_WIDTH);
+  html_attr(w, "role", "img");
+}
+
+/* a text label at (<x>, <y>) of the class <cls> (NULL: none) aligned as
+   <anchor> (NULL: start), with the text (formatted as by printf) */
+static void svg_text(html_writer_t *w, const char *cls, double x, double y,
+    const char *anchor, const char *fmt, ...)
+  __attribute__((format(printf, 6, 7)));
+
+static void svg_text(html_writer_t *w, const char *cls, double x, double y,
+    const char *anchor, const char *fmt, ...) {
+  html_open(w, "text");
+  if (cls != NULL)
+    html_attr(w, "class", "%s", cls);
+  html_attr(w, "x", "%.1f", x);
+  html_attr(w, "y", "%.1f", y);
+  if (anchor != NULL)
+    html_attr(w, "text-anchor", "%s", anchor);
+  va_list ap;
+  va_start(ap, fmt);
+  html_vtextf(w, fmt, ap);
+  va_end(ap);
+  html_close(w);
+}
+
+/* a line from (<x1>, <y1>) to (<x2>, <y2>) of the class <cls> (more
+   attributes can follow) */
+static void svg_line(html_writer_t *w, const char *cls, double x1,
+    double y1, double x2, double y2) {
+  html_elem(w, "line");
+  html_attr(w, "class", "%s", cls);
+  html_attr(w, "x1", "%.1f", x1);
+  html_attr(w, "y1", "%.1f", y1);
+  html_attr(w, "x2", "%.1f", x2);
+  html_attr(w, "y2", "%.1f", y2);
+}
+
+void html_hbars(html_writer_t *w, size_t n, const char *const *labels,
     const size_t *values, const char *const *classes, size_t total,
     double mean) {
-  assert(f != NULL);
+  assert(w != NULL);
   assert(n == 0 || (labels != NULL && values != NULL && classes != NULL));
   size_t max = 1;
   for (size_t i = 0; i < n; i++)
@@ -239,37 +261,47 @@ void html_hbars(FILE *f, size_t n, const char *const *labels,
       max = values[i];
   int area = HTML_PLOT_WIDTH - HTML_LABEL_WIDTH - HTML_VALUE_WIDTH;
   int height = (int)n * (HTML_BAR_HEIGHT + HTML_BAR_GAP) + 10;
-  fprintf(f, "<svg viewBox=\"0 0 %d %d\" width=\"%d\" role=\"img\">\n",
-          HTML_PLOT_WIDTH, height, HTML_PLOT_WIDTH);
+  svg_start(w, height);
   if (mean > 0) {
     double x = HTML_LABEL_WIDTH + (double)area * mean / (double)max;
-    fprintf(f, "<line class=\"a\" x1=\"%.1f\" y1=\"0\" x2=\"%.1f\" "
-            "y2=\"%d\" stroke-dasharray=\"4 3\"><title>mean</title>"
-            "</line>\n", x, x, height);
+    html_open(w, "line");
+    html_attr(w, "class", "a");
+    html_attr(w, "x1", "%.1f", x);
+    html_attr(w, "y1", "0");
+    html_attr(w, "x2", "%.1f", x);
+    html_attr(w, "y2", "%d", height);
+    html_attr(w, "stroke-dasharray", "4 3");
+    html_inline(w);
+    html_tag_text(w, "title", "mean");
+    html_close(w);
   }
   for (size_t i = 0; i < n; i++) {
-    int y = (int)i * (HTML_BAR_HEIGHT + HTML_BAR_GAP) + 4;
-    double w = (double)area * (double)values[i] / (double)max;
-    fprintf(f, "<text x=\"%d\" y=\"%d\" text-anchor=\"end\">",
-            HTML_LABEL_WIDTH - 8, y + HTML_BAR_HEIGHT - 4);
-    fputs_html_escaped(labels[i], f);
-    fprintf(f, "</text><rect class=\"%s\" x=\"%d\" y=\"%d\" width=\"%.1f\" "
-            "height=\"%d\" rx=\"2\"><title>", classes[i], HTML_LABEL_WIDTH, y,
-            w > 0 && w < 1 ? 1.0 : w, HTML_BAR_HEIGHT);
-    fputs_html_escaped(labels[i], f);
-    fprintf(f, ": %s</title></rect><text class=\"muted halo\" x=\"%.1f\" "
-            "y=\"%d\">%s (%.1f%%)</text>\n", html_num(values[i]),
-            HTML_LABEL_WIDTH + w + 5, y + HTML_BAR_HEIGHT - 4,
-            html_num(values[i]),
-            html_percent(values[i], total));
+    int y = (int)i * (HTML_BAR_HEIGHT + HTML_BAR_GAP) + 4,
+        text_y = y + HTML_BAR_HEIGHT - 4;
+    double bar = (double)area * (double)values[i] / (double)max;
+    svg_text(w, NULL, HTML_LABEL_WIDTH - 8, text_y, "end", "%s", labels[i]);
+    /* (a bar of a value > 0 is visible) */
+    html_open(w, "rect");
+    html_attr(w, "class", "%s", classes[i]);
+    html_attr(w, "x", "%d", HTML_LABEL_WIDTH);
+    html_attr(w, "y", "%d", y);
+    html_attr(w, "width", "%.1f", bar > 0 && bar < 1 ? 1.0 : bar);
+    html_attr(w, "height", "%d", HTML_BAR_HEIGHT);
+    html_attr(w, "rx", "2");
+    html_inline(w);
+    html_tag_textf(w, "title", "%s: %s", labels[i], html_num(values[i]).s);
+    html_close(w);
+    svg_text(w, "muted halo", HTML_LABEL_WIDTH + bar + 5, text_y, NULL,
+             "%s (%.1f%%)", html_num(values[i]).s,
+             html_percent(values[i], total));
   }
-  fputs("</svg>\n", f);
+  html_close(w);
 }
 
-void html_histogram(FILE *f, const size_t *hist, size_t n_bins_all,
+void html_histogram(html_writer_t *w, const size_t *hist, size_t n_bins_all,
     size_t bin_width, const char *what, const char *unit,
     const char *empty) {
-  assert(f != NULL);
+  assert(w != NULL);
   assert(hist != NULL || n_bins_all == 0);
   assert(bin_width > 0);
   assert(what != NULL);
@@ -284,9 +316,10 @@ void html_histogram(FILE *f, const size_t *hist, size_t n_bins_all,
       last = b;
   }
   if (total == 0) {
-    fputs("<p class=\"note\">", f);
-    fputs_html_escaped(empty, f);
-    fputs("</p>\n", f);
+    html_open(w, "p");
+    html_attr(w, "class", "note");
+    html_text(w, empty);
+    html_close(w);
     return;
   }
   /* show the bins up to the 99.5th percentile */
@@ -300,49 +333,53 @@ void html_histogram(FILE *f, const size_t *hist, size_t n_bins_all,
   size_t n_bins = shown + 1;
   int left = HTML_PLOT_LEFT, bottom = HTML_HIST_BOTTOM, top = HTML_PLOT_TOP,
       width = HTML_PLOT_WIDTH - left - HTML_PLOT_RIGHT,
-      height = HTML_HIST_HEIGHT;
+      height = HTML_HIST_HEIGHT, x_axis = top + height;
   double ymax = nice_number((double)max), bw = (double)width / (double)n_bins;
-  fprintf(f, "<svg viewBox=\"0 0 %d %d\" width=\"%d\" role=\"img\">\n",
-          HTML_PLOT_WIDTH, height + top + bottom, HTML_PLOT_WIDTH);
+  svg_start(w, height + top + bottom);
+  /* horizontal grid, with the counts */
   for (int g = 0; g <= 4; g++) {
-    double y = top + height - height * g / 4.0;
-    fprintf(f, "<line class=\"grid\" x1=\"%d\" y1=\"%.1f\" x2=\"%d\" "
-            "y2=\"%.1f\"/><text class=\"muted\" x=\"%d\" y=\"%.1f\" "
-            "text-anchor=\"end\">%s</text>\n", left, y, left + width, y,
-            left - 6, y + 4, html_num((size_t)(ymax * g / 4)));
+    double y = x_axis - height * g / 4.0;
+    svg_line(w, "grid", left, y, left + width, y);
+    svg_text(w, "muted", left - 6, y + 4, "end", "%s",
+             html_num((size_t)(ymax * g / 4)).s);
   }
   for (size_t b = 0; b < n_bins; b++) {
     double h = height * (double)hist[b] / ymax;
-    fprintf(f, "<rect class=\"s\" x=\"%.1f\" y=\"%.1f\" width=\"%.1f\" "
-            "height=\"%.1f\"><title>", left + b * bw, top + height - h,
-            bw > 2 ? bw - 1 : bw, h);
+    html_open(w, "rect");
+    html_attr(w, "class", "s");
+    html_attr(w, "x", "%.1f", left + b * bw);
+    html_attr(w, "y", "%.1f", x_axis - h);
+    html_attr(w, "width", "%.1f", bw > 2 ? bw - 1 : bw);
+    html_attr(w, "height", "%.1f", h);
+    html_inline(w);
     /* (the last bin: all larger values) */
     if (b == n_bins_all - 1)
-      fprintf(f, "%zu %s or more", b * bin_width, unit);
+      html_tag_textf(w, "title", "%zu %s or more: %s", b * bin_width, unit,
+                     html_num(hist[b]).s);
     else
-      fprintf(f, "%zu-%zu %s", b * bin_width, (b + 1) * bin_width - 1, unit);
-    fprintf(f, ": %s</title></rect>\n", html_num(hist[b]));
+      html_tag_textf(w, "title", "%zu-%zu %s: %s", b * bin_width,
+                     (b + 1) * bin_width - 1, unit, html_num(hist[b]).s);
+    html_close(w);
   }
+  /* x axis: ticks and values */
   size_t max_len = n_bins * bin_width,
          step = (size_t)nice_number((double)max_len / 8);
   for (size_t x = 0; x <= max_len; x += step) {
     double px = left + (double)x / bin_width * bw;
-    fprintf(f, "<line class=\"axis\" x1=\"%.1f\" y1=\"%d\" x2=\"%.1f\" "
-            "y2=\"%d\"/><text class=\"muted\" x=\"%.1f\" y=\"%d\" "
-            "text-anchor=\"middle\">%zu</text>\n", px, top + height, px,
-            top + height + 4, px, top + height + HTML_TICK_LABEL_DY, x);
+    svg_line(w, "axis", px, x_axis, px, x_axis + 4);
+    svg_text(w, "muted", px, x_axis + HTML_TICK_LABEL_DY, "middle", "%zu",
+             x);
   }
-  fprintf(f, "<text class=\"muted\" x=\"%d\" y=\"%d\" text-anchor=\"middle\""
-          ">", left + width / 2, top + height + HTML_HIST_TITLE_DY);
-  fputs_html_escaped(what, f);
-  fprintf(f, " (%s)%s</text>\n</svg>\n", unit,
-          shown < last ? ", longest 0.5% not shown" : "");
+  svg_text(w, "muted", left + width / 2, x_axis + HTML_HIST_TITLE_DY,
+           "middle", "%s (%s)%s", what, unit,
+           shown < last ? ", longest 0.5% not shown" : "");
+  html_close(w);
 }
 
-void html_knee(FILE *f, const uint64_t *counts, size_t n,
+void html_knee(html_writer_t *w, const uint64_t *counts, size_t n,
     size_t n_selected, const char *x_label, const char *y_label,
     const char *selected_label) {
-  assert(f != NULL);
+  assert(w != NULL);
   assert(counts != NULL || n == 0);
   assert(x_label != NULL);
   assert(y_label != NULL);
@@ -351,30 +388,30 @@ void html_knee(FILE *f, const uint64_t *counts, size_t n,
     return;
   int left = HTML_PLOT_LEFT, bottom = HTML_KNEE_BOTTOM, top = HTML_PLOT_TOP,
       width = HTML_PLOT_WIDTH - left - HTML_PLOT_RIGHT,
-      height = HTML_KNEE_HEIGHT;
+      height = HTML_KNEE_HEIGHT, x_axis = top + height;
   double lx = log10((double)n) > 0 ? log10((double)n) : 1,
          ly = log10((double)counts[0]) > 0 ? log10((double)counts[0]) : 1;
-  fprintf(f, "<svg viewBox=\"0 0 %d %d\" width=\"%d\" role=\"img\">\n",
-          HTML_PLOT_WIDTH, height + top + bottom, HTML_PLOT_WIDTH);
+  svg_start(w, height + top + bottom);
+  /* grid at the powers of 10 of the counts, with their values */
   for (int e = 0; e <= (int)ceil(ly); e++) {
-    double y = top + height - height * e / ly;
+    double y = x_axis - height * e / ly;
     if (y < top)
       break;
-    fprintf(f, "<line class=\"grid\" x1=\"%d\" y1=\"%.1f\" x2=\"%d\" "
-            "y2=\"%.1f\"/><text class=\"muted\" x=\"%d\" y=\"%.1f\" "
-            "text-anchor=\"end\">%s</text>\n", left, y, left + width, y,
-            left - 6, y + 4, html_num((size_t)pow(10, e)));
+    svg_line(w, "grid", left, y, left + width, y);
+    svg_text(w, "muted", left - 6, y + 4, "end", "%s",
+             html_num((size_t)pow(10, e)).s);
   }
+  /* the ranks at the powers of 10 */
   for (int e = 0; e <= (int)ceil(lx); e++) {
     double x = left + width * e / lx;
     if (x > left + width + 1)
       break;
-    fprintf(f, "<text class=\"muted\" x=\"%.1f\" y=\"%d\" "
-            "text-anchor=\"middle\">%s</text>\n", x,
-            top + height + HTML_TICK_LABEL_DY,
-            html_num((size_t)pow(10, e)));
+    svg_text(w, "muted", x, x_axis + HTML_TICK_LABEL_DY, "middle", "%s",
+             html_num((size_t)pow(10, e)).s);
   }
-  fputs("<polyline class=\"line\" points=\"", f);
+  /* the line, with at most about HTML_MAX_KNEE_POINTS points */
+  strbuf_t points;
+  strbuf_init(&points);
   double prev = -1;
   for (size_t i = 0; i < n; i++) {
     double pos = log10((double)(i + 1)) / lx;
@@ -382,106 +419,145 @@ void html_knee(FILE *f, const uint64_t *counts, size_t n,
       continue;
     prev = pos;
     double y = counts[i] > 0 ? log10((double)counts[i]) / ly : 0;
-    fprintf(f, "%.1f,%.1f ", left + width * pos, top + height - height * y);
+    char point[64];
+    snprintf(point, sizeof(point), "%s%.1f,%.1f", points.len > 0 ? " " : "",
+             left + width * pos, x_axis - height * y);
+    strbuf_append_str(&points, point);
   }
-  fputs("\"/>\n", f);
+  html_elem(w, "polyline");
+  html_attr(w, "class", "line");
+  html_attr(w, "points", "%.*s", (int)points.len, points.s);
+  strbuf_free(&points);
   if (n_selected > 0) {
     double x = left + width * log10((double)n_selected) / lx;
-    fprintf(f, "<line class=\"a\" x1=\"%.1f\" y1=\"%d\" x2=\"%.1f\" "
-            "y2=\"%d\" stroke-dasharray=\"4 3\"/><text x=\"%.1f\" y=\"%d\">"
-            "%s ", x, top, x, top + height, x + 4, top + 12,
-            html_num(n_selected));
-    fputs_html_escaped(selected_label, f);
-    fputs("</text>\n", f);
+    svg_line(w, "a", x, top, x, x_axis);
+    html_attr(w, "stroke-dasharray", "4 3");
+    svg_text(w, NULL, x + 4, top + 12, NULL, "%s %s",
+             html_num(n_selected).s, selected_label);
   }
-  fprintf(f, "<text class=\"muted\" x=\"%d\" y=\"%d\" text-anchor=\"middle\""
-          ">", left + width / 2, top + height + HTML_KNEE_TITLE_DY);
-  fputs_html_escaped(x_label, f);
-  fprintf(f, " (log scale)</text>\n"
-          "<text class=\"muted\" transform=\"translate(14,%d) rotate(-90)\" "
-          "text-anchor=\"middle\">", top + height / 2);
-  fputs_html_escaped(y_label, f);
-  fputs(" (log scale)</text>\n</svg>\n", f);
+  svg_text(w, "muted", left + width / 2, x_axis + HTML_KNEE_TITLE_DY,
+           "middle", "%s (log scale)", x_label);
+  html_open(w, "text");
+  html_attr(w, "class", "muted");
+  html_attr(w, "transform", "translate(14,%d) rotate(-90)", top + height / 2);
+  html_attr(w, "text-anchor", "middle");
+  html_textf(w, "%s (log scale)", y_label);
+  html_close(w);
+  html_close(w);
 }
 
 /* --- unit tests --- */
 
 void html_page_test(void) {
-  test_assert(strcmp(html_num(0), "0") == 0);
-  test_assert(strcmp(html_num(999), "999") == 0);
-  test_assert(strcmp(html_num(1234567), "1,234,567") == 0);
+  test_eq_str(html_num(0).s, "0");
+  test_eq_str(html_num(999).s, "999");
+  test_eq_str(html_num(1234567).s, "1,234,567");
+  test_eq_str(html_num(SIZE_MAX).s, SIZE_MAX == UINT64_MAX ?
+              "18,446,744,073,709,551,615" : html_num(SIZE_MAX).s);
   test_assert(html_percent(1, 4) == 25.0 && html_percent(1, 0) == 0.0);
   char *out = NULL;
   size_t size = 0;
   FILE *f = open_memstream(&out, &size);
   test_assert(f != NULL);
-  html_page_start(f, "Test <report>", 30);
-  html_tile(f, "1,234", "reads");
+  html_writer_t w;
+  html_writer_init(&w, f);
+  html_page_start(&w, "Test <report>", 30);
+  html_open(&w, "div");
+  html_attr(&w, "class", "tiles");
+  html_tile(&w, "1,234", "reads & more");
+  html_close(&w);
   const char *labels[] = {"a", "other"};
   const size_t values[] = {30, 10};
   const char *classes[] = {"s", "p"};
-  html_hbars(f, 2, labels, values, classes, 40, 20);
+  html_hbars(&w, 2, labels, values, classes, 40, 20);
   const size_t hist[] = {0, 2, 5, 1};
-  html_histogram(f, hist, 4, 10, "length", "bp", "No values.");
+  html_histogram(&w, hist, 4, 10, "length", "bp", "No values.");
   const size_t none[] = {0, 0};
-  html_histogram(f, none, 2, 10, "length", "bp", "No values.");
+  html_histogram(&w, none, 2, 10, "length", "bp", "No values.");
   const uint64_t counts[] = {500, 300, 100, 5, 1};
-  html_knee(f, counts, 5, 3, "items, by decreasing count", "count",
+  html_knee(&w, counts, 5, 3, "items, by decreasing count", "count",
             "selected");
-  html_page_end(f, "Generated by test");
+  html_page_end(&w, "Generated by test");
   fclose(f);
-  const char *exp[] = {"<!doctype html>", "<title>Test &lt;report&gt;</title>",
-    "<noscript><meta http-equiv=\"refresh\" content=\"30\"></noscript>",
-    "var max = 30, min = 1, updated = \"", "sessionStorage", "<h1>Test &lt;report&gt;</h1>",
-    "Updated: ", "<div class=\"v\">1,234</div>",
-    ">30 (75.0%)</text>", "stroke-dasharray=\"4 3\"><title>mean</title>",
+  const char *exp[] = {"<!doctype html>\n<html lang=\"en\">\n<head>\n",
+    "  <title>Test &lt;report&gt;</title>\n",
+    "  <noscript><meta http-equiv=\"refresh\" content=\"30\"></noscript>\n",
+    "      var max = 30, min = 1, updated = \"", "sessionStorage",
+    "  <style>\n    :root{", "\n  </style>\n</head>\n<body class=\"page\">\n"
+    "<main>\n<h1>Test &lt;report&gt;</h1>\n<p class=\"sub updated\">Updated: ",
+    "<div class=\"tiles\">\n  <div class=\"tile\">\n"
+    "    <div class=\"v\">1,234</div>\n"
+    "    <div class=\"l\">reads &amp; more</div>\n  </div>\n</div>\n",
+    "<svg viewBox=\"0 0 760 50\" width=\"760\" role=\"img\">\n",
+    "  <line class=\"a\" x1=\"470.0\" y1=\"0\" x2=\"470.0\" y2=\"50\" "
+    "stroke-dasharray=\"4 3\"><title>mean</title></line>\n",
+    "  <text x=\"182.0\" y=\"16.0\" text-anchor=\"end\">a</text>\n"
+    "  <rect class=\"s\" x=\"190\" y=\"4\" width=\"420.0\" height=\"16\" "
+    "rx=\"2\"><title>a: 30</title></rect>\n"
+    "  <text class=\"muted halo\" x=\"615.0\" y=\"16.0\">30 (75.0%)</text>\n",
     "<title>20-29 bp: 5</title>", "<title>30 bp or more: 1</title>",
-    ">length (bp)</text>",
-    "<p class=\"note\">No values.</p>", "3 selected</text>",
+    "  <line class=\"grid\" x1=\"60.0\" y1=\"210.0\" x2=\"740.0\" "
+    "y2=\"210.0\"/>\n",
+    ">length (bp)</text>\n</svg>\n",
+    "<p class=\"note\">No values.</p>\n",
+    "  <polyline class=\"line\" points=\"60.0,10.0 ", "3 selected</text>",
     ">items, by decreasing count (log scale)</text>",
-    ">count (log scale)</text>",
-    "<p class=\"note\">Generated by test</p>", "</html>\n"};
+    ">count (log scale)</text>\n</svg>\n",
+    "</svg>\n<p class=\"note\">Generated by test</p>\n</main>\n</body>\n"
+    "</html>\n"};
   for (size_t i = 0; i < sizeof(exp) / sizeof(exp[0]); i++)
-    test_assert(strstr(out, exp[i]) != NULL);
+    if (strstr(out, exp[i]) == NULL) {
+      fprintf(stderr, "Not found in the page: \"%s\"\n", exp[i]);
+      test_assert(false);
+    }
   free(out);
   /* with a logo */
   f = open_memstream(&out, &size);
   test_assert(f != NULL);
+  html_writer_init(&w, f);
   html_logo_t logo = {"logo.png", "logo-dark.png", "Test", 80};
-  html_page_start_logo(f, "Test report", &logo, "report", 0);
-  fputs("<p>side</p>\n", f);
-  html_page_head_end(f);
-  html_page_end(f, NULL);
+  html_page_start_logo(&w, "Test report", &logo, "report", 0);
+  html_tag_text(&w, "p", "side");
+  html_page_head_end(&w);
+  html_page_end(&w, NULL);
   fclose(f);
   test_assert(strstr(out, "<title>Test report</title>") != NULL);
   test_assert(strstr(out, "http-equiv") == NULL);
-  test_assert(strstr(out, "<h1 class=\"logo\"><picture><source media=\""
-              "(prefers-color-scheme: dark)\" srcset=\"logo-dark.png\">"
-              "<img src=\"logo.png\" alt=\"Test\" height=\"80\"></picture>"
-              "<span>report</span></h1>") != NULL);
-  test_assert(strstr(out, "<div class=\"side\">\n<p>side</p>\n</div>\n"
-              "</div>\n") != NULL);
+  test_assert(strstr(out, "<div class=\"head\">\n  <div class=\"brand\">\n"
+              "    <h1 class=\"logo\">\n      <picture>\n        <source "
+              "media=\"(prefers-color-scheme: dark)\" srcset=\""
+              "logo-dark.png\">\n        <img src=\"logo.png\" alt=\"Test\" "
+              "height=\"80\">\n      </picture>\n      <span>report</span>\n"
+              "    </h1>\n    <p class=\"sub updated\">Updated: ") != NULL);
+  test_assert(strstr(out, "  <div class=\"side\">\n    <p>side</p>\n"
+              "  </div>\n</div>\n</main>\n") != NULL);
   free(out);
-  /* dashboard */
+  /* dashboard, without a logo */
   f = open_memstream(&out, &size);
   test_assert(f != NULL);
-  html_dashboard_start(f, "Test dashboard", &logo, "dashboard", 30);
-  fputs("<p>state</p>\n", f);
-  html_dashboard_bar_end(f);
-  fputs("<div class=\"dgrid\">\n", f);
-  html_panel_start(f, "Values", "tall");
-  html_panel_end(f);
-  html_panel_start(f, "Steps", NULL);
-  html_panel_end(f);
-  fputs("</div>\n", f);
-  html_page_end(f, NULL);
+  html_writer_init(&w, f);
+  html_dashboard_start(&w, "Test dashboard", NULL, "dashboard", 30);
+  html_tag_text(&w, "p", "state");
+  html_dashboard_bar_end(&w);
+  html_open(&w, "div");
+  html_attr(&w, "class", "dgrid");
+  html_panel_start(&w, "Values", "tall");
+  html_panel_end(&w);
+  html_panel_start(&w, "Steps", NULL);
+  html_tag_text(&w, "p", "x");
+  html_panel_end(&w);
+  html_close(&w);
+  html_page_end(&w, NULL);
   fclose(f);
   test_assert(strstr(out, "<body class=\"dash\">") != NULL);
-  test_assert(strstr(out, "<span>dashboard</span>") != NULL);
-  test_assert(strstr(out, "<div class=\"dinfo\">\n<p>state</p>\n</div>\n"
-              "</header>") != NULL);
-  test_assert(strstr(out, "<section class=\"panel tall\"><h3>Values</h3>"
-              "\n</section>") != NULL);
-  test_assert(strstr(out, "<section class=\"panel\"><h3>Steps</h3>") != NULL);
+  test_assert(strstr(out, "<picture>") == NULL);
+  test_assert(strstr(out, "<header class=\"dbar\">\n  <div class=\"brand\">\n"
+              "    <span>dashboard</span>\n") != NULL);
+  test_assert(strstr(out, "  <div class=\"dinfo\">\n    <p>state</p>\n"
+              "  </div>\n</header>\n") != NULL);
+  test_assert(strstr(out, "<div class=\"dgrid\">\n"
+              "  <section class=\"panel tall\">\n    <h3>Values</h3>\n"
+              "  </section>\n  <section class=\"panel\">\n    <h3>Steps</h3>\n"
+              "    <p>x</p>\n  </section>\n</div>\n") != NULL);
   free(out);
 }

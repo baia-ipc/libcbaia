@@ -42,6 +42,7 @@
 #ifndef HTML_WRITER_H
 #define HTML_WRITER_H
 
+#include <stdarg.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdio.h>
@@ -90,6 +91,9 @@ void html_text(html_writer_t *w, const char *text);
 /* Text formatted as by printf() (escaped) in the current element */
 void html_textf(html_writer_t *w, const char *fmt, ...)
   __attribute__((format(printf, 2, 3)));
+
+/* The same, with the arguments in a va_list */
+void html_vtextf(html_writer_t *w, const char *fmt, va_list ap);
 
 /* Trusted markup (not escaped), written as text */
 void html_raw(html_writer_t *w, const char *markup);

@@ -379,30 +379,33 @@ Self-contained HTML reports: a page with a style for light and dark themes (no e
 
    extern const char *const html_page_css;
    #define HTML_PAGE_MIN_RELOAD
-   void html_page_start(FILE *f, const char *title, long refresh);
+   void html_page_start(html_writer_t *w, const char *title, long refresh);
    typedef struct {
      const char *src, *src_dark, *alt;
      int height;
    } html_logo_t;
-   void html_page_start_logo(FILE *f, const char *title,
+   void html_page_start_logo(html_writer_t *w, const char *title,
        const html_logo_t *logo, const char *heading, long refresh);
-   void html_page_head_end(FILE *f);
-   void html_dashboard_start(FILE *f, const char *title,
+   void html_page_head_end(html_writer_t *w);
+   void html_dashboard_start(html_writer_t *w, const char *title,
        const html_logo_t *logo, const char *heading, long refresh);
-   void html_dashboard_bar_end(FILE *f);
-   void html_panel_start(FILE *f, const char *title, const char *cls);
-   void html_panel_end(FILE *f);
-   void html_page_end(FILE *f, const char *footer);
-   void html_tile(FILE *f, const char *value, const char *label);
-   const char *html_num(size_t n);
+   void html_dashboard_bar_end(html_writer_t *w);
+   void html_panel_start(html_writer_t *w, const char *title, const char *cls);
+   void html_panel_end(html_writer_t *w);
+   void html_page_end(html_writer_t *w, const char *footer);
+   void html_tile(html_writer_t *w, const char *value, const char *label);
+   typedef struct {
+     char s[32];
+   } html_num_t;
+   html_num_t html_num(size_t n);
    double html_percent(size_t a, size_t b);
-   void html_hbars(FILE *f, size_t n, const char *const *labels,
+   void html_hbars(html_writer_t *w, size_t n, const char *const *labels,
        const size_t *values, const char *const *classes, size_t total,
        double mean);
-   void html_histogram(FILE *f, const size_t *hist, size_t n_bins,
+   void html_histogram(html_writer_t *w, const size_t *hist, size_t n_bins,
        size_t bin_width, const char *what, const char *unit,
        const char *empty);
-   void html_knee(FILE *f, const uint64_t *counts, size_t n,
+   void html_knee(html_writer_t *w, const uint64_t *counts, size_t n,
        size_t n_selected, const char *x_label, const char *y_label,
        const char *selected_label);
 
@@ -445,6 +448,7 @@ Writing HTML (and inline SVG) element by element: the text and the attribute val
    void html_text(html_writer_t *w, const char *text);
    void html_textf(html_writer_t *w, const char *fmt, ...)
      __attribute__((format(printf, 2, 3)));
+   void html_vtextf(html_writer_t *w, const char *fmt, va_list ap);
    void html_raw(html_writer_t *w, const char *markup);
    void html_close(html_writer_t *w);
    void html_tag_text(html_writer_t *w, const char *tag, const char *text);
