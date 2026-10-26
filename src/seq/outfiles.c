@@ -18,6 +18,7 @@
 #include "reads-reader.h"
 #include "strutils.h"
 #include "test.h"
+#include "ubam-writer.h"
 
 struct outfiles_t {
   char *prefix;   /* <outdir>/<basename>. */
@@ -172,6 +173,113 @@ static char *slurp(const char *path, size_t *len) {
   return buf;
 }
 
+#define TEST_BAM_TEXT "@HD\tVN:1.6\tSO:unknown\n"
+
+/* BGZF-compressed BAM data: the header (if <title> is NULL) or a record */
+static void bgzf_bam(strbuf_t *out, const char *title) {
+  strbuf_t data;
+  strbuf_init(&data);
+  if (title == NULL)
+    ubam_writer_header(&data, TEST_BAM_TEXT);
+  else
+    ubam_writer_record(&data, title, strlen(title), "ACGT", "IIII", 4);
+  strbuf_clear(out);
+  bgzf_compressor_t *c = bgzf_compressor_new(OUTFILES_COMPRESSLEVEL);
+  bgzf_compressor_run(c, data.s, data.len, out);
+  bgzf_compressor_delete(c);
+  strbuf_free(&data);
+}
+
+/* check a BAM file: its header, the names of its reads (separated by
+   spaces) and a single end-of-file marker, at the end */
+static void check_bam(const char *path, const char *names) {
+  FILE *f = fopen(path, "rb");
+  test_assert(f != NULL);
+  char *content;
+  size_t len;
+  read_file(f, &content, &len, NULL);
+  fclose(f);
+  size_t n_eof = 0;
+  for (size_t i = 0; i + BGZF_EOF_LEN <= len; i++)
+    if (memcmp(content + i, bgzf_eof, BGZF_EOF_LEN) == 0)
+      n_eof++;
+  test_eq_size(n_eof, 1);
+  test_assert(bam_reader_has_eof_marker(path));
+  free(content);
+  bam_reader_t *r = bam_reader_new(path, NULL);
+  test_eq_str(bam_reader_header(r), TEST_BAM_TEXT);
+  fastq_batch_t batch;
+  fastq_batch_init(&batch);
+  strbuf_t found;
+  strbuf_init(&found);
+  while (bam_reader_read_batch(r, &batch, 2) > 0)
+    for (size_t i = 0; i < batch.n_records; i++) {
+      if (found.len > 0)
+        strbuf_append_char(&found, ' ');
+      strbuf_append(&found, batch.data.s + batch.records[i].title_from,
+                    batch.records[i].title_len);
+    }
+  strbuf_append_char(&found, '\0');
+  test_eq_str(found.s, names);
+  strbuf_free(&found);
+  fastq_batch_free(&batch);
+  bam_reader_delete(r);
+}
+
+/* write the read <title> to the destination <dest> (name <name>) of the
+   BAM output files of the input data/run3.bam (2 destinations) */
+static void write_bam(const char *outdir, bool append, size_t dest,
+    const char *name, const char *title, Logger *logger) {
+  strbuf_t data;
+  strbuf_init(&data);
+  outfiles_t *o = outfiles_new(outdir, "data/run3.bam", 2, logger);
+  outfiles_set_append(o, append);
+  bgzf_bam(&data, NULL);
+  outfiles_set_bam(o, 0, data.s, data.len);
+  outfiles_set_bam(o, 1, data.s, data.len);
+  bgzf_bam(&data, title);
+  outfiles_write(o, dest, name, data.s, data.len);
+  outfiles_delete(o);
+  strbuf_free(&data);
+}
+
+static void test_bam(const char *outdir, Logger *logger) {
+  /* the suffix .bam of the input is removed; the files are created when
+     written, with the header; the end-of-file marker is written when
+     they are closed */
+  write_bam(outdir, false, 0, "S1", "r1", logger);
+  char *path1 = strcat_alloc(outdir, "/run3.S1" OUTFILES_BAM_SFX);
+  char *path2 = strcat_alloc(outdir, "/run3.S2" OUTFILES_BAM_SFX);
+  check_bam(path1, "r1");
+  test_assert(!file_exists(path2, ""));
+  /* append: the end-of-file marker is removed, the header is not
+     written again; a new file gets the header */
+  write_bam(outdir, true, 0, "S1", "r2", logger);
+  check_bam(path1, "r1 r2");
+  write_bam(outdir, true, 1, "S2", "r3", logger);
+  check_bam(path2, "r3");
+  /* append to a file without the end-of-file marker (e.g. written by an
+     interrupted run): nothing is removed */
+  struct stat st;
+  test_assert(stat(path2, &st) == 0);
+  test_assert(truncate(path2, st.st_size - BGZF_EOF_LEN) == 0);
+  write_bam(outdir, true, 1, "S2", "r4", logger);
+  check_bam(path2, "r3 r4");
+  /* append to an empty file: the header is written */
+  FILE *f = fopen(path2, "wb");
+  test_assert(f != NULL);
+  fclose(f);
+  write_bam(outdir, true, 1, "S2", "r5", logger);
+  check_bam(path2, "r5");
+  /* without append, an existing file is overwritten */
+  write_bam(outdir, false, 0, "S1", "r6", logger);
+  check_bam(path1, "r6");
+  unlink(path1);
+  unlink(path2);
+  free(path1);
+  free(path2);
+}
+
 void outfiles_test(const char *tmpdir) {
   Logger *logger = new_logger(stderr, LOG_WARN);
   char *outdir = strcat_alloc(tmpdir, "/outfiles_test");
@@ -210,6 +318,14 @@ void outfiles_test(const char *tmpdir) {
   test_assert(file_exists(path3, ""));
   unlink(path3);
   free(path3);
+  o = outfiles_new(outdir, "run4.fastq", 1, logger);
+  outfiles_write(o, 0, "S1", "x", 1);
+  outfiles_delete(o);
+  path3 = strcat_alloc(outdir, "/run4.S1" OUTFILES_FASTQ_SFX);
+  test_assert(file_exists(path3, ""));
+  unlink(path3);
+  free(path3);
+  test_bam(outdir, logger);
   char *groupdir = strcat_alloc(outdir, "/g1");
   rmdir(groupdir);
   rmdir(outdir);
