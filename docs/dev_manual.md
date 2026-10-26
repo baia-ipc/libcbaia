@@ -398,7 +398,7 @@ Each program is a `src/<program>.c` file with the following parts:
 The macros of `argparse-def.h` give all programs the same interface:
 
 - common options: `-q` (quiet), `-v` (verbose), `-D` (debug),
-  `-g <file>` (log file), `-h` (help) and `-V` (version);
+  `-L <file>` (log file), `-h` (help) and `-V` (version);
 - `OPT_ERR(C, ...)`, `ARG_ERR(N, ...)`, `PARSE_ERR(...)`: report an error
   in an option or argument, followed by the usage message;
 - `PARSE_INTEGER_OPT_MIN`, `PARSE_INTEGER_OPT_MIN_MAX`,

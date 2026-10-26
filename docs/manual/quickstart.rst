@@ -40,7 +40,7 @@ all programs (see :ref:`argparse`):
    ``PARSE_INTEGER_OPT_MIN`` parses an integer, checking its minimum;
 4. ``CHECK_MIN_NARGS`` checks the number of positional arguments;
 5. ``INIT_LOGGER`` creates the logger, with the level given by the
-   options (``-q``, ``-v``, ``-D``) and the log file (``-g``);
+   options (``-q``, ``-v``, ``-D``) and the log file (``-L``);
 6. ``PARSE_LOG`` writes the values of the parameters to the log, in the
    verbose mode.
 
@@ -120,7 +120,7 @@ The help, with the common options added by ``COMMON_OPTS_HELP``:
       -q, --quiet          quiet: only error messages
       -v, --verbose        verbose: show additional info messages
       -D, --debug          debug: show some debug information
-      -g, --logfile F      print messages to file (default: stderr)
+      -L, --logfile F      print messages to file (default: stderr)
 
    Other options:
       -h, --help           show this help message and exit

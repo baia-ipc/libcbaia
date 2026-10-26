@@ -45,7 +45,7 @@
     -V --> version
     -h --> help
     -q, -v, -D --> verbosity
-    -g --> log file (the letter can be changed, see LOGFILE_OPT)
+    -L --> log file (the letter can be changed, see LOGFILE_OPT)
 
   Put this in the options section of the help, after an empty line:
   COMMON_OPTS_HELP
@@ -151,9 +151,9 @@ static inline bool argparse_long(const char *s, long *value) {
 /* option for the log file; a program can define these macros before
    including this header, if it needs the letter for another option */
 #ifndef LOGFILE_OPT
-#define LOGFILE_OPT 'g'
-#define LOGFILE_OPT_STR "g:"
-#define LOGFILE_OPT_HELP "-g"
+#define LOGFILE_OPT 'L'
+#define LOGFILE_OPT_STR "L:"
+#define LOGFILE_OPT_HELP "-L"
 #endif
 
 /*

@@ -72,7 +72,7 @@ level              shown by    meaning
 Each message is preceded by the time and the level; at the debug levels
 also by the source file and line. When the messages go to a terminal,
 each level has its own color, so that warnings and errors stand out
-among the other messages; in a log file (``-g``), or when the standard
+among the other messages; in a log file (``-L``), or when the standard
 error is redirected, the colors are not used.
 
 The example program ``logdemo`` (``docs/manual/examples/logdemo.c``)
@@ -163,13 +163,13 @@ token or the value of a macro; ``BOOLSTR(b)`` gives ``"T"`` or ``"F"``.
 ``-q``, ``--quiet``    level ``LOG_ERROR``: only the error messages
 ``-v``, ``--verbose``  level ``LOG_PARAM``: information and parameters
 ``-D``, ``--debug``    level ``LOG_DEBUG``
-``-g``, ``--logfile``  write the messages to a file
+``-L``, ``--logfile``  write the messages to a file
 ``-h``, ``--help``     output the help (``PURPOSE``) and exit
 ``-V``, ``--version``  output the program name and ``VERSION`` and exit
 =====================  ===================================================
 
 Only one of ``-q``, ``-v`` and ``-D`` can be given. A program which
-needs the letter ``g`` for another option defines ``LOGFILE_OPT``,
+needs the letter ``L`` for another option defines ``LOGFILE_OPT``,
 ``LOGFILE_OPT_STR`` and ``LOGFILE_OPT_HELP`` before including the
 header.
 
