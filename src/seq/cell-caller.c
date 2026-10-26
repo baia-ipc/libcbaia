@@ -40,6 +40,8 @@ static void add_count(cell_caller_t *self, uint64_t barcode,
     uint64_t count) {
   int ret;
   khiter_t k = kh_put(counts, self->counts, barcode, &ret);
+  if (ret == -1)
+    fatal_printf("Failed allocating the counts of the barcodes\n");
   if (ret != 0)
     kh_value(self->counts, k) = 0;
   kh_value(self->counts, k) += count;
@@ -69,21 +71,31 @@ static int cmp_counts(const void *a, const void *b) {
   return x->barcode < y->barcode ? -1 : x->barcode > y->barcode;
 }
 
-static int cmp_desc(const void *a, const void *b) {
-  uint64_t x = *(const uint64_t *)a, y = *(const uint64_t *)b;
-  return x < y ? 1 : x > y ? -1 : 0;
+/* the barcodes and their counts, sorted by cmp_counts, in a new array
+   <bc> (to be freed by the caller); returns their number */
+static size_t sorted_barcode_counts(const cell_caller_t *self,
+    barcode_count_t **bc) {
+  size_t n = kh_size(self->counts), i = 0;
+  XMALLOC(*bc, sizeof(barcode_count_t) * (n + 1));
+  for (khiter_t k = kh_begin(self->counts); k != kh_end(self->counts); k++)
+    if (kh_exist(self->counts, k)) {
+      (*bc)[i].barcode = kh_key(self->counts, k);
+      (*bc)[i++].count = kh_value(self->counts, k);
+    }
+  qsort(*bc, n, sizeof(barcode_count_t), cmp_counts);
+  return n;
 }
 
 size_t cell_caller_sorted_counts(const cell_caller_t *self,
     uint64_t **counts) {
   assert(self != NULL);
   assert(counts != NULL);
-  size_t n = kh_size(self->counts), i = 0;
+  barcode_count_t *bc;
+  size_t n = sorted_barcode_counts(self, &bc);
   XMALLOC(*counts, sizeof(uint64_t) * (n + 1));
-  for (khiter_t k = kh_begin(self->counts); k != kh_end(self->counts); k++)
-    if (kh_exist(self->counts, k))
-      (*counts)[i++] = kh_value(self->counts, k);
-  qsort(*counts, n, sizeof(uint64_t), cmp_desc);
+  for (size_t i = 0; i < n; i++)
+    (*counts)[i] = bc[i].count;
+  free(bc);
   return n;
 }
 
@@ -92,15 +104,8 @@ whitelist_t* cell_caller_run(const cell_caller_t *self,
     const char *path, Logger *logger) {
   assert(self != NULL);
   assert(expected_cells > 0);
-  size_t n = kh_size(self->counts), i = 0;
   barcode_count_t *bc;
-  XMALLOC(bc, sizeof(barcode_count_t) * (n + 1));
-  for (khiter_t k = kh_begin(self->counts); k != kh_end(self->counts); k++)
-    if (kh_exist(self->counts, k)) {
-      bc[i].barcode = kh_key(self->counts, k);
-      bc[i++].count = kh_value(self->counts, k);
-    }
-  qsort(bc, n, sizeof(barcode_count_t), cmp_counts);
+  size_t n = sorted_barcode_counts(self, &bc), i;
   /* 99th percentile of the counts of the expected cells */
   size_t top = expected_cells < n ? expected_cells : n;
   size_t p99 = top == 0 ? 0 : (size_t)((double)(top - 1) * 0.01 + 0.5);
