@@ -2,6 +2,8 @@
 
 #include <assert.h>
 #include <errno.h>
+#include <limits.h>
+#include <math.h>
 #include <stdlib.h>
 #include <string.h>
 #include "alloc.h"
@@ -78,7 +80,7 @@ bool parse_duration(const char *s, double default_unit, long *seconds) {
   char *end;
   errno = 0;
   double value = strtod(s, &end);
-  if (*s == '\0' || end == s || errno != 0 || value < 0)
+  if (*s == '\0' || end == s || errno != 0 || !isfinite(value) || value < 0)
     return false;
   double unit = default_unit;
   if (*end == 's')
@@ -90,6 +92,8 @@ bool parse_duration(const char *s, double default_unit, long *seconds) {
   else if (*end != '\0')
     return false;
   if (*end != '\0' && end[1] != '\0')
+    return false;
+  if (value * unit >= (double)LONG_MAX)
     return false;
   *seconds = (long)(value * unit + 0.5);
   return true;

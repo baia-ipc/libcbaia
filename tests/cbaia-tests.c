@@ -128,6 +128,9 @@ static void strutils_test(void) {
   test_assert(!parse_duration("5x", 1, &sec));
   test_assert(!parse_duration("5ms", 1, &sec));
   test_assert(!parse_duration("s", 1, &sec));
+  test_assert(!parse_duration("inf", 1, &sec));
+  test_assert(!parse_duration("nan", 1, &sec));
+  test_assert(!parse_duration("1e30h", 1, &sec));
   test_assert(is_space(' ') && is_space('\t') && is_space('\r') &&
               is_space('\x1f'));
   test_assert(!is_space('a') && !is_space('\0') && !is_space('\x1b'));
