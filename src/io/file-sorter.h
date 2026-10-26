@@ -24,7 +24,9 @@ size_t sort_file_parts(
     const char *outfname, /* basename for temp and output files */
     const char *outfsfx,  /* sfx for temp (before num) and output files */
     size_t bufsize,       /* size of memory buffer */
-    size_t elems_bufsize_init,
+    size_t elems_bufsize_init, /* initial size of the array of the
+                                  element pointers, in bytes (it is
+                                  enlarged by read_elems() as needed) */
     size_t read_elems(FILE *file, char *buffer, size_t bufsize,
                       char ***elems, size_t *elemsbufsize, Logger *logger),
     void sort_elems(char **elems, size_t nelems),

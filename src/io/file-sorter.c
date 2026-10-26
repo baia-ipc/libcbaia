@@ -37,7 +37,7 @@ size_t sort_file_parts(
     FILE *nth_file;
     nth_filename = compute_nth_filename(outfname, outfsfx, nfiles);
     nth_file = xfopen(nth_filename, NULL, "w", NULL, logger);
-    lprintf(logger, LOG_DEBUG, "Sorting part %lu (%lu elements)...\n",
+    lprintf(logger, LOG_DEBUG, "Sorting part %zu (%zu elements)...\n",
         nfiles, nelems);
     sort_elems(elems, nelems);
     output_sorted_elems(nth_file, elems, nelems, logger);
@@ -46,9 +46,9 @@ size_t sort_file_parts(
     nelems_total += nelems;
     nfiles++;
   }
-  lprintf(logger, LOG_INFO, "Sorted: %lu element%s in %lu part%s\n",
-        nelems_total, nelems_total > 1 ? "s" : "",
-        nfiles, nfiles > 1 ? "s" : "");
+  lprintf(logger, LOG_INFO, "Sorted: %zu element%s in %zu part%s\n",
+        nelems_total, nelems_total != 1 ? "s" : "",
+        nfiles, nfiles != 1 ? "s" : "");
   XFREE(buffer);
   XFREE(elems);
   xfclose(&file, logger);
