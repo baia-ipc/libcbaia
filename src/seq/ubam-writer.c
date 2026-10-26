@@ -9,14 +9,13 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <zlib.h>
 #include "alloc.h"
 #include "bam-reader.h"
-#include "ubam-writer.h"
-#include "sam-tags.h"
 #include "bgzf-compressor.h"
+#include "sam-tags.h"
 #include "strutils.h"
 #include "test.h"
+#include "ubam-writer.h"
 
 /* bin of an unmapped record (reg2bin(-1, 0) of the SAM specification) */
 #define BAM_UNMAPPED_BIN 4680
