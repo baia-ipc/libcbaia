@@ -255,7 +255,7 @@ void ubam_writer_test(const char *tmpdir) {
   bgzf_compressor_run(c, data.s, data.len, &out);
   bgzf_compressor_delete(c);
   strbuf_append(&out, (const char *)bgzf_eof, BGZF_EOF_LEN);
-  char *path = strcat_alloc(tmpdir, "/lp-tests-out.bam");
+  char *path = strcat_alloc(tmpdir, "/cbaia-tests-out.bam");
   FILE *f = fopen(path, "wb");
   test_assert(f != NULL);
   fwrite(out.s, 1, out.len, f);

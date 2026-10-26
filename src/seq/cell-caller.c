@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 #include "khash.h"
 #include "alloc.h"
 #include "file.h"
@@ -183,7 +184,7 @@ void cell_caller_test(const char *tmpdir) {
   for (uint64_t b = 10; b < 50; b++)
     cell_caller_add(cc2, b);
   cell_caller_merge(cc, cc2);
-  char *path = strcat_alloc(tmpdir, "/lp-tests-cells.txt");
+  char *path = strcat_alloc(tmpdir, "/cbaia-tests-cells.txt");
   whitelist_t *cells = cell_caller_run(cc, 3, 4, NULL, path, NULL);
   test_eq_size(whitelist_size(cells), 3);
   test_assert(whitelist_contains(cells, 3));
@@ -195,6 +196,7 @@ void cell_caller_test(const char *tmpdir) {
   test_assert(fgets(line, sizeof(line), f) != NULL);
   test_eq_str(line, "AAAC\t100\n");
   fclose(f);
+  unlink(path);
   free(path);
   uint64_t *sorted;
   test_eq_size(cell_caller_sorted_counts(cc, &sorted), 43);

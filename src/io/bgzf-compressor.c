@@ -117,7 +117,7 @@ void bgzf_compressor_test(const char *tmpdir) {
   test_eq(pos, out.len, size_t, "%zu");
   test_eq(n_blocks, (size_t)5, size_t, "%zu");
   /* the file is a valid gzip file with the original content */
-  char *path = strcat_alloc(tmpdir, "/lp-tests-bgzf.gz");
+  char *path = strcat_alloc(tmpdir, "/cbaia-tests-bgzf.gz");
   FILE *f = fopen(path, "wb");
   test_assert(f != NULL);
   fwrite(out.s, 1, out.len, f);

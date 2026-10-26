@@ -436,7 +436,7 @@ void bam_reader_test(const char *tmpdir) {
   put_record(&b, "r3", 256, "AAAA", "AAAA", NULL, 0);
   put_record(&b, "r4", 2048, "AAAA", "AAAA", NULL, 0);
   put_record(&b, "r5", 4, "ACG", NULL, NULL, 0);
-  char *path = strcat_alloc(tmpdir, "/lp-tests-reads.bam");
+  char *path = strcat_alloc(tmpdir, "/cbaia-tests-reads.bam");
   gzFile f = gzopen(path, "wb");
   test_assert(f != NULL);
   test_eq(gzwrite(f, b.s, (unsigned)b.len), (int)b.len, int, "%d");

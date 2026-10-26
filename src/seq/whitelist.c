@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 #include <zlib.h>
 #include "khash.h"
 #include "alloc.h"
@@ -309,7 +310,7 @@ static const char *match_str(const whitelist_t *wl, const char *seq,
 }
 
 void whitelist_test(const char *tmpdir) {
-  char *path = strcat_alloc(tmpdir, "/lp-tests-whitelist.txt");
+  char *path = strcat_alloc(tmpdir, "/cbaia-tests-whitelist.txt");
   FILE *f = fopen(path, "w");
   test_assert(f != NULL);
   fputs("AAAACCCCGGGGTTTT-1\nACGTACGTACGTACGT\n\nTTTTGGGGCCCCAAAA\n"
@@ -367,5 +368,6 @@ void whitelist_test(const char *tmpdir) {
               "ACGTACGTACGTACGG:1:16");
   whitelist_delete(wl2);
   whitelist_delete(wl);
+  unlink(path);
   free(path);
 }
