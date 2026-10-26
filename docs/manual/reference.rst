@@ -294,7 +294,7 @@ Implementation: - Sorted array S plus an unsorted buffer B - Query is by binary 
 
 .. code-block:: c
 
-   #define SET_TYPE
+   typedef size_t SET_TYPE;
    typedef struct Set Set;
    Set *set_new(size_t insertion_buffer_size, size_t bloom_filter_size,
                 size_t k);

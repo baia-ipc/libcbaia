@@ -8,12 +8,13 @@
    - B is sorted and merged in S when full
 */
 
-#include <stdbool.h>
-
 #ifndef SET_H
 #define SET_H
 
-#define SET_TYPE size_t
+#include <stdbool.h>
+#include <stddef.h>
+
+typedef size_t SET_TYPE;
 
 typedef struct Set Set;
 
@@ -27,7 +28,8 @@ typedef struct Set Set;
 
    <k> if not zero: set is composed of 2**k buckets and the elements are
                     added to/queried from these buckets based on their
-                    lowest k bits
+                    lowest k bits (k smaller than the number of bits of
+                    SET_TYPE)
 */
 
 Set *set_new(size_t insertion_buffer_size, size_t bloom_filter_size,

@@ -1,10 +1,10 @@
 /* (c) 2018 Giorgio Gonnella */
 
-#include <search.h>
+#include <assert.h>
+#include <limits.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <stddef.h>
-#include <assert.h>
 #include "alloc.h"
 #include "bloom-filter.h"
 #include "set.h"
@@ -12,11 +12,10 @@
 /*
   Compilation flags:
   SET_USE_SET_BSEARCH   use set_bsearch (default: use stdlib bsearch)
+  GG_SET_DEBUG          print the operations and the buffers to stdout
 */
 
-//#define GG_SET_DEBUG
-
-#define NSETS(K) (1 << (K))
+#define NSETS(K) ((size_t)1 << (K))
 #define MASK(K) (NSETS(K) - 1)
 
 struct Set
@@ -33,11 +32,19 @@ struct Set
 
 #define MAINBUF_INC 16384
 
+/* increment of the size of the main buffer of a bucket: MAINBUF_INC over
+   all buckets, but at least 1 (with k >= 15 the shift would give 0) */
+static size_t mainbuf_inc(size_t k)
+{
+  return k < 15 ? (size_t)MAINBUF_INC >> k : 1;
+}
+
 Set *set_new(size_t insertion_buffer_size, size_t bloom_filter_size,
              size_t k)
 {
   Set *set;
   size_t i;
+  assert(k < sizeof(SET_TYPE) * CHAR_BIT);
   size_t nsets = NSETS(k);
   XMALLOC(set, sizeof *set);
   XMALLOC(set->mainbuf, nsets * sizeof(*set->mainbuf));
@@ -47,7 +54,7 @@ Set *set_new(size_t insertion_buffer_size, size_t bloom_filter_size,
   XMALLOC(set->insbufsize, nsets * sizeof(size_t));
   XMALLOC(set->insbuffill, nsets * sizeof(size_t));
   for (i = 0; i < nsets; i++) {
-    set->mainbufsize[i] = (MAINBUF_INC >> k);
+    set->mainbufsize[i] = mainbuf_inc(k);
     set->mainbuffill[i] = 0;
     XMALLOC(set->mainbuf[i], set->mainbufsize[i] * sizeof(SET_TYPE));
     set->insbufsize[i] = insertion_buffer_size;
@@ -58,7 +65,7 @@ Set *set_new(size_t insertion_buffer_size, size_t bloom_filter_size,
   set->bf = (bloom_filter_size > 0) ?
     bloom_filter_new(bloom_filter_size) : NULL;
 #ifdef GG_SET_DEBUG
-  printf("Created set %p\n", set);
+  printf("Created set %p\n", (void *)set);
 #endif
   return set;
 }
@@ -67,7 +74,7 @@ static int set_elem_cmp(const void *a_ptr, const void *b_ptr)
 {
   SET_TYPE a = *(SET_TYPE*)a_ptr, b = *(SET_TYPE*)b_ptr;
 #ifdef GG_SET_DEBUG
-  printf("set_elem_cmp; keys %lu and %lu = %d\n", a, b, (a > b) - (a < b));
+  printf("set_elem_cmp; keys %zu and %zu = %d\n", a, b, (a > b) - (a < b));
 #endif
   return (a > b) - (a < b);
 }
@@ -90,27 +97,14 @@ static void dbg_show_buffer(const Set *set, size_t i, bool ins, const char *msg)
     buf = set->mainbuf[i];
     bufname = "mainbuf";
   }
-  printf("%s[%lu] %s (fill=%lu): ", bufname, i, msg, fill);
+  printf("%s[%zu] %s (fill=%zu): ", bufname, i, msg, fill);
   for (j = 0; j < fill; j++)
   {
     if (j > 0)
       printf(" -- ");
-    printf("%p", buf[j]);
+    printf("%zu", buf[j]);
   }
   printf("\n");
-}
-#endif
-
-#if 0
-// Version used for checking merge_buffers
-static void merge_buffers_debug(Set *set, size_t i)
-{
-  memcpy(set->mainbuf[i] + set->mainbuffill[i],
-      set->insbuf[i], set->insbuffill[i] * sizeof(SET_TYPE));
-  set->mainbuffill[i] += set->insbuffill[i];
-  set->insbuffill[i] = 0;
-  qsort(set->mainbuf[i], set->mainbuffill[i],
-        sizeof(SET_TYPE), set_elem_cmp);
 }
 #endif
 
@@ -160,7 +154,7 @@ static void merge_buffers(Set *set, size_t i)
 static void set_finalize_insertions_i(Set *set, size_t i)
 {
 #ifdef GG_SET_DEBUG
-  printf("sorting insbuf %lu\n, i");
+  printf("sorting insbuf %zu\n", i);
   dbg_show_buffer(set, i, true, " before sorting");
 #endif
   qsort(set->insbuf[i], set->insbuffill[i],
@@ -171,10 +165,10 @@ static void set_finalize_insertions_i(Set *set, size_t i)
   if (set->mainbuffill[i] + set->insbuffill[i] >= set->mainbufsize[i])
   {
     size_t newsize = set->mainbufsize[i] + set->insbuffill[i] +
-                     (MAINBUF_INC >> set->k);
+                     mainbuf_inc(set->k);
 #ifdef GG_SET_DEBUG
-    printf("realloc set %p mainbuf; prev_size=%lu, new_size = %lu\n",
-        set, set->mainbufsize[i], newsize);
+    printf("realloc set %p mainbuf; prev_size=%zu, new_size = %zu\n",
+        (void *)set, set->mainbufsize[i], newsize);
 #endif
     set->mainbufsize[i] = newsize;
     XREALLOC(set->mainbuf[i], newsize * sizeof *set->mainbuf[i]);
@@ -194,8 +188,8 @@ void set_insert_simple(Set *set, SET_TYPE key) {
   size_t i = key & MASK(set->k);
   key = key >> set->k;
 #ifdef GG_SET_DEBUG
-  printf("\nInsert key %lu in set %p i=%lu\n", key, set, i);
-  printf("Is=%lu;If=%lu;Ms=%lu;Mf=%lu\n",
+  printf("\nInsert key %zu in set %p i=%zu\n", key, (void *)set, i);
+  printf("Is=%zu;If=%zu;Ms=%zu;Mf=%zu\n",
       set->insbufsize[i], set->insbuffill[i],
       set->mainbufsize[i], set->mainbuffill[i]);
 #endif
@@ -215,7 +209,6 @@ void set_insert(Set *set, SET_TYPE key)
 #ifdef SET_USE_SET_BSEARCH
 static bool set_bsearch(const Set *set, size_t i, SET_TYPE key)
 {
-  char label;
   if (set->mainbuffill[i] > 0) {
     size_t lower = 0, upper = set->mainbuffill[i]-1, mid;
     SET_TYPE midvalue;
@@ -247,8 +240,8 @@ bool set_query(const Set *set, SET_TYPE key)
   size_t i = key & MASK(set->k);
   key = key >> set->k;
 #ifdef GG_SET_DEBUG
-  printf("\nSearch key: %p in set %p (i=%lu)\n", key, set, i);
-  printf("Is=%lu;If=%lu;Ms=%lu;Mf=%lu\n",
+  printf("\nSearch key: %zu in set %p (i=%zu)\n", key, (void *)set, i);
+  printf("Is=%zu;If=%zu;Ms=%zu;Mf=%zu\n",
       set->insbufsize[i], set->insbuffill[i],
       set->mainbufsize[i], set->mainbuffill[i]);
   dbg_show_buffer(set, i, false, "");
@@ -262,7 +255,7 @@ bool set_query(const Set *set, SET_TYPE key)
 #endif
   {
 #ifdef GG_SET_DEBUG
-    printf("key found in main buffer %lu\n", i);
+    printf("key found in main buffer %zu\n", i);
 #endif
     return true;
   }
@@ -274,7 +267,7 @@ bool set_query(const Set *set, SET_TYPE key)
       if (set->insbuf[i][j] == key)
       {
 #ifdef GG_SET_DEBUG
-        printf("key found in ins buffer %lu\n", i);
+        printf("key found in ins buffer %zu\n", i);
 #endif
         return true;
       }
@@ -411,5 +404,13 @@ void set_test(void)
   set_finalize_insertions(set);
   for (SET_TYPE key = 0; key < 1000; key++)
     test_assert(set_query(set, key) == (key % 3 == 0));
+  set_delete(set);
+  /* many buckets: the initial main buffers are not empty */
+  set = set_new(2, 0, 16);
+  for (SET_TYPE key = 0; key < 200000; key += 7)
+    set_insert(set, key);
+  set_finalize_insertions(set);
+  for (SET_TYPE key = 0; key < 200000; key++)
+    test_assert(set_query(set, key) == (key % 7 == 0));
   set_delete(set);
 }
