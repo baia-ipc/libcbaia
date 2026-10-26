@@ -402,5 +402,11 @@ Other modules
 ~~~~~~~~~~~~~
 
 * ``colors.h``: ANSI colors for the terminal (``START_COLOR(stream,
-  RED)``, ``STOP_COLOR(stream)``), used by the logger;
+  RED);``, ``STOP_COLOR(stream);``), used by the logger; the example
+  program ``colors`` writes the name of each color in that color:
+
+  .. literalinclude:: examples/colors.c
+     :language: c
+     :lines: 8-
+
 * ``test.h``: the macros of the unit tests, see :ref:`testing`.

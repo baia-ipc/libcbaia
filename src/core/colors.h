@@ -1,13 +1,17 @@
-/* Colors */
+/* ANSI colors of the text written to a terminal */
 
 #ifndef COLORS_H
 #define COLORS_H
 
-#define START_COLOR(STREAM, COLOR) \
-  fprintf(STREAM, "\x1b[%sm", COLOR);\
+#include <stdio.h>
 
+/* write the text after it in COLOR (one of the codes below) */
+#define START_COLOR(STREAM, COLOR) \
+  fprintf(STREAM, "\x1b[%sm", COLOR)
+
+/* back to the default color */
 #define STOP_COLOR(STREAM) \
-  fprintf(STREAM, "\x1b[0m");
+  fprintf(STREAM, "\x1b[0m")
 
 #define BLACK   "30"
 #define RED     "31"
@@ -26,7 +30,5 @@
 #define BRIGHT_MAGENTA "95"
 #define BRIGHT_CYAN    "96"
 #define BRIGHT_WHITE   "97"
-
-void test_fg_colors(void);
 
 #endif

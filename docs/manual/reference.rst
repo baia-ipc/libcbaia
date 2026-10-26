@@ -65,7 +65,7 @@ Memory allocation macros
 
 **colors.h**
 
-Colors
+ANSI colors of the text written to a terminal
 
 .. code-block:: c
 
