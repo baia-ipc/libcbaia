@@ -170,6 +170,29 @@ the content
 ``void html_page_end(FILE *f, const char *footer)``
    the end of the page, with a footer note (``NULL``: none).
 
+**Reports and dashboards.** A report is a vertical page, to be read,
+printed or archived (e.g. at the end of an analysis). A page followed
+on a screen during a run is better laid out as a **dashboard**, which
+fits the window, so that everything is visible at once:
+
+``void html_dashboard_start(FILE *f, const char *title, const html_logo_t *logo, const char *heading, long refresh)``
+   the head of the page and a top bar: the logo (``NULL``: none), with
+   ``heading`` under it and the time of writing, then the content
+   written next (e.g. the state and the parameters of the run), up to
+   ``void html_dashboard_bar_end(FILE *f)``; ``refresh``: as above;
+the content
+   e.g. tiles (``div.tiles``) and a grid of panels (``div.dgrid``: three
+   columns, rows of equal height filling the window);
+``void html_panel_start(FILE *f, const char *title, const char *cls)``
+   a panel, with a title (``h3``); ``cls``: ``"tall"`` (two rows),
+   ``"wide"`` (two columns) or ``NULL``; its content scrolls if needed;
+   ``void html_panel_end(FILE *f)`` ends it;
+``html_page_end()``
+   as for a report.
+
+On narrow (or low) windows, the panels follow each other and the page
+scrolls. The plots (below) are scaled to the width of the panels.
+
 The content:
 
 ``void html_tile(FILE *f, const char *value, const char *label)``
