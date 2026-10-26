@@ -1,15 +1,15 @@
 /* (c) 2021 Giorgio Gonnella */
 
+#include <errno.h>
 #include <stdio.h>
 #include <time.h>
 #include <stdbool.h>
 #include <stdarg.h>
 #include <string.h>
 #include <unistd.h>
+#include <sys/resource.h>
 #include "alloc.h"
-#include "assert.h"
 #include "colors.h"
-#include "file.h"
 #include "logger.h"
 
 struct Logger {
@@ -61,10 +61,13 @@ void delete_logger(Logger* logger) {
    (LEVEL) == LOG_MEM      ? MAGENTA : \
                              CYAN
 
+/* localtime_r: the loggers can be used by several threads */
 #define GET_TIME(S) {\
   time_t now = time(0); \
-  struct tm *now_tm = localtime(&now); \
-  strftime(S, sizeof(S), "%F %T", now_tm); \
+  struct tm now_tm; \
+  if (localtime_r(&now, &now_tm) == NULL || \
+      strftime(S, sizeof(S), "%F %T", &now_tm) == 0) \
+    S[0] = '\0'; \
 }
 
 #define LINE_PREFIX(LOGFILE, LEVEL) {\
@@ -73,7 +76,7 @@ void delete_logger(Logger* logger) {
   fprintf(LOGFILE, "# %s | %s | ", now_str, LEVEL_STR(LEVEL)); \
 }
 
-#define LINE_DEBUG_PREFIX(LOGFILE, LEVEL, DFILE, DLINE) {\
+#define LINE_DEBUG_PREFIX(LOGFILE, DFILE, DLINE) {\
   fprintf(LOGFILE, "%s:%i | ", DFILE, DLINE); \
 }
 
@@ -85,7 +88,7 @@ void delete_logger(Logger* logger) {
   {\
     LINE_PREFIX(STREAM, LEVEL);\
     if (DBG) \
-      LINE_DEBUG_PREFIX(STREAM, LEVEL, DFILE, DLINE);\
+      LINE_DEBUG_PREFIX(STREAM, DFILE, DLINE);\
   }\
   va_start(arglist, FMT);\
   vfprintf(STREAM, FMT, arglist);\
@@ -116,14 +119,14 @@ void __DEBUG_TRACE(const char *file, int line, const char *fmt, ...) {
   LPRINTF(stderr, colored, true, LOG_TRACE, fmt, true, file, line);
 }
 
-void __DEBUG_NTRACE(const char *fmt, ...) {
+void DEBUG_NTRACE(const char *fmt, ...) {
   bool colored = isatty(fileno(stderr));
   LPRINTF(stderr, colored, false, LOG_TRACE, fmt, false, "", 0);
 }
 #endif
 
+/* level of the messages printed (to stderr) without a logger (NULL) */
 #define DEFAULT_LOGGER_LEVEL LOG_ERROR
-#define DEFAULT_LOGFILE      stderr
 
 void __lprintf(Logger *logger, LoggingLevel level, const char *file,
      int line, const char *fmt, ...) {
@@ -150,12 +153,13 @@ void lnprintf(Logger *logger, LoggingLevel level, const char *fmt, ...) {
   }
 }
 
-#include <sys/resource.h>
-#include <stdio.h>
-
 void __showmem(Logger *logger, const char *file, int line) {
   struct rusage r_usage;
-  getrusage(RUSAGE_SELF,&r_usage);
+  if (getrusage(RUSAGE_SELF, &r_usage) != 0) {
+    __lprintf(logger, LOG_MEM, file, line,
+              "Memory usage (HWM): not available, %s\n", strerror(errno));
+    return;
+  }
 #ifdef __APPLE__
   /* in bytes on macOS, in kilobytes on Linux */
   r_usage.ru_maxrss /= 1024;

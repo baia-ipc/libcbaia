@@ -6,6 +6,7 @@
 #define LOGGER_H
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <stdbool.h>
 
 typedef struct Logger Logger;
@@ -19,7 +20,7 @@ typedef enum LoggingLevel {
   LOG_PARAM   = 5, /* displayed if -v, input parameters */
   LOG_MEM     = 6, /* displayed if -D, memory high water mark */
   LOG_DEBUG   = 7, /* displayed if -D, debug information */
-  LOG_TRACE   = 8  /* used by the trprintf/TRACE/TRACEN functions */
+  LOG_TRACE   = 8  /* used by the [DEBUG_]TRACE/[DEBUG_]NTRACE functions */
 } LoggingLevel;
 
 Logger* new_logger(FILE *logfile, LoggingLevel level);
@@ -45,8 +46,8 @@ void lnprintf(Logger *logger, LoggingLevel level, const char *fmt, ...)
 #define LCHECK(CONDITION, LOGGER, FMT, ...) \
    __LCHECK(CONDITION, LOGGER, __FILE__, __LINE__, FMT, ##__VA_ARGS__)
 
-/* printf-like function, creating a logger to stderr and using it, for printing
-   a last error message and exiting the program with code EXIT_FAILURE;
+/* printf-like function, printing a last error message to stderr (formatted
+   as by a logger) and exiting the program with code EXIT_FAILURE;
    - used when a logger is not available e.g. used by macros in alloc.h */
 #define fatal_printf(FMT, ...) \
   __fatal_printf(__FILE__, __LINE__, FMT, ##__VA_ARGS__)
