@@ -3,6 +3,9 @@
 # (requires Sphinx and a LaTeX installation), or the HTML version with
 # "sphinx-build -M html docs/manual docs/manual/_build".
 
+import os, sys
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
 project = "libcbaia"
 author = "Giorgio Gonnella"
 copyright = "2026, Giorgio Gonnella"
@@ -16,7 +19,7 @@ master_doc = "index"
 source_suffix = ".rst"
 highlight_language = "none"
 numfig = True
-pygments_style = "sphinx"
+pygments_style = "cbaia_style.CbaiaStyle"
 
 html_theme = "alabaster"
 html_title = "libcbaia manual"
