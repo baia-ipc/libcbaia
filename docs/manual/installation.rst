@@ -136,6 +136,9 @@ The variables:
                        (or ``-lz``) and ``-lm``
 ``CBAIA_LIBS``         all libraries built by libcbaia, as prerequisites
                        of the programs
+``CBAIA_EMBED``        the script ``dev/embed.sh``, which writes a data
+                       file (e.g. an HTML template) as a C string literal,
+                       to be included by a source (see below)
 =====================  ======================================================
 
 The library is built by its own Makefile, with the ``DEBUGFLAGS`` of
@@ -166,3 +169,19 @@ headers which it includes (directly or indirectly)::
 
 so that adding a module to a project only requires creating its ``.h``
 and ``.c`` files and including the header.
+
+**Data files.** Text used by the code but better kept in its own
+format, e.g. an HTML template, can be embedded at compile time:
+``$(CBAIA_EMBED) <file>`` writes the file as a C string literal (without
+the lines made only of a comment, ``/* ... */`` or ``<!-- ... -->``)::
+
+   obj/%-html.inc: src/%.html $(CBAIA_EMBED)
+   	$(CBAIA_EMBED) $< > $@
+
+   /* in the source (compiled with -Iobj) */
+   static const char *const page_tmpl =
+   #include "page-html.inc"
+     ;
+
+The library embeds its own data files (e.g. the style of the HTML pages,
+``src/io/html-page.css``) in the same way.

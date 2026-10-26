@@ -54,5 +54,11 @@ $(CBAIA_ZLIB): | $(CBAIA_LIB)
 	$(CBAIA_MAKE_LIB)
 endif
 
+# script writing a data file (e.g. an HTML template) as a C string
+# literal, see dev/embed.sh; e.g. for the files src/*.html of the project:
+#   obj/%-html.inc: src/%.html $(CBAIA_EMBED)
+#   	$(CBAIA_EMBED) $< > $@
+CBAIA_EMBED = $(CBAIA_DIR)/dev/embed.sh
+
 cbaia-clean:
 	$(MAKE) -C $(CBAIA_DIR) cleanup

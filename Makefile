@@ -35,11 +35,15 @@ TESTS = $(BINDIR)/cbaia-tests
 
 PREFIX ?= /usr/local
 
-.PHONY: default lib test fuzz manual install uninstall clean cleanup cleandep
+.PHONY: default lib data test fuzz manual install uninstall clean cleanup \
+        cleandep
 
 default: lib
 
 lib: $(LIB) $(ZLIB)
+
+# the data files embedded in the sources (e.g. for tests/fuzz/build.sh)
+data: $(DATA_INCS)
 
 CFLAGS += -Wall -Wextra -std=gnu11 $(INCLUDES)
 LDLIBS += $(ZLIB_LDLIBS) -lm
@@ -76,13 +80,24 @@ $(OBJDIR)/%.o : %.c $(DEPDIR)/%.d $(FLAGS_STAMP)
 	$(COMPILE.c) $(OUTPUT_OPTION) $<
 	$(POSTCOMPILE)
 
-# data files included by sources, generated in OBJDIR: the CSS of the HTML
-# pages as a C string literal (comment lines removed, \ and " escaped)
-$(OBJDIR)/html-page-css.inc: $(SRCDIR)/io/html-page.css
-	sed -e '/^[[:space:]]*\/\*.*\*\/[[:space:]]*$$/d' -e 's/\\/\\\\/g' \
-	  -e 's/"/\\"/g' -e 's/^/"/' -e 's/$$/\\n"/' $< > $@
-$(OBJDIR)/html-page.o: $(OBJDIR)/html-page-css.inc
-$(OBJDIR)/html-page.o: override CPPFLAGS += -I$(OBJDIR)
+# data files embedded in the sources as C string literals (dev/embed.sh):
+# <name>.<ext> of a component directory, with <ext> in DATA_EXTS, gives
+# OBJDIR/<name>-<ext>.inc (e.g. html-page.css: "html-page-css.inc"); the
+# objects depend on them only for the first build, then through the
+# header dependency tracking
+DATA_EXTS = css html
+DATA_FILES = $(wildcard $(foreach e,$(DATA_EXTS),\
+               $(addsuffix /*.$(e),$(COMPONENT_DIRS))))
+DATA_INCS = $(foreach f,$(notdir $(DATA_FILES)),\
+              $(OBJDIR)/$(subst .,-,$(f)).inc)
+INCLUDES += -I$(OBJDIR)
+define EMBED_RULE
+vpath %.$(1) $(COMPONENT_DIRS)
+$(OBJDIR)/%-$(1).inc: %.$(1) dev/embed.sh
+	dev/embed.sh $$< > $$@
+endef
+$(foreach e,$(DATA_EXTS),$(eval $(call EMBED_RULE,$(e))))
+$(OBJS): | $(DATA_INCS)
 
 $(DEPDIR)/%.d: ;
 .PRECIOUS: $(DEPDIR)/%.d

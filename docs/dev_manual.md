@@ -20,7 +20,8 @@ src/<component>/  sources and headers of the modules of each component:
   seq/            sequences, FASTQ and BAM files, SAM tags and headers,
                   barcodes, cells, library complexity
 tests/            unit test program
-dev/, scripts/    scripts for the projects (object lists, program tests)
+dev/, scripts/    scripts for the build and the projects (object lists,
+                  embedded data files, program tests)
 docs/             documentation (this file)
 ```
 
@@ -62,6 +63,23 @@ The build uses a single `Makefile` and the C compiler (`cc`):
 
 Header dependencies are tracked automatically (`-MMD -MP`, dependency files
 in `.d/`).
+
+Data used by the code but better written in its own format (e.g. the CSS
+style and the HTML templates of the reports) is kept in data files next
+to the sources and embedded at compile time: `dev/embed.sh` writes a file
+as a C string literal (removing the lines made only of a comment), which
+the source includes, e.g.
+
+```c
+static const char *const page_css =
+#include "html-page-css.inc"
+  ;
+```
+
+In the library, the files of the components with an extension listed in
+`DATA_EXTS` of the Makefile (`html-page.css` gives `obj/html-page-css.inc`)
+are converted automatically; a project adds a rule using `$(CBAIA_EMBED)`
+(see `cbaia.mk`).
 
 In the projects, the object files to link into each program are computed
 from the headers it includes (by `dev/objdeps.sh`: each `x.h` included
