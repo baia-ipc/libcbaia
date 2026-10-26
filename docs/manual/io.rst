@@ -306,8 +306,9 @@ The content:
    a rank plot ("knee plot", log-log): counts in decreasing order (e.g.
    the reads of the barcodes, from ``cell_caller_sorted_counts()``), with
    the axes titled ``x_label (log scale)`` and ``y_label (log scale)``,
-   and a dashed line at the rank ``n_selected`` (0: none), labelled with
-   the number and ``selected_label``; e.g. for the cells of a
+   and a dashed line at the rank ``n_selected`` (0: none; at most at the
+   last rank, ``n``), labelled with the number and ``selected_label``;
+   e.g. for the cells of a
    single-cell library::
 
       html_knee(w, counts, n, n_cells, "barcodes, by decreasing number "

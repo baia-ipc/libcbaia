@@ -139,9 +139,9 @@ void html_histogram(html_writer_t *w, const size_t *hist, size_t n_bins,
    Rank plot (log-log, "knee plot"): the <n> counts of the items, in
    decreasing order (e.g. the reads of each barcode); axes titles:
    "<x_label> (log scale)" and "<y_label> (log scale)"; if <n_selected> >
-   0, a dashed line at that rank, labeled "<n_selected> <selected_label>"
-   (e.g. the barcodes identified as cells: "cells"); the labels are text
-   (HTML-escaped)
+   0, a dashed line at that rank (at the last rank, <n>, if larger),
+   labeled "<n_selected> <selected_label>" (e.g. the barcodes identified as
+   cells: "cells"); the labels are text (HTML-escaped)
 */
 void html_knee(html_writer_t *w, const uint64_t *counts, size_t n,
     size_t n_selected, const char *x_label, const char *y_label,
