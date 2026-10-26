@@ -152,7 +152,8 @@ The writers append records to a ``strbuf_t``, which is then compressed
    are not written. The read name is the first word of the title
    (leading whitespace is skipped; ``*``, i.e. ``UBAM_NO_READ_NAME``, if
    the title is empty); names longer than ``UBAM_MAX_READ_NAME`` (254)
-   are truncated.
+   are truncated. Quality characters below ``!`` or above ``~`` (out of
+   the range of SAM) are clamped to it.
 
 Thus, a program can read FASTQ or BAM, and write FASTQ or BAM, keeping
 the tags of the input (e.g. the read group, the channel, or the tags

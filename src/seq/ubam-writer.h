@@ -30,7 +30,8 @@ void ubam_writer_header(strbuf_t *out, const char *text);
 /*
    Append a record to <out>: <title> (length <title_len>): read name (the
    first word, leading whitespace is skipped; UBAM_NO_READ_NAME if none)
-   and tags; <seq> and <qual> (Phred+33): <len> bases
+   and tags; <seq> and <qual> (Phred+33; characters below '!' or above
+   '~' are clamped to these): <len> bases
 */
 void ubam_writer_record(strbuf_t *out, const char *title, size_t title_len,
     const char *seq, const char *qual, size_t len);

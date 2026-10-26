@@ -33,6 +33,13 @@ static uint8_t base_code(char c) {
   return p == NULL || c == '\0' ? 15 : (uint8_t)(p - BAM_BASES);
 }
 
+/* quality value of a Phred+33 character; the characters out of the range
+   of SAM ('!' to '~') are clamped to it */
+static uint8_t qual_value(char c) {
+  unsigned char u = (unsigned char)c;
+  return u < '!' ? 0 : u > '~' ? '~' - '!' : (uint8_t)(u - '!');
+}
+
 /* parse an integer of a tag value (the whole text) */
 static bool parse_int(const char *s, size_t len, long long *value) {
   char buf[32];
@@ -216,7 +223,7 @@ void ubam_writer_record(strbuf_t *out, const char *title, size_t title_len,
     strbuf_append_char(out, (char)((base_code(seq[i]) << 4) |
                        (i + 1 < len ? base_code(seq[i + 1]) : 0)));
   for (size_t i = 0; i < len; i++)
-    strbuf_append_char(out, (char)(qual[i] - 33));
+    strbuf_append_char(out, (char)qual_value(qual[i]));
   const char *p = tags;
   while (p < end) {
     p++;
@@ -270,8 +277,26 @@ static void test_read_name(void) {
   strbuf_free(&b);
 }
 
+/* the qualities of the record in <b> (length <len>) */
+static const uint8_t *record_qual(const strbuf_t *b, size_t len) {
+  return (const uint8_t *)b->s + 4 + BAM_CORE_LEN + (uint8_t)b->s[12] +
+         (len + 1) / 2;
+}
+
+/* qualities out of the range of SAM are clamped */
+static void test_qualities(void) {
+  strbuf_t b;
+  strbuf_init(&b);
+  write_record(&b, "r1", "ACGTA", " !I~\x80");
+  const uint8_t *q = record_qual(&b, 5);
+  test_assert(q[0] == 0 && q[1] == 0 && q[2] == 40 && q[3] == 93 &&
+              q[4] == 93);
+  strbuf_free(&b);
+}
+
 void ubam_writer_test(const char *tmpdir) {
   test_read_name();
+  test_qualities();
   strbuf_t data, out;
   strbuf_init(&data);
   strbuf_init(&out);
