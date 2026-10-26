@@ -457,6 +457,16 @@ Writing of FASTQ records to a buffer (e.g. for a batch of records, which is then
    void fastq_writer_record(strbuf_t *out, const char *title, size_t title_len,
        const char *seq, const char *qual, size_t len);
 
+**minknow-metadata.h**
+
+Read metadata of MinKNOW: the FASTQ files written by MinKNOW contain the read metadata in the title as fields key=value, separated by spaces (e.g. runid=... ch=12 start_time=...), while Dorado writes SAM tags (see sam-tags.h). The fields can be converted to SAM tags: runid: ri:Z, read: rn:i, ch: ch:i, start_time: st:Z, flow_cell_id: PU:Z, protocol_group_id: pg:Z, sample_id: si:Z, barcode: ob:Z, barcode_alias: oa:Z, parent_read_id: pi:Z, basecall_model_version_id: bm:Z.
+
+.. code-block:: c
+
+   #define MINKNOW_BARCODE_SAM_TAG
+   bool minknow_metadata_append_sam_tag(strbuf_t *out, const char *field,
+       size_t len);
+
 **outfiles.h**
 
 Output files of a program writing the reads to several destinations, e.g. a demultiplexer (a destination for each sample), with one compressed file for each destination: - for an input file: <outdir>/<input basename>.<destination>.fastq.gz, where the suffix .fastq.gz, .fastq or .bam of the input file is removed; - for a group of input files (directory mode): <outdir>/<group>/<destination>.fastq.gz.
@@ -493,6 +503,18 @@ Reader of the reads of a FASTQ file (optionally gzipped) or of an unaligned BAM 
    bool reads_reader_is_reads_filename(const char *name);
    size_t reads_reader_count(const char *filename, Logger *logger);
    bool reads_reader_file_complete(const char *path);
+
+**sam-tags.h**
+
+SAM tags in text format, in read titles: the title of a read (FASTQ header without '@', or the title returned by the BAM reader) is the read name followed by fields; in the FASTQ written by Dorado, and in the output of programs which keep the tags (e.g. for minimap2 -y or samtools import -T '*'), the fields are SAM tags in text format (e.g. ch:i:12), separated by tabs. The uBAM writer encodes them in binary form. For the read metadata of MinKNOW (fields key=value), see minknow-metadata.h.
+
+.. code-block:: c
+
+   bool sam_tag_is_valid(const char *field, size_t len);
+   void sam_tag_start(strbuf_t *out, const char *tag, char type);
+   void sam_tag_append_string(strbuf_t *out, const char *tag,
+       const char *value, size_t len);
+   void sam_tag_append_int(strbuf_t *out, const char *tag, long value);
 
 **sequtil.h**
 
