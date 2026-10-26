@@ -152,8 +152,8 @@ dark theme of the browser. A report is written as:
    :ref:`recipe-realtime`);
    or ``void html_page_start_logo(FILE *f, const char *title, const html_logo_t *logo, const char *heading, long refresh)``,
    a head in two columns: on the left, a logo with ``heading`` under it
-   (small, spaced capitals; e.g. "report", under the name shown by the
-   logo) and the time of writing; on the right, the content written next
+   (bold spaced capitals, centered; e.g. "report", under the name shown by
+   the logo) and the time of writing; on the right, the content written next
    (e.g. a table of the parameters), up to
    ``void html_page_head_end(FILE *f)`` (on narrow screens, the right
    column goes below the left one). The logo (``html_logo_t``) is an
