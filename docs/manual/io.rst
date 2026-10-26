@@ -150,6 +150,12 @@ dark theme of the browser. A report is written as:
    if ``refresh`` > 0, the browser reloads the page every ``refresh``
    seconds (for a report rewritten during a run, see
    :ref:`recipe-realtime`);
+   or ``void html_page_start_logo(FILE *f, const char *title, const html_logo_t *logo, const char *heading, long refresh)``,
+   with a logo in the ``h1`` heading, followed by ``heading``: the logo
+   (``html_logo_t``) is an image URL ``src``, usually a data URI
+   (``data:image/webp;base64,...``) to keep the page self-contained, an
+   optional variant for the dark theme ``src_dark`` (``NULL``: none),
+   the alternative text ``alt`` and the ``height`` in pixels;
 the content
    written by the program (headings ``h2``, paragraphs, tables), with the
    functions below for the tiles and the plots;

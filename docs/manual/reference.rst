@@ -373,6 +373,12 @@ Self-contained HTML reports: a page with a style for light and dark themes (no e
 
    extern const char *const html_page_css;
    void html_page_start(FILE *f, const char *title, long refresh);
+   typedef struct {
+     const char *src, *src_dark, *alt;
+     int height;
+   } html_logo_t;
+   void html_page_start_logo(FILE *f, const char *title,
+       const html_logo_t *logo, const char *heading, long refresh);
    void html_page_end(FILE *f, const char *footer);
    void html_tile(FILE *f, const char *value, const char *label);
    const char *html_num(size_t n);
