@@ -70,10 +70,10 @@ FILE* _xfopen(const char *fname, const char *sfx, const char *mode,
   assert(fname != NULL && mode != NULL);
   fname_and_sfx = (sfx != NULL) ? strcat_alloc(fname, sfx) : (char*)fname;
   file = fopen(fname_and_sfx, mode);
-  __LCHECK(file != NULL, logger, _file, _line,
+  _LCHECK(file != NULL, logger, _file, _line,
       "Opening file '%s' failed, %s\n",
             fname_and_sfx, strerror(errno));
-  __lprintf(logger, LOG_DEBUG, _file, _line,
+  _lprintf(logger, LOG_DEBUG, _file, _line,
       "Opened %s %s %s (%p)\n", description ?
         description : "file", fname_and_sfx, MODEDESC(mode), file);
   if (sfx != NULL)
@@ -99,7 +99,7 @@ void* _xfmap(const char *fname, const char *sfx, bool writable,
              MAP_SHARED, *fd, 0);
   LCHECK(map != MAP_FAILED, logger, "Mapping file '%s' failed, %s\n",
               fname_and_sfx, strerror(errno));
-  __lprintf(logger, LOG_DEBUG, _file, _line,
+  _lprintf(logger, LOG_DEBUG, _file, _line,
       "Mapped file %s for %s (%p)\n", fname_and_sfx,
       writable ? "writing" : "reading", map);
   if (sfx != NULL)
@@ -118,9 +118,9 @@ void _xfclose(FILE** file, Logger *logger, const char *_file, int _line)
 {
   assert(file != NULL);
   assert(*file != NULL);
-  __LCHECK(fclose(*file) == 0, logger, _file, _line,
+  _LCHECK(fclose(*file) == 0, logger, _file, _line,
            "Closing file failed, %s\n", strerror(errno));
-  __lprintf(logger, LOG_DEBUG, _file, _line,
+  _lprintf(logger, LOG_DEBUG, _file, _line,
             "closed file... (%p)\n", *file);
   *file = NULL;
 }

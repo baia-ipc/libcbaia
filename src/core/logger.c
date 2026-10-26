@@ -97,13 +97,13 @@ void delete_logger(Logger* logger) {
   va_end(arglist);\
 }
 
-void __fatal_printf(const char *file, int line, const char *fmt, ...) {
+void _fatal_printf(const char *file, int line, const char *fmt, ...) {
   bool colored = isatty(fileno(stderr));
   LPRINTF(stderr, colored, true, LOG_ERROR, fmt, true, file, line);
   exit(EXIT_FAILURE);
 }
 
-void __TRACE(const char *file, int line, const char *fmt, ...) {
+void _TRACE(const char *file, int line, const char *fmt, ...) {
   bool colored = isatty(fileno(stderr));
   LPRINTF(stderr, colored, true, LOG_TRACE, fmt, true, file, line);
 }
@@ -114,7 +114,7 @@ void NTRACE(const char *fmt, ...) {
 }
 
 #ifdef SHOW_TRACES
-void __DEBUG_TRACE(const char *file, int line, const char *fmt, ...) {
+void _DEBUG_TRACE(const char *file, int line, const char *fmt, ...) {
   bool colored = isatty(fileno(stderr));
   LPRINTF(stderr, colored, true, LOG_TRACE, fmt, true, file, line);
 }
@@ -128,7 +128,7 @@ void DEBUG_NTRACE(const char *fmt, ...) {
 /* level of the messages printed (to stderr) without a logger (NULL) */
 #define DEFAULT_LOGGER_LEVEL LOG_ERROR
 
-void __lprintf(Logger *logger, LoggingLevel level, const char *file,
+void _lprintf(Logger *logger, LoggingLevel level, const char *file,
      int line, const char *fmt, ...) {
   if (logger) {
     if (level <= logger->level)
@@ -153,10 +153,10 @@ void lnprintf(Logger *logger, LoggingLevel level, const char *fmt, ...) {
   }
 }
 
-void __showmem(Logger *logger, const char *file, int line) {
+void _showmem(Logger *logger, const char *file, int line) {
   struct rusage r_usage;
   if (getrusage(RUSAGE_SELF, &r_usage) != 0) {
-    __lprintf(logger, LOG_MEM, file, line,
+    _lprintf(logger, LOG_MEM, file, line,
               "Memory usage (HWM): not available, %s\n", strerror(errno));
     return;
   }
@@ -164,7 +164,7 @@ void __showmem(Logger *logger, const char *file, int line) {
   /* in bytes on macOS, in kilobytes on Linux */
   r_usage.ru_maxrss /= 1024;
 #endif
-  __lprintf(logger, LOG_MEM, file, line,
+  _lprintf(logger, LOG_MEM, file, line,
       "Memory usage (HWM): max=%ld kilobytes\n",
       r_usage.ru_maxrss);
 }

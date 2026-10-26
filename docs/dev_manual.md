@@ -171,7 +171,8 @@ Headers have an include guard, named after the file in upper case:
 - the object on which a function operates is the first parameter and is
   called `self`;
 - functions which are wrapped by a macro adding the source location are
-  prefixed by `__` (see below).
+  prefixed by `_` (see below); names starting with `__` are reserved and
+  not used.
 
 ### Includes
 
@@ -353,8 +354,8 @@ which have the name of the standard function with a prepended `x`
 
 The same pattern (a `_` function and a macro adding `__FILE__` and
 `__LINE__`) is used for any other function that reports errors on behalf
-of its caller (the logger keeps its historical `__` names, e.g.
-`__lprintf`).
+of its caller, e.g. `_lprintf` and `_LCHECK` of the logger, behind the
+`lprintf` and `LCHECK` macros.
 
 ## HTML output
 
