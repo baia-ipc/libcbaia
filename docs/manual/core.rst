@@ -354,6 +354,11 @@ is not 0-terminated. The functions are inline:
    strbuf_append(&buf, seq, len);
    strbuf_free(&buf);
 
+To write directly into the buffer (e.g. the output of a compressor),
+``strbuf_reserve(&buf, n)`` returns a pointer to space for ``n``
+characters at the end of the content, and ``strbuf_commit(&buf, k)``
+adds the ``k`` characters written there to the content.
+
 Numeric utilities (``numutils.h``)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

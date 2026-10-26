@@ -61,6 +61,22 @@ static inline void strbuf_append_char(strbuf_t *self, char c) {
   self->s[self->len++] = c;
 }
 
+/*
+   Space for writing up to <n> characters directly at the end of the
+   content (e.g. the output of a compressor): returns a pointer to it; the
+   characters written are then added to the content by strbuf_commit()
+*/
+static inline char *strbuf_reserve(strbuf_t *self, size_t n) {
+  XCHECKSPACEINCPERC(self->s, &self->cap, self->len + n, 50);
+  return self->s + self->len;
+}
+
+/* Add to the content <n> characters written in the space given by
+   strbuf_reserve() (at most those reserved) */
+static inline void strbuf_commit(strbuf_t *self, size_t n) {
+  self->len += n;
+}
+
 /* Append an integer in decimal notation */
 static inline void strbuf_append_long(strbuf_t *self, long value) {
   char digits[24];
