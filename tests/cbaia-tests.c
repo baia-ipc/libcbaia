@@ -54,6 +54,7 @@
   "\n"\
   "Test options (default: run all tests):\n"\
   " -s : test string utilities and string buffer\n"\
+  " -N : test numeric utilities\n"\
   " -k : test file and directory utilities\n"\
   " -a : test argument parsing\n"\
   " -o : test progress display\n"\
@@ -65,16 +66,21 @@
   " -y : test HyperLogLog\n"\
   " -f : test file sorting and merging\n"\
   " -u : test sequence utilities\n"\
+  " -E : test edit distance of short sequences\n"\
   " -r : test FASTQ reader\n"\
   " -x : test FASTQ writer\n"\
   " -m : test BAM reader\n"\
   " -n : test uBAM writer\n"\
+  " -S : test SAM tags\n"\
+  " -A : test SAM header\n"\
+  " -j : test MinKNOW read metadata\n"\
   " -d : test reads reader (FASTQ or BAM)\n"\
   " -t : test output files\n"\
   " -w : test barcode whitelist\n"\
   " -l : test cell caller\n"\
   " -i : test library complexity\n"\
   " -5 : test MD5 digest\n"\
+  " -H : test HTML reports\n"\
   "\n"\
   "Other options:\n"\
   " -T, --tmpdir <dir> : directory for temporary files\n"\
@@ -331,7 +337,7 @@ static test_group_t test_groups[] = {
   {'x', "FASTQ writer", fastq_writer_test, false},
   {'m', "BAM reader", run_bam_reader_test, false},
   {'n', "uBAM writer", run_ubam_writer_test, false},
-  {'g', "SAM tags", sam_tags_test, false},
+  {'S', "SAM tags", sam_tags_test, false},
   {'A', "SAM header", sam_header_test, false},
   {'j', "MinKNOW read metadata", minknow_metadata_test, false},
   {'d', "reads reader", run_reads_reader_test, false},
