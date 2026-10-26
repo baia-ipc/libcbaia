@@ -60,6 +60,32 @@ void html_page_start_logo(FILE *f, const char *title,
 /* End the head started by html_page_start_logo() */
 void html_page_head_end(FILE *f);
 
+/*
+   Start a dashboard: a page made to be seen on a screen, e.g. during a
+   run: it fits the window (on a large screen, the page does not scroll:
+   the panels do, if needed), with a top bar: the <logo> (NULL: none) with
+   <heading> under it and the time of writing, then the content written
+   next (e.g. the state and parameters of the run), up to
+   html_dashboard_bar_end(); then e.g. tiles (div.tiles) and a grid of
+   panels (div.dgrid, see html_panel_start()); <refresh>: see
+   html_page_start(); end with html_page_end()
+*/
+void html_dashboard_start(FILE *f, const char *title,
+    const html_logo_t *logo, const char *heading, long refresh);
+
+/* End the top bar of a dashboard */
+void html_dashboard_bar_end(FILE *f);
+
+/*
+   Start a panel of a dashboard grid (in a div.dgrid: three columns, rows
+   of equal height), with a <title>; <cls> (NULL: none): "tall" (two rows)
+   or "wide" (two columns); the content scrolls if needed
+*/
+void html_panel_start(FILE *f, const char *title, const char *cls);
+
+/* End a panel */
+void html_panel_end(FILE *f);
+
 /* End the page, with a <footer> note (NULL: none) */
 void html_page_end(FILE *f, const char *footer);
 

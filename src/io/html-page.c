@@ -40,6 +40,29 @@ const char *const html_page_css =
   ".head .brand{text-align:center}.head .updated{font-size:0.8em}"
   ".head .side{flex:1 1 420px;min-width:0}"
   ".head .side td{text-align:left}"
+  /* dashboard: the page fits the screen, the panels scroll if needed */
+  "body.dash main{max-width:none;height:100vh;box-sizing:border-box;"
+  "display:flex;flex-direction:column;gap:10px;padding:12px 18px}\n"
+  ".dbar{display:flex;flex-wrap:wrap;align-items:center;gap:6px 28px}"
+  ".dbar .brand{text-align:center}.dbar .brand img{display:block;"
+  "width:auto;margin:0 auto}.dbar .brand span{display:block;margin-top:3px;"
+  "font-size:0.8em;font-weight:700;letter-spacing:0.6em;padding-left:0.6em;"
+  "text-transform:uppercase;color:var(--ink2)}.dbar .updated{font-size:0.75em}"
+  ".dbar .dinfo{flex:1 1 400px;min-width:0;font-size:0.9em}"
+  ".dbar .dinfo p{margin:2px 0}\n"
+  ".dash .tiles{margin:0}.dash .tile{flex:1 1 130px;padding:6px 12px}"
+  ".dgrid{flex:1;min-height:0;display:grid;"
+  "grid-template-columns:repeat(3,minmax(0,1fr));"
+  "grid-auto-rows:minmax(0,1fr);gap:10px}\n"
+  ".panel{background:var(--card);border-radius:10px;padding:8px 14px;"
+  "overflow:auto;min-height:0}.panel h3{margin:0 0 6px;font-size:1em}"
+  ".panel.tall{grid-row:span 2}.panel.wide{grid-column:span 2}"
+  ".panel table{width:100%}"
+  /* (the plots are scaled down to the width of a panel) */
+  ".dash svg text{font-size:13px}\n"
+  "@media (max-width:1000px),(max-height:560px){body.dash main{height:auto}"
+  ".dgrid{grid-template-columns:minmax(0,1fr);grid-auto-rows:auto}"
+  ".panel.tall,.panel.wide{grid-row:auto;grid-column:auto}}\n"
   ".head .side td:first-child{white-space:nowrap}"
   ".head .side>h2:first-child{border-top:none;margin-top:0.4em;"
   "padding-top:0}\n"
@@ -97,7 +120,7 @@ static void write_reload(FILE *f, long max, const char *updated) {
 
 /* the head of the page and the start of the body */
 static void write_head(FILE *f, const char *title, long refresh,
-    const char *updated) {
+    const char *updated, const char *body_class) {
   fputs("<!doctype html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8"
         "\">\n<meta name=\"viewport\" content=\"width=device-width, "
         "initial-scale=1\">\n", f);
@@ -105,8 +128,9 @@ static void write_head(FILE *f, const char *title, long refresh,
     write_reload(f, refresh, updated);
   fputs("<title>", f);
   fputs_html_escaped(title, f);
-  fprintf(f, "</title>\n<style>\n%s</style>\n</head>\n<body>\n<main>\n",
-          html_page_css);
+  fprintf(f, "</title>\n<style>\n%s</style>\n</head>\n<body%s%s%s>\n"
+          "<main>\n", html_page_css, body_class != NULL ? " class=\"" : "",
+          body_class != NULL ? body_class : "", body_class != NULL ? "\"" : "");
 }
 
 /* the time of writing, in <date> (at least 32 bytes) */
@@ -125,7 +149,7 @@ void html_page_start(FILE *f, const char *title, long refresh) {
   assert(title != NULL);
   char date[64];
   now_date(date, sizeof(date));
-  write_head(f, title, refresh, date);
+  write_head(f, title, refresh, date, NULL);
   fputs("<h1>", f);
   fputs_html_escaped(title, f);
   fputs("</h1>\n", f);
@@ -140,7 +164,7 @@ void html_page_start_logo(FILE *f, const char *title,
   assert(heading != NULL);
   char date[64];
   now_date(date, sizeof(date));
-  write_head(f, title, refresh, date);
+  write_head(f, title, refresh, date, NULL);
   fputs("<div class=\"head\">\n<div class=\"brand\">\n<h1 class=\"logo\">"
         "<picture>", f);
   if (logo->src_dark != NULL) {
@@ -157,6 +181,54 @@ void html_page_start_logo(FILE *f, const char *title,
   fputs("</span></h1>\n", f);
   write_updated(f, date);
   fputs("</div>\n<div class=\"side\">\n", f);
+}
+
+void html_dashboard_start(FILE *f, const char *title,
+    const html_logo_t *logo, const char *heading, long refresh) {
+  assert(f != NULL);
+  assert(title != NULL);
+  assert(heading != NULL);
+  char date[64];
+  now_date(date, sizeof(date));
+  write_head(f, title, refresh, date, "dash");
+  fputs("<header class=\"dbar\">\n<div class=\"brand\">", f);
+  if (logo != NULL) {
+    fputs("<picture>", f);
+    if (logo->src_dark != NULL) {
+      fputs("<source media=\"(prefers-color-scheme: dark)\" srcset=\"", f);
+      fputs_html_escaped(logo->src_dark, f);
+      fputs("\">", f);
+    }
+    fputs("<img src=\"", f);
+    fputs_html_escaped(logo->src, f);
+    fputs("\" alt=\"", f);
+    fputs_html_escaped(logo->alt != NULL ? logo->alt : "", f);
+    fprintf(f, "\" height=\"%d\"></picture>", logo->height);
+  }
+  fputs("<span>", f);
+  fputs_html_escaped(heading, f);
+  fputs("</span>\n", f);
+  write_updated(f, date);
+  fputs("</div>\n<div class=\"dinfo\">\n", f);
+}
+
+void html_dashboard_bar_end(FILE *f) {
+  assert(f != NULL);
+  fputs("</div>\n</header>\n", f);
+}
+
+void html_panel_start(FILE *f, const char *title, const char *cls) {
+  assert(f != NULL);
+  assert(title != NULL);
+  fprintf(f, "<section class=\"panel%s%s\"><h3>", cls != NULL ? " " : "",
+          cls != NULL ? cls : "");
+  fputs_html_escaped(title, f);
+  fputs("</h3>\n", f);
+}
+
+void html_panel_end(FILE *f) {
+  assert(f != NULL);
+  fputs("</section>\n", f);
 }
 
 void html_page_head_end(FILE *f) {
@@ -412,5 +484,27 @@ void html_page_test(void) {
               "<span>report</span></h1>") != NULL);
   test_assert(strstr(out, "<div class=\"side\">\n<p>side</p>\n</div>\n"
               "</div>\n") != NULL);
+  free(out);
+  /* dashboard */
+  f = open_memstream(&out, &size);
+  test_assert(f != NULL);
+  html_dashboard_start(f, "Test dashboard", &logo, "dashboard", 30);
+  fputs("<p>state</p>\n", f);
+  html_dashboard_bar_end(f);
+  fputs("<div class=\"dgrid\">\n", f);
+  html_panel_start(f, "Samples", "tall");
+  html_panel_end(f);
+  html_panel_start(f, "Steps", NULL);
+  html_panel_end(f);
+  fputs("</div>\n", f);
+  html_page_end(f, NULL);
+  fclose(f);
+  test_assert(strstr(out, "<body class=\"dash\">") != NULL);
+  test_assert(strstr(out, "<span>dashboard</span>") != NULL);
+  test_assert(strstr(out, "<div class=\"dinfo\">\n<p>state</p>\n</div>\n"
+              "</header>") != NULL);
+  test_assert(strstr(out, "<section class=\"panel tall\"><h3>Samples</h3>"
+              "\n</section>") != NULL);
+  test_assert(strstr(out, "<section class=\"panel\"><h3>Steps</h3>") != NULL);
   free(out);
 }
