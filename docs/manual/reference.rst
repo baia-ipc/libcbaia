@@ -372,6 +372,7 @@ Self-contained HTML reports: a page with a style for light and dark themes (no e
 .. code-block:: c
 
    extern const char *const html_page_css;
+   #define HTML_PAGE_MIN_RELOAD
    void html_page_start(FILE *f, const char *title, long refresh);
    typedef struct {
      const char *src, *src_dark, *alt;
@@ -458,8 +459,10 @@ Library complexity of a sample: estimation of the number of distinct molecules o
 .. code-block:: c
 
    #define COMPLEXITY_MIN_READS
+   #define COMPLEXITY_MIN_ERROR_FREE
    typedef struct {
      bool estimated;
+     bool high_error_rate;
      double error_free;
      double molecules_seen;
      double duplication;

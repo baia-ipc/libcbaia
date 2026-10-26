@@ -18,7 +18,10 @@
 
    The estimate is approximate: it assumes molecules sampled uniformly
    (no amplification bias) and independent errors; with few duplicates,
-   it is sensitive to the error of the count of the distinct keys.
+   it is sensitive to the error of the count of the distinct keys. With
+   few keys without errors (p < COMPLEXITY_MIN_ERROR_FREE, e.g. more than
+   about 5% errors with keys of 24 bases), the correction dominates the
+   count and there is no estimate.
 */
 
 #ifndef COMPLEXITY_H
@@ -30,8 +33,12 @@
 /* minimum number of reads with correct keys for an estimate */
 #define COMPLEXITY_MIN_READS 100
 
+/* minimum fraction of the keys without errors for an estimate */
+#define COMPLEXITY_MIN_ERROR_FREE 0.3
+
 typedef struct {
-  bool estimated;          /* false: too few reads */
+  bool estimated;          /* false: too few reads or too many errors */
+  bool high_error_rate;    /* not estimated: p < COMPLEXITY_MIN_ERROR_FREE */
   double error_free;       /* p: fraction of the keys without errors */
   double molecules_seen;   /* distinct molecules in the N reads */
   double duplication;      /* fraction of duplicate reads */
