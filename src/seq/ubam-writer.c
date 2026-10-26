@@ -10,6 +10,7 @@
 #include <string.h>
 #include <unistd.h>
 #include "alloc.h"
+#include "bam-format.h"
 #include "bam-reader.h"
 #include "bgzf-compressor.h"
 #include "sam-tags.h"
@@ -17,36 +18,19 @@
 #include "test.h"
 #include "ubam-writer.h"
 
-/* bin of an unmapped record (reg2bin(-1, 0) of the SAM specification) */
-#define BAM_UNMAPPED_BIN 4680
-#define BAM_FUNMAP 4
-
-static void put32(strbuf_t *b, uint32_t v) {
-  char c[4];
-  for (int i = 0; i < 4; i++)
-    c[i] = (char)((v >> (8 * i)) & 0xff);
-  strbuf_append(b, c, 4);
-}
-
-static void put16(strbuf_t *b, uint16_t v) {
-  strbuf_append_char(b, (char)(v & 0xff));
-  strbuf_append_char(b, (char)(v >> 8));
-}
-
 void ubam_writer_header(strbuf_t *out, const char *text) {
   assert(out != NULL);
   assert(text != NULL);
-  strbuf_append(out, "BAM\1", 4);
-  put32(out, (uint32_t)strlen(text));
+  strbuf_append(out, BAM_MAGIC, BAM_MAGIC_LEN);
+  bam_put32(out, (uint32_t)strlen(text));
   strbuf_append_str(out, text);
-  put32(out, 0);
+  bam_put32(out, 0);
 }
 
 /* 4-bit code of a base */
 static uint8_t base_code(char c) {
-  static const char bases[] = "=ACMGRSVTWYHKDBN";
-  const char *p = strchr(bases, toupper((unsigned char)c));
-  return p == NULL || c == '\0' ? 15 : (uint8_t)(p - bases);
+  const char *p = strchr(BAM_BASES, toupper((unsigned char)c));
+  return p == NULL || c == '\0' ? 15 : (uint8_t)(p - BAM_BASES);
 }
 
 /* parse an integer of a tag value (the whole text) */
@@ -87,12 +71,12 @@ static char int_type(long long v) {
 static void put_value(strbuf_t *out, char type, long long v, float f) {
   switch (type) {
     case 'c': case 'C': strbuf_append_char(out, (char)(v & 0xff)); break;
-    case 's': case 'S': put16(out, (uint16_t)(v & 0xffff)); break;
-    case 'i': case 'I': put32(out, (uint32_t)(v & 0xffffffff)); break;
+    case 's': case 'S': bam_put16(out, (uint16_t)(v & 0xffff)); break;
+    case 'i': case 'I': bam_put32(out, (uint32_t)(v & 0xffffffff)); break;
     case 'f': {
       uint32_t u;
       memcpy(&u, &f, sizeof(u));
-      put32(out, u);
+      bam_put32(out, u);
       break;
     }
     default:
@@ -110,7 +94,7 @@ static bool put_array(strbuf_t *out, const char *v, size_t len) {
   size_t start = out->len;
   strbuf_append_char(out, type);
   size_t count_pos = out->len;
-  put32(out, 0);
+  bam_put32(out, 0);
   uint32_t count = 0;
   const char *p = v + 1, *end = v + len;
   while (p < end) {
@@ -138,8 +122,7 @@ static bool put_array(strbuf_t *out, const char *v, size_t len) {
     count++;
     p = e;
   }
-  for (int i = 0; i < 4; i++)
-    out->s[count_pos + (size_t)i] = (char)((count >> (8 * i)) & 0xff);
+  bam_set32(out->s + count_pos, count);
   return true;
 invalid:
   out->len = start;
@@ -205,18 +188,18 @@ void ubam_writer_record(strbuf_t *out, const char *title, size_t title_len,
   size_t l_read_name = (name_len < UBAM_MAX_READ_NAME ? name_len :
                         UBAM_MAX_READ_NAME) + 1;
   size_t start = out->len;
-  put32(out, 0);   /* block_size, set at the end */
-  put32(out, 0xffffffff);
-  put32(out, 0xffffffff);
+  bam_put32(out, 0);   /* block_size, set at the end */
+  bam_put32(out, 0xffffffff);
+  bam_put32(out, 0xffffffff);
   strbuf_append_char(out, (char)l_read_name);
   strbuf_append_char(out, (char)255);
-  put16(out, BAM_UNMAPPED_BIN);
-  put16(out, 0);
-  put16(out, BAM_FUNMAP);
-  put32(out, (uint32_t)len);
-  put32(out, 0xffffffff);
-  put32(out, 0xffffffff);
-  put32(out, 0);
+  bam_put16(out, BAM_UNMAPPED_BIN);
+  bam_put16(out, 0);
+  bam_put16(out, BAM_FUNMAP);
+  bam_put32(out, (uint32_t)len);
+  bam_put32(out, 0xffffffff);
+  bam_put32(out, 0xffffffff);
+  bam_put32(out, 0);
   strbuf_append(out, title, l_read_name - 1);
   strbuf_append_char(out, '\0');
   for (size_t i = 0; i < len; i += 2)
@@ -234,8 +217,7 @@ void ubam_writer_record(strbuf_t *out, const char *title, size_t title_len,
     p = e;
   }
   uint32_t block_size = (uint32_t)(out->len - start - 4);
-  for (int i = 0; i < 4; i++)
-    out->s[start + (size_t)i] = (char)((block_size >> (8 * i)) & 0xff);
+  bam_set32(out->s + start, block_size);
 }
 
 /* --- unit tests --- */

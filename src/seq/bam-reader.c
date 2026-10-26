@@ -11,6 +11,7 @@
 #include <unistd.h>
 #include <zlib.h>
 #include "alloc.h"
+#include "bam-format.h"
 #include "bam-reader.h"
 #include "bgzf-compressor.h"
 #include "sequtil.h"
@@ -18,20 +19,10 @@
 #include "strutils.h"
 #include "test.h"
 
-#define BAM_MAGIC "BAM\1"
-
 /* the header text is read in parts of this size */
 #define BAM_HEADER_CHUNK (1 << 20)
 
-/* fixed-length part of a record, after block_size */
-#define BAM_CORE_LEN 32
-
-#define BAM_FREVERSE 0x10
-#define BAM_FSECONDARY 0x100
-#define BAM_FSUPPLEMENTARY 0x800
-
-/* missing qualities */
-#define BAM_QUAL_MISSING 0xFF
+/* missing qualities are written as Q0 */
 #define QUAL_MISSING_CHAR '!'
 
 struct bam_reader_t {
@@ -109,9 +100,9 @@ static uint32_t read_u32(bam_reader_t *self) {
 /* read the header (magic, text, references); returns the text
    (0-terminated) */
 static char *read_header(bam_reader_t *self) {
-  char magic[4];
-  if (!read_exact(self, magic, 4, true) ||
-      memcmp(magic, BAM_MAGIC, 4) != 0)
+  char magic[BAM_MAGIC_LEN];
+  if (!read_exact(self, magic, BAM_MAGIC_LEN, true) ||
+      memcmp(magic, BAM_MAGIC, BAM_MAGIC_LEN) != 0)
     format_error(self, "wrong magic number");
   /* the text is read in parts, so that the memory is allocated only for
      the data actually present (the length may be wrong) */
@@ -138,10 +129,11 @@ static char *read_header(bam_reader_t *self) {
 bool bam_reader_is_bam(const char *filename, Logger *logger) {
   assert(filename != NULL);
   gzFile file = open_file(filename, logger);
-  char magic[4];
-  int n = gzread(file, magic, 4);
+  char magic[BAM_MAGIC_LEN];
+  int n = gzread(file, magic, BAM_MAGIC_LEN);
   gzclose(file);
-  return n == 4 && memcmp(magic, BAM_MAGIC, 4) == 0;
+  return n == BAM_MAGIC_LEN &&
+         memcmp(magic, BAM_MAGIC, BAM_MAGIC_LEN) == 0;
 }
 
 bam_reader_t* bam_reader_new(const char *filename, Logger *logger) {
@@ -268,8 +260,6 @@ static void append_tags(const bam_reader_t *self, const uint8_t *p,
   }
 }
 
-static const char bam_bases[] = "=ACMGRSVTWYHKDBN";
-
 /* append the record in self->rec (length <len>) to the batch, unless it is
    a secondary or supplementary alignment; returns true if appended */
 static bool append_record(bam_reader_t *self, size_t len,
@@ -300,7 +290,7 @@ static bool append_record(bam_reader_t *self, size_t len,
   rec->seq_len = l_seq;
   XCHECKSPACEINCPERC(self->rc, &self->rc_cap, l_seq + 1, 50);
   for (size_t i = 0; i < l_seq; i++)
-    self->rc[i] = bam_bases[(seq[i / 2] >> (i % 2 == 0 ? 4 : 0)) & 0xF];
+    self->rc[i] = BAM_BASES[(seq[i / 2] >> (i % 2 == 0 ? 4 : 0)) & 0xF];
   if (reverse) {
     XCHECKSPACEINCPERC(data->s, &data->cap, data->len + l_seq + 1, 50);
     reverse_complement(self->rc, l_seq, data->s + data->len);
@@ -361,42 +351,32 @@ size_t bam_reader_count(const char *filename, Logger *logger) {
 
 /* --- unit tests --- */
 
-static void put32(strbuf_t *b, uint32_t v) {
-  for (int i = 0; i < 4; i++)
-    strbuf_append_char(b, (char)((v >> (8 * i)) & 0xFF));
-}
-
-static void put16(strbuf_t *b, uint16_t v) {
-  strbuf_append_char(b, (char)(v & 0xFF));
-  strbuf_append_char(b, (char)(v >> 8));
-}
-
 /* append a record (sequence of ACGT, qualities as Phred+33, tags as
    binary data) */
 static void put_record(strbuf_t *b, const char *name, uint16_t flag,
     const char *seq, const char *qual, const char *tags, size_t tags_len) {
   size_t l_name = strlen(name) + 1, l_seq = strlen(seq);
-  size_t n_cigar = (flag & 4) ? 0 : 1;
-  put32(b, (uint32_t)(BAM_CORE_LEN + l_name + 4 * n_cigar + (l_seq + 1) / 2 +
-                      l_seq + tags_len));
-  put32(b, (flag & 4) ? 0xFFFFFFFF : 0);
-  put32(b, (flag & 4) ? 0xFFFFFFFF : 100);
+  size_t n_cigar = (flag & BAM_FUNMAP) ? 0 : 1;
+  bam_put32(b, (uint32_t)(BAM_CORE_LEN + l_name + 4 * n_cigar +
+                          (l_seq + 1) / 2 + l_seq + tags_len));
+  bam_put32(b, (flag & BAM_FUNMAP) ? 0xFFFFFFFF : 0);
+  bam_put32(b, (flag & BAM_FUNMAP) ? 0xFFFFFFFF : 100);
   strbuf_append_char(b, (char)l_name);
-  strbuf_append_char(b, (char)((flag & 4) ? 0 : 60));
-  put16(b, 4680);
-  put16(b, (uint16_t)n_cigar);
-  put16(b, flag);
-  put32(b, (uint32_t)l_seq);
-  put32(b, 0xFFFFFFFF);
-  put32(b, 0xFFFFFFFF);
-  put32(b, 0);
+  strbuf_append_char(b, (char)((flag & BAM_FUNMAP) ? 0 : 60));
+  bam_put16(b, BAM_UNMAPPED_BIN);
+  bam_put16(b, (uint16_t)n_cigar);
+  bam_put16(b, flag);
+  bam_put32(b, (uint32_t)l_seq);
+  bam_put32(b, 0xFFFFFFFF);
+  bam_put32(b, 0xFFFFFFFF);
+  bam_put32(b, 0);
   strbuf_append(b, name, l_name);
   if (n_cigar > 0)
-    put32(b, (uint32_t)(l_seq << 4));
+    bam_put32(b, (uint32_t)(l_seq << 4));
   for (size_t i = 0; i < l_seq; i += 2) {
-    uint8_t hi = (uint8_t)(strchr(bam_bases, seq[i]) - bam_bases),
+    uint8_t hi = (uint8_t)(strchr(BAM_BASES, seq[i]) - BAM_BASES),
             lo = i + 1 < l_seq ?
-                 (uint8_t)(strchr(bam_bases, seq[i + 1]) - bam_bases) : 0;
+                 (uint8_t)(strchr(BAM_BASES, seq[i + 1]) - BAM_BASES) : 0;
     strbuf_append_char(b, (char)((hi << 4) | lo));
   }
   for (size_t i = 0; i < l_seq; i++)
@@ -419,23 +399,24 @@ static void check_record(const fastq_batch_t *batch, size_t num,
 void bam_reader_test(const char *tmpdir) {
   strbuf_t b;
   strbuf_init(&b);
-  strbuf_append(&b, BAM_MAGIC, 4);
+  strbuf_append(&b, BAM_MAGIC, BAM_MAGIC_LEN);
   const char *text = "@HD\tVN:1.6\tSO:unknown\n";
-  put32(&b, (uint32_t)strlen(text));
+  bam_put32(&b, (uint32_t)strlen(text));
   strbuf_append_str(&b, text);
-  put32(&b, 1);
-  put32(&b, 5);
+  bam_put32(&b, 1);
+  bam_put32(&b, 5);
   strbuf_append(&b, "chr1", 5);
-  put32(&b, 1000);
+  bam_put32(&b, 1000);
   /* tags: qs:i (as C), st:Z, du:f (1.5), ch:s (-3), MM:Z, ML:B:C, RG:Z */
   const char tags[] = "qsC\x0c" "stZ2026-01-01\0" "duf\x00\x00\xc0\x3f"
                       "chs\xfd\xff" "MMZC+m?,0;\0" "MLBC\x01\x00\x00\x00\xc8"
                       "RGZrun1\0";
-  put_record(&b, "r1", 4, "ACGTN", "ABCDE", tags, sizeof(tags) - 1);
-  put_record(&b, "r2", 16, "AACGT", "ABCDE", NULL, 0);
-  put_record(&b, "r3", 256, "AAAA", "AAAA", NULL, 0);
-  put_record(&b, "r4", 2048, "AAAA", "AAAA", NULL, 0);
-  put_record(&b, "r5", 4, "ACG", NULL, NULL, 0);
+  put_record(&b, "r1", BAM_FUNMAP, "ACGTN", "ABCDE", tags,
+             sizeof(tags) - 1);
+  put_record(&b, "r2", BAM_FREVERSE, "AACGT", "ABCDE", NULL, 0);
+  put_record(&b, "r3", BAM_FSECONDARY, "AAAA", "AAAA", NULL, 0);
+  put_record(&b, "r4", BAM_FSUPPLEMENTARY, "AAAA", "AAAA", NULL, 0);
+  put_record(&b, "r5", BAM_FUNMAP, "ACG", NULL, NULL, 0);
   char *path = strcat_alloc(tmpdir, "/cbaia-tests-reads.bam");
   gzFile f = gzopen(path, "wb");
   test_assert(f != NULL);

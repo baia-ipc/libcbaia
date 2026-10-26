@@ -479,6 +479,26 @@ MD5 message digest (RFC 1321), e.g. for the checksums of files in metadata (as t
 Sequences and reads (``seq``)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+**bam-format.h**
+
+Constants and encoding helpers of the BAM format, shared by bam-reader.c and ubam-writer.c (internal: not part of the API, it can change; it is installed with the other headers, as it is self-contained).
+
+.. code-block:: c
+
+   #define BAM_MAGIC
+   #define BAM_MAGIC_LEN
+   #define BAM_CORE_LEN
+   #define BAM_BASES
+   #define BAM_FUNMAP
+   #define BAM_FREVERSE
+   #define BAM_FSECONDARY
+   #define BAM_FSUPPLEMENTARY
+   #define BAM_UNMAPPED_BIN
+   #define BAM_QUAL_MISSING
+   static inline void bam_put16(strbuf_t *b, uint16_t v);
+   static inline void bam_set32(char *p, uint32_t v);
+   static inline void bam_put32(strbuf_t *b, uint32_t v);
+
 **bam-reader.h**
 
 Reading of BAM files, e.g. the unaligned BAM files written by Dorado and MinKNOW, in batches of FASTQ-like records (see fastq-reader.h).
