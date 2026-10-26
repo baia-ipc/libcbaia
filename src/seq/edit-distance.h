@@ -15,6 +15,7 @@
 #ifndef EDIT_DISTANCE_H
 #define EDIT_DISTANCE_H
 
+#include <assert.h>
 #include <stdbool.h>
 #include <stddef.h>
 
@@ -67,6 +68,8 @@ static inline bool _short_edit_rows(const char *a, size_t alen,
 */
 static inline long short_edit_distance(const char *a, size_t alen,
     const char *b, size_t blen, long k) {
+  /* the row on the stack */
+  assert(alen <= SHORT_EDIT_DISTANCE_MAX && blen <= SHORT_EDIT_DISTANCE_MAX);
   long diff = (long)alen - (long)blen;
   if (diff > k || -diff > k)
     return k + 1;
@@ -85,6 +88,8 @@ static inline long short_edit_distance(const char *a, size_t alen,
 */
 static inline long short_prefix_distance(const char *query, size_t qlen,
     const char *target, size_t tlen, long k, size_t *end) {
+  /* the row on the stack */
+  assert(qlen <= SHORT_EDIT_DISTANCE_MAX && tlen <= SHORT_EDIT_DISTANCE_MAX);
   long row[SHORT_EDIT_DISTANCE_MAX + 1];
   if (!_short_edit_rows(query, qlen, target, tlen, k, true, row))
     return -1;
