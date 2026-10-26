@@ -35,7 +35,7 @@ static fastq_reader_t* open_reader(const char *filename, Logger *logger) {
   assert(filename != NULL);
   fastq_reader_t *self;
   XMALLOC(self, sizeof(fastq_reader_t));
-  self->filename = strcat_alloc(filename, "");
+  self->filename = xstrdup(filename);
   /* gzopen reads also uncompressed files */
   self->file = gzopen(filename, "rb");
   LCHECK(self->file != NULL, logger, "Opening file '%s' failed, %s\n",

@@ -151,7 +151,7 @@ bam_reader_t* bam_reader_new(const char *filename, Logger *logger) {
   self->file = open_file(filename, logger);
   self->logger = logger;
   gzbuffer(self->file, 1 << 17);
-  self->filename = strcat_alloc(filename, "");
+  self->filename = xstrdup(filename);
   self->rec = NULL;
   self->rec_cap = 0;
   self->rc = NULL;

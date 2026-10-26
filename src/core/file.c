@@ -323,7 +323,7 @@ bool is_directory(const char *path)
 
 void xmakedirs(const char *path, Logger *logger)
 {
-  char *p = strcat_alloc(path, "");
+  char *p = xstrdup(path);
   for (char *s = p + 1; *s != '\0'; s++)
     if (*s == '/') {
       *s = '\0';

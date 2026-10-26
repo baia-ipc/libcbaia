@@ -299,8 +299,10 @@ Strings (``strutils.h``, ``strbuf.h``)
 ``strutils.h``:
 
 ``char *strcat_alloc(const char *s1, const char *s2)``
-   the concatenation of two strings (allocated); ``strcat_alloc(s, "")``
-   copies a string;
+   the concatenation of two strings (allocated);
+``char *xstrdup(const char *s)``
+   a copy of a string (allocated; as ``strdup()``, but exiting if the
+   allocation fails);
 ``bool str_has_suffix(const char *s, const char *sfx)``
    whether ``s`` ends with ``sfx`` (and is longer than it);
 ``void fputs_json_string(const char *s, FILE *f)``

@@ -95,6 +95,9 @@ static void strutils_test(void) {
   char *s = strcat_alloc("abc", "de");
   test_eq_str(s, "abcde");
   free(s);
+  s = xstrdup("abc");
+  test_eq_str(s, "abc");
+  free(s);
   strbuf_t buf;
   strbuf_init(&buf);
   strbuf_append_str(&buf, "x=");

@@ -19,6 +19,14 @@ char *strcat_alloc(const char *s1, const char *s2)
   return cat;
 }
 
+char *xstrdup(const char *s)
+{
+  size_t size = strlen(s) + 1;
+  char *copy;
+  XMALLOC(copy, size);
+  memcpy(copy, s, size);
+  return copy;
+}
 
 bool str_has_suffix(const char *s, const char *sfx)
 {
@@ -80,7 +88,7 @@ bool parse_duration(const char *s, double default_unit, long *seconds) {
   char *end;
   errno = 0;
   double value = strtod(s, &end);
-  if (*s == '\0' || end == s || errno != 0 || !isfinite(value) || value < 0)
+  if (end == s || errno != 0 || !isfinite(value) || value < 0)
     return false;
   double unit = default_unit;
   if (*end == 's')

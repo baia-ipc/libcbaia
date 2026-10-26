@@ -97,7 +97,7 @@ progress_t* progress_new(FILE *file, const char *description, size_t total) {
   progress_t *self;
   XMALLOC(self, sizeof(progress_t));
   self->file = file;
-  self->description = strcat_alloc(description, "");
+  self->description = xstrdup(description);
   self->total = total;
   self->count = 0;
   self->start = now();

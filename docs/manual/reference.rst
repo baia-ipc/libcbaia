@@ -214,6 +214,7 @@ Growable string buffer, for building output text without allocations for each pi
 .. code-block:: c
 
    char *strcat_alloc(const char *s1, const char *s2);
+   char *xstrdup(const char *s);
    bool str_has_suffix(const char *s, const char *sfx);
    void fputs_json_string(const char *s, FILE *f);
    void fputs_html_escaped(const char *s, FILE *f);

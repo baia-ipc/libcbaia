@@ -15,6 +15,10 @@
 */
 char *strcat_alloc(const char *s1, const char *s2);
 
+/* Copy of the string s (allocated; the program is exited if the
+   allocation fails, unlike strdup()) */
+char *xstrdup(const char *s);
+
 /* Whether the string s ends with sfx (and is longer than it) */
 bool str_has_suffix(const char *s, const char *sfx);
 

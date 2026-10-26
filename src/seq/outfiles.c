@@ -35,7 +35,7 @@ static outfiles_t* new_with_prefix(const char *prefix,
     size_t n_destinations, Logger *logger) {
   outfiles_t *self;
   XMALLOC(self, sizeof(outfiles_t));
-  self->prefix = strcat_alloc(prefix, "");
+  self->prefix = xstrdup(prefix);
   XCALLOC(self->files, n_destinations + 1, sizeof(FILE *));
   self->n_destinations = n_destinations;
   self->append = false;
