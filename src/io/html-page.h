@@ -112,8 +112,8 @@ void html_hbars(FILE *f, size_t n, const char *const *labels,
 
 /*
    Histogram of the counts of <n_bins> bins of width <bin_width> (bin b:
-   values from b * bin_width to (b + 1) * bin_width - 1), up to the bin of
-   the 99.5th percentile; x axis: "<what> (<unit>)"; if all counts are 0,
+   values from b * bin_width to (b + 1) * bin_width - 1; the last bin: all
+   larger values), up to the bin of the 99.5th percentile; x axis: "<what> (<unit>)"; if all counts are 0,
    the note <empty> instead
 */
 void html_histogram(FILE *f, const size_t *hist, size_t n_bins,
