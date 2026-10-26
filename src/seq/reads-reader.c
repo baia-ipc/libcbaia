@@ -7,10 +7,12 @@
 #include <zlib.h>
 #include "alloc.h"
 #include "bam-reader.h"
+#include "bgzf-compressor.h"
 #include "file.h"
 #include "reads-reader.h"
 #include "strutils.h"
 #include "test.h"
+#include "ubam-writer.h"
 
 #define READS_READER_BUFSIZE (1 << 20)
 
@@ -106,6 +108,59 @@ static char *write_gz(const char *tmpdir, const char *name, const char *data,
   return path;
 }
 
+/* write a BAM file with the reads r1 and r2 (with the end-of-file marker
+   if <eof>) */
+static char *write_bam(const char *tmpdir, const char *name, bool eof) {
+  strbuf_t data, out;
+  strbuf_init(&data);
+  strbuf_init(&out);
+  ubam_writer_header(&data, "@HD\tVN:1.6\tSO:unknown\n");
+  ubam_writer_record(&data, "r1", 2, "ACGT", "IIII", 4);
+  ubam_writer_record(&data, "r2", 2, "GG", "II", 2);
+  bgzf_compressor_t *c = bgzf_compressor_new(6);
+  bgzf_compressor_run(c, data.s, data.len, &out);
+  bgzf_compressor_delete(c);
+  if (eof)
+    strbuf_append(&out, (const char *)bgzf_eof, BGZF_EOF_LEN);
+  char *path = path_join(tmpdir, name);
+  FILE *f = fopen(path, "wb");
+  test_assert(f != NULL);
+  test_eq_size(fwrite(out.s, 1, out.len, f), out.len);
+  fclose(f);
+  strbuf_free(&data);
+  strbuf_free(&out);
+  return path;
+}
+
+static void test_bam(const char *tmpdir, Logger *logger) {
+  char *path = write_bam(tmpdir, "cbaia-tests-reads-reader.bam", true);
+  test_assert(reads_reader_file_complete(path));
+  test_eq_size(reads_reader_count(path, logger), 2);
+  reads_reader_t *r = reads_reader_new(path, logger);
+  test_assert(reads_reader_is_bam(r));
+  fastq_batch_t batch;
+  fastq_batch_init(&batch);
+  test_eq_size(reads_reader_read_batch(r, &batch, 1), 1);
+  test_eq_size(batch.records[0].title_len, 2);
+  test_assert(memcmp(batch.data.s + batch.records[0].title_from, "r1", 2)
+              == 0);
+  test_eq_size(reads_reader_read_batch(r, &batch, 10), 1);
+  test_assert(memcmp(batch.data.s + batch.records[0].seq_from, "GG", 2)
+              == 0);
+  test_eq_size(reads_reader_read_batch(r, &batch, 10), 0);
+  fastq_batch_free(&batch);
+  reads_reader_delete(r);
+  unlink(path);
+  free(path);
+  /* without the end-of-file marker: not complete (but readable) */
+  path = write_bam(tmpdir, "cbaia-tests-reads-reader2.bam", false);
+  test_assert(!reads_reader_file_complete(path));
+  test_eq_size(reads_reader_count(path, logger), 2);
+  unlink(path);
+  free(path);
+  test_assert(!reads_reader_file_complete("/nonexistent/reads.bam"));
+}
+
 void reads_reader_test(const char *tmpdir) {
   Logger *logger = new_logger(stderr, LOG_WARN);
   test_assert(reads_reader_is_reads_filename("a.fastq.gz"));
@@ -145,5 +200,6 @@ void reads_reader_test(const char *tmpdir) {
   unlink(path);
   free(path);
   test_assert(!reads_reader_file_complete("/nonexistent/reads.fastq.gz"));
+  test_bam(tmpdir, logger);
   delete_logger(logger);
 }
