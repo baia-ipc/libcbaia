@@ -1,7 +1,6 @@
 /* (c) 2026 Giorgio Gonnella */
 
 #include <assert.h>
-#include <errno.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
@@ -71,22 +70,9 @@ bool reads_reader_is_reads_filename(const char *name) {
 }
 
 size_t reads_reader_count(const char *filename, Logger *logger) {
-  if (bam_reader_is_bam(filename, logger))
-    return bam_reader_count(filename, logger);
-  gzFile file = gzopen(filename, "rb");
-  LCHECK(file != NULL, logger, "Opening file '%s' failed, %s\n", filename,
-         strerror(errno));
-  char *buf;
-  XMALLOC(buf, READS_READER_BUFSIZE);
-  size_t n_lines = 0;
-  int n;
-  while ((n = gzread(file, buf, READS_READER_BUFSIZE)) > 0)
-    for (char *p = buf; (p = memchr(p, '\n', (size_t)(buf + n - p))) != NULL;
-         p++)
-      n_lines++;
-  free(buf);
-  gzclose(file);
-  return n_lines / 4;
+  return bam_reader_is_bam(filename, logger) ?
+         bam_reader_count(filename, logger) :
+         fastq_reader_count(filename, logger);
 }
 
 bool reads_reader_file_complete(const char *path) {
@@ -149,6 +135,13 @@ void reads_reader_test(const char *tmpdir) {
   path = write_gz(tmpdir, "reads_reader_test2.fastq.gz", fq,
                   strlen(fq) - 1);
   test_assert(!reads_reader_file_complete(path));
+  test_eq_size(reads_reader_count(path, logger), 2);
+  unlink(path);
+  free(path);
+  /* multi-line records, blank lines: the records are counted, not lines */
+  const char *fq2 = "@r1\nAC\nGT\n+\nII\nII\n\n@r2\nG\n+\nI\n";
+  path = write_gz(tmpdir, "reads_reader_test3.fastq.gz", fq2, strlen(fq2));
+  test_eq_size(reads_reader_count(path, logger), 2);
   unlink(path);
   free(path);
   test_assert(!reads_reader_file_complete("/nonexistent/reads.fastq.gz"));

@@ -31,7 +31,7 @@ struct fastq_reader_t {
   Logger *logger;
 };
 
-fastq_reader_t* fastq_reader_new(const char *filename, Logger *logger) {
+static fastq_reader_t* open_reader(const char *filename, Logger *logger) {
   assert(filename != NULL);
   fastq_reader_t *self;
   XMALLOC(self, sizeof(fastq_reader_t));
@@ -50,6 +50,11 @@ fastq_reader_t* fastq_reader_new(const char *filename, Logger *logger) {
   strbuf_init(&self->line);
   self->started = false;
   self->done = false;
+  return self;
+}
+
+fastq_reader_t* fastq_reader_new(const char *filename, Logger *logger) {
+  fastq_reader_t *self = open_reader(filename, logger);
   lprintf(logger, LOG_INFO, "Reading %s\n", filename);
   return self;
 }
@@ -235,6 +240,21 @@ size_t fastq_reader_read_batch(fastq_reader_t *self, fastq_batch_t *batch,
   return batch->n_records;
 }
 
+/* the records are parsed (not only the lines counted), so that the count is
+   that of the reads read, also for multi-line records, blank lines or a
+   missing final newline; the time is anyway mostly that of decompressing */
+size_t fastq_reader_count(const char *filename, Logger *logger) {
+  fastq_reader_t *self = open_reader(filename, logger);
+  fastq_batch_t batch;
+  fastq_batch_init(&batch);
+  size_t n = 0, n_batch;
+  while ((n_batch = fastq_reader_read_batch(self, &batch, 1024)) > 0)
+    n += n_batch;
+  fastq_batch_free(&batch);
+  fastq_reader_delete(self);
+  return n;
+}
+
 /* --- unit tests --- */
 
 void fastq_reader_test(const char *tmpdir) {
@@ -276,6 +296,7 @@ void fastq_reader_test(const char *tmpdir) {
   test_assert(strncmp(batch.data.s + r->qual_from, "@@", 2) == 0);
   test_eq_size(fastq_reader_read_batch(reader, &batch, 10), 0);
   fastq_reader_delete(reader);
+  test_eq_size(fastq_reader_count(path, NULL), 3);
   fastq_batch_free(&batch);
   unlink(path);
   free(path);

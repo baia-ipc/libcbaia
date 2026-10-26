@@ -48,6 +48,13 @@ size_t fastq_reader_read_batch(fastq_reader_t *self, fastq_batch_t *batch,
 /* Close the file and delete the reader (NULL is accepted) */
 void fastq_reader_delete(fastq_reader_t *self);
 
+/*
+   Number of records of a FASTQ file (the file is read, as by
+   fastq_reader_read_batch()); the program is exited with an error message
+   if the file cannot be read or is not valid
+*/
+size_t fastq_reader_count(const char *filename, Logger *logger);
+
 /* Initialize an empty batch */
 void fastq_batch_init(fastq_batch_t *batch);
 

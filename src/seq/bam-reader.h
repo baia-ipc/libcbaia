@@ -55,7 +55,11 @@ void bam_reader_delete(bam_reader_t *self);
    file is closed (i.e. the file is complete) */
 bool bam_reader_has_eof_marker(const char *filename);
 
-/* Number of records of a BAM file (as returned by the reader) */
+/*
+   Number of records of a BAM file (as returned by the reader); the program
+   is exited with an error message if the file cannot be read or is not
+   valid
+*/
 size_t bam_reader_count(const char *filename, Logger *logger);
 
 /* Unit tests (<tmpdir>: directory for temporary files) */

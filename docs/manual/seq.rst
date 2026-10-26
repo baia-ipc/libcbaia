@@ -63,7 +63,8 @@ The strings are not 0-terminated: use the lengths. A batch replaces its
 content at each call, and keeps its memory, so that reading a file
 allocates memory only for the first batches. In a multithreaded program,
 each thread reads its batch (under a lock) and processes it, see
-:ref:`recipe-threads`.
+:ref:`recipe-threads`. ``fastq_reader_count()`` returns the number of
+records of a file (reading it as above, without the log message).
 
 Reading BAM files (``bam-reader.h``)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -113,6 +114,9 @@ Further functions:
    remove it;
 ``size_t reads_reader_count(const char *filename, Logger *logger)``
    the number of reads of a file (e.g. for the total of a progress bar);
+   the file is read and parsed (thus also multi-line FASTQ records are
+   counted correctly), which takes about as long as decompressing it; the
+   program is exited if the file is not valid;
 ``bool reads_reader_file_complete(const char *path)``
    whether a file written by another program is complete: a gzipped file
    is not truncated and ends with a newline, a FASTQ file ends with a

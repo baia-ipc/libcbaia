@@ -50,7 +50,11 @@ bool reads_reader_is_reads_filename(const char *name);
 */
 size_t reads_reader_filename_suffix_len(const char *name);
 
-/* Number of reads of a FASTQ or BAM file */
+/*
+   Number of reads of a FASTQ or BAM file (the file is read and parsed, see
+   fastq_reader_count() and bam_reader_count()); the program is exited with
+   an error message if the file cannot be read or is not valid
+*/
 size_t reads_reader_count(const char *filename, Logger *logger);
 
 /*

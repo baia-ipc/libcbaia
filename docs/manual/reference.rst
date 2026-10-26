@@ -506,6 +506,7 @@ Reading of FASTQ files (optionally gzip-compressed) in batches of records.
    size_t fastq_reader_read_batch(fastq_reader_t *self, fastq_batch_t *batch,
        size_t max_records);
    void fastq_reader_delete(fastq_reader_t *self);
+   size_t fastq_reader_count(const char *filename, Logger *logger);
    void fastq_batch_init(fastq_batch_t *batch);
    void fastq_batch_free(fastq_batch_t *batch);
 
