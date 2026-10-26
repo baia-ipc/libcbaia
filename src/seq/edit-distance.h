@@ -26,7 +26,7 @@
    <prefix>, b can be longer than the end of the alignment (the band can
    end before the end of b); false if a row exceeds k (or, with <prefix>,
    the band is past the end of b) */
-static inline bool __short_edit_rows(const char *a, size_t alen,
+static inline bool _short_edit_rows(const char *a, size_t alen,
     const char *b, size_t blen, long k, bool prefix, long *row) {
   const long inf = k + 1;
   for (size_t j = 0; j <= blen; j++)
@@ -71,7 +71,7 @@ static inline long short_edit_distance(const char *a, size_t alen,
   if (diff > k || -diff > k)
     return k + 1;
   long row[SHORT_EDIT_DISTANCE_MAX + 1];
-  if (!__short_edit_rows(a, alen, b, blen, k, false, row))
+  if (!_short_edit_rows(a, alen, b, blen, k, false, row))
     return k + 1;
   return row[blen] <= k ? row[blen] : k + 1;
 }
@@ -86,7 +86,7 @@ static inline long short_edit_distance(const char *a, size_t alen,
 static inline long short_prefix_distance(const char *query, size_t qlen,
     const char *target, size_t tlen, long k, size_t *end) {
   long row[SHORT_EDIT_DISTANCE_MAX + 1];
-  if (!__short_edit_rows(query, qlen, target, tlen, k, true, row))
+  if (!_short_edit_rows(query, qlen, target, tlen, k, true, row))
     return -1;
   long best = k + 1;
   size_t from = (long)qlen - k > 0 ? (size_t)((long)qlen - k) : 0;
