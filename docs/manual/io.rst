@@ -151,11 +151,16 @@ dark theme of the browser. A report is written as:
    seconds (for a report rewritten during a run, see
    :ref:`recipe-realtime`);
    or ``void html_page_start_logo(FILE *f, const char *title, const html_logo_t *logo, const char *heading, long refresh)``,
-   with a logo in the ``h1`` heading, followed by ``heading``: the logo
-   (``html_logo_t``) is an image URL ``src``, usually a data URI
-   (``data:image/webp;base64,...``) to keep the page self-contained, an
-   optional variant for the dark theme ``src_dark`` (``NULL``: none),
-   the alternative text ``alt`` and the ``height`` in pixels;
+   a head in two columns: on the left, a logo with ``heading`` under it
+   (small, spaced capitals; e.g. "report", under the name shown by the
+   logo) and the time of writing; on the right, the content written next
+   (e.g. a table of the parameters), up to
+   ``void html_page_head_end(FILE *f)`` (on narrow screens, the right
+   column goes below the left one). The logo (``html_logo_t``) is an
+   image URL ``src``, usually a data URI (``data:image/webp;base64,...``)
+   to keep the page self-contained, an optional variant for the dark
+   theme ``src_dark`` (``NULL``: none), the alternative text ``alt`` and
+   the ``height`` in pixels;
 the content
    written by the program (headings ``h2``, paragraphs, tables), with the
    functions below for the tiles and the plots;
