@@ -43,7 +43,7 @@ Set *set_new(size_t insertion_buffer_size, size_t bloom_filter_size,
   XMALLOC(set->mainbuf, nsets * sizeof(*set->mainbuf));
   XMALLOC(set->mainbufsize, nsets * sizeof(size_t));
   XMALLOC(set->mainbuffill, nsets * sizeof(size_t));
-  XMALLOC(set->insbuf, nsets * sizeof(size_t));
+  XMALLOC(set->insbuf, nsets * sizeof(*set->insbuf));
   XMALLOC(set->insbufsize, nsets * sizeof(size_t));
   XMALLOC(set->insbuffill, nsets * sizeof(size_t));
   for (i = 0; i < nsets; i++) {
