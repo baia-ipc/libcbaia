@@ -42,8 +42,8 @@ typedef struct {
 /*
    As html_page_start(), with a head made of two columns: on the left, the
    h1 heading, made of the <logo> with <heading> under it (e.g. the title
-   without the name shown by the logo; bold spaced capitals, centered),
-   and the time of writing; on the right (vertically centered), the
+   without the name shown by the logo; bold spaced capitals), centered
+   over the time of writing; on the right (vertically centered), the
    content written next (e.g. a table of the parameters), up to
    html_page_head_end(); on narrow screens, the right column is moved
    below the left one

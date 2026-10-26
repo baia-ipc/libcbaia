@@ -37,7 +37,7 @@ const char *const html_page_css =
   "font-weight:700;letter-spacing:0.8em;padding-left:0.8em;"
   "text-align:center;text-transform:uppercase;color:var(--ink2)}\n"
   ".head{display:flex;flex-wrap:wrap;align-items:center;gap:0 32px}"
-  ".head .updated{font-size:0.8em}"
+  ".head .brand{text-align:center}.head .updated{font-size:0.8em}"
   ".head .side{flex:1 1 420px;min-width:0}"
   ".head .side>h2:first-child{border-top:none;margin-top:0.4em;"
   "padding-top:0}\n"
@@ -106,7 +106,8 @@ void html_page_start_logo(FILE *f, const char *title,
   assert(logo != NULL && logo->src != NULL);
   assert(heading != NULL);
   write_head(f, title, refresh);
-  fputs("<div class=\"head\">\n<div>\n<h1 class=\"logo\"><picture>", f);
+  fputs("<div class=\"head\">\n<div class=\"brand\">\n<h1 class=\"logo\">"
+        "<picture>", f);
   if (logo->src_dark != NULL) {
     fputs("<source media=\"(prefers-color-scheme: dark)\" srcset=\"", f);
     fputs_html_escaped(logo->src_dark, f);
