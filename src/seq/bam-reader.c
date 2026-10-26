@@ -269,12 +269,19 @@ static bool append_record(bam_reader_t *self, size_t len,
   size_t n_cigar_op = le16(r + 12);
   uint16_t flag = le16(r + 14);
   size_t l_seq = le32(r + 16);
-  const uint8_t *name = r + BAM_CORE_LEN;
-  const uint8_t *seq = name + l_read_name + 4 * n_cigar_op;
-  const uint8_t *qual = seq + (l_seq + 1) / 2;
-  const uint8_t *tags = qual + l_seq;
-  if (l_read_name == 0 || tags > end || name[l_read_name - 1] != '\0')
+  /* the lengths are checked against the record length, as offsets (no
+     overflow: l_read_name and n_cigar_op are small), before computing the
+     pointers */
+  size_t seq_from = BAM_CORE_LEN + l_read_name + 4 * n_cigar_op;
+  size_t seq_bytes = l_seq / 2 + l_seq % 2;
+  if (l_read_name == 0 || seq_from > len || seq_bytes > len - seq_from ||
+      l_seq > len - seq_from - seq_bytes ||
+      r[BAM_CORE_LEN + l_read_name - 1] != '\0')
     format_error(self, "inconsistent record lengths");
+  const uint8_t *name = r + BAM_CORE_LEN;
+  const uint8_t *seq = r + seq_from;
+  const uint8_t *qual = seq + seq_bytes;
+  const uint8_t *tags = qual + l_seq;
   if (flag & (BAM_FSECONDARY | BAM_FSUPPLEMENTARY))
     return false;
   bool reverse = (flag & BAM_FREVERSE) != 0;
@@ -292,16 +299,20 @@ static bool append_record(bam_reader_t *self, size_t len,
   for (size_t i = 0; i < l_seq; i++)
     self->rc[i] = BAM_BASES[(seq[i / 2] >> (i % 2 == 0 ? 4 : 0)) & 0xF];
   if (reverse) {
-    XCHECKSPACEINCPERC(data->s, &data->cap, data->len + l_seq + 1, 50);
-    reverse_complement(self->rc, l_seq, data->s + data->len);
-    data->len += l_seq;
+    /* (reverse_complement() also writes a terminator) */
+    reverse_complement(self->rc, l_seq, strbuf_reserve(data, l_seq + 1));
+    strbuf_commit(data, l_seq);
   } else
     strbuf_append(data, self->rc, l_seq);
   rec->qual_from = data->len;
-  bool missing = l_seq > 0 && qual[0] == BAM_QUAL_MISSING;
-  for (size_t i = 0; i < l_seq; i++)
-    strbuf_append_char(data, missing ? QUAL_MISSING_CHAR :
-        (char)(qual[reverse ? l_seq - 1 - i : i] + 33));
+  if (l_seq > 0) {  /* (the buffer can be NULL) */
+    bool missing = qual[0] == BAM_QUAL_MISSING;
+    char *q = strbuf_reserve(data, l_seq);
+    for (size_t i = 0; i < l_seq; i++)
+      q[i] = missing ? QUAL_MISSING_CHAR :
+             (char)(qual[reverse ? l_seq - 1 - i : i] + 33);
+    strbuf_commit(data, l_seq);
+  }
   return true;
 }
 
