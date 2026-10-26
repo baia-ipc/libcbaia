@@ -6,7 +6,9 @@
    in the reads are counted, and the barcodes of the cells are selected
    from the counts, given the expected number of cells N, as in Cell
    Ranger (version 2): the barcodes with a count of at least 1/10 of the
-   99th percentile of the counts of the N most frequent barcodes.
+   99th percentile of the counts of the N most frequent barcodes; as in
+   Cell Ranger, the threshold is rounded to the nearest integer (halves
+   upwards; e.g. 14 for a percentile of 135..144), and is at least 1.
 */
 
 #ifndef CELL_CALLER_H

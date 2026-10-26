@@ -439,7 +439,7 @@ Reading of BAM files, e.g. the unaligned BAM files written by Dorado and MinKNOW
 
 **cell-caller.h**
 
-Identification of the cell barcodes of a single-cell library: the barcodes of a whitelist (e.g. all barcodes of a platform) found exactly in the reads are counted, and the barcodes of the cells are selected from the counts, given the expected number of cells N, as in Cell Ranger (version 2): the barcodes with a count of at least 1/10 of the 99th percentile of the counts of the N most frequent barcodes.
+Identification of the cell barcodes of a single-cell library: the barcodes of a whitelist (e.g. all barcodes of a platform) found exactly in the reads are counted, and the barcodes of the cells are selected from the counts, given the expected number of cells N, as in Cell Ranger (version 2): the barcodes with a count of at least 1/10 of the 99th percentile of the counts of the N most frequent barcodes; as in Cell Ranger, the threshold is rounded to the nearest integer (halves upwards; e.g. 14 for a percentile of 135..144), and is at least 1.
 
 .. code-block:: c
 

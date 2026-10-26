@@ -103,6 +103,7 @@ whitelist_t* cell_caller_run(const cell_caller_t *self,
   /* 99th percentile of the counts of the expected cells */
   size_t top = expected_cells < n ? expected_cells : n;
   size_t p99 = top == 0 ? 0 : (size_t)((double)(top - 1) * 0.01 + 0.5);
+  /* rounded, as the cutoff of Cell Ranger 2 */
   uint64_t threshold = n == 0 ? 1 : (bc[p99].count + 5) / 10;
   if (threshold < 1)
     threshold = 1;
@@ -216,4 +217,17 @@ void cell_caller_test(const char *tmpdir) {
   whitelist_delete(known);
   cell_caller_delete(cc);
   cell_caller_delete(cc2);
+  /* the threshold is rounded: 1.4 -> 1 (the barcodes with 1 read are
+     selected), 1.5 -> 2 (they are not) */
+  for (uint64_t top = 14; top <= 15; top++) {
+    cc = cell_caller_new();
+    for (size_t k = 0; k < top; k++)
+      cell_caller_add(cc, 1);
+    for (uint64_t b = 10; b < 20; b++)
+      cell_caller_add(cc, b);
+    cells = cell_caller_run(cc, 1, 4, NULL, NULL, NULL);
+    test_eq_size(whitelist_size(cells), top == 14 ? 11 : 1);
+    whitelist_delete(cells);
+    cell_caller_delete(cc);
+  }
 }

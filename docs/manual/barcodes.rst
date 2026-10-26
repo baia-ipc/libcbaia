@@ -138,7 +138,8 @@ are not used, and the reads of the cells are mixed with background reads
 counts of the barcodes found **exactly** in the reads, given the
 expected number of cells *N*, with the rule of Cell Ranger 2: the cells
 are the barcodes with a count of at least 1/10 of the 99th percentile of
-the counts of the *N* most frequent barcodes.
+the counts of the *N* most frequent barcodes (the threshold is rounded to
+the nearest integer, as in Cell Ranger, and is at least 1).
 
 .. code-block:: c
 
