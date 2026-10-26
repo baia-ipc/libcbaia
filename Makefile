@@ -48,9 +48,6 @@ default: lib
 
 lib: $(LIB) $(ZLIB)
 
-# the data files embedded in the sources (e.g. for tests/fuzz/build.sh)
-data: $(DATA_INCS)
-
 CFLAGS += -Wall -Wextra -std=gnu11 $(INCLUDES)
 LDLIBS += $(ZLIB_LDLIBS) -lm
 
@@ -104,6 +101,11 @@ $(OBJDIR)/%-$(1).inc: %.$(1) dev/embed.sh
 endef
 $(foreach e,$(DATA_EXTS),$(eval $(call EMBED_RULE,$(e))))
 $(OBJS): | $(DATA_INCS)
+
+# the data files embedded in the sources (e.g. for tests/fuzz/build.sh);
+# after the definition of DATA_INCS, as the prerequisites are expanded
+# when the rule is read
+data: $(DATA_INCS)
 
 $(DEPDIR)/%.d: ;
 .PRECIOUS: $(DEPDIR)/%.d
