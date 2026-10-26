@@ -22,7 +22,7 @@
 #define STR(S) #S
 #define XSTR(S) STR(S)
 
-#define BOOLSTR(BOOL) (BOOL) ? "T" : "F"
+#define BOOLSTR(BOOL) ((BOOL) ? "T" : "F")
 
 /*
   Common options and error interface for the CLI scripts
@@ -55,7 +55,8 @@
   - OPT_ERR(C, fmt, ...) is used for errors concerning the -C option
   - PARSE_INTEGER_OPT_MIN(C, DESTPTR, MINVALUE) checks that the value
           of option C is at least MINVALUE, exits with an error otherwise,
-          stores the parse value to *DESTPTR
+          stores the parse value to *DESTPTR (an integer of any type; exits
+          with an error if the value does not fit in it)
   - PARSE_INTEGER_OPT_MIN_MAX(C, DESTPTR, MINVALUE, MAXVALUE) same, but
           with also MAXVALUE check
   - COMMON_OPTS_PARSE_CASES this should be put after the last command-specific
@@ -92,8 +93,6 @@
   exit(EXIT_SUCCESS); \
 }
 
-#include "logger.h"
-
 #define LOGGER_OPTS_VAR_DECLARE \
   bool verbose = false,\
        quiet = false,\
@@ -122,12 +121,20 @@ static inline bool argparse_long(const char *s, long *value) {
   return *s != '\0' && *end == '\0' && errno == 0;
 }
 
+/* store VALUE (a long) into *DESTPTR (an integer of any type); false if it
+   does not fit, i.e. it is changed by the conversion (also in the sign, for
+   an unsigned destination of the size of a long) */
+#define ARGPARSE_STORE(DESTPTR, VALUE) \
+  ((long)(*(DESTPTR) = (VALUE)) == (VALUE) && \
+   (*(DESTPTR) > 0) == ((VALUE) > 0))
+
 #define PARSE_INTEGER_OPT_MIN(C, DESTPTR, MINVALUE) do { \
     long argvalue; \
     if (!argparse_long(optarg, &argvalue) || argvalue < (MINVALUE)) \
       OPT_ERR(C, "argument must be an integer >= %ld (%s found)",\
         (long)(MINVALUE), optarg); \
-    *(DESTPTR) = argvalue;\
+    if (!ARGPARSE_STORE(DESTPTR, argvalue)) \
+      OPT_ERR(C, "argument out of range (%s found)", optarg); \
 } while (0)
 
 #define PARSE_INTEGER_OPT_MIN_MAX(C, DESTPTR, MINVALUE, MAXVALUE) do { \
@@ -136,7 +143,8 @@ static inline bool argparse_long(const char *s, long *value) {
         argvalue > (MAXVALUE)) \
       OPT_ERR(C, "argument must be an integer >= %ld and <= %ld "\
         "(%s found)", (long)(MINVALUE), (long)(MAXVALUE), optarg); \
-    *(DESTPTR) = argvalue;\
+    if (!ARGPARSE_STORE(DESTPTR, argvalue)) \
+      OPT_ERR(C, "argument out of range (%s found)", optarg); \
 } while (0)
 
 #define PARSE_INTEGER_ARG_MIN(N, DESTPTR, MINVALUE) do { \
@@ -145,7 +153,9 @@ static inline bool argparse_long(const char *s, long *value) {
         argvalue < (MINVALUE)) \
       ARG_ERR((N)+1, "argument must be an integer >= %ld (%s found)",\
         (long)(MINVALUE), argv[optind + (N)]); \
-    *(DESTPTR) = argvalue;\
+    if (!ARGPARSE_STORE(DESTPTR, argvalue)) \
+      ARG_ERR((N)+1, "argument out of range (%s found)", \
+        argv[optind + (N)]); \
 } while (0)
 
 /* option for the log file; a program can define these macros before
@@ -203,9 +213,10 @@ static inline bool argparse_long(const char *s, long *value) {
 
 #define COMMON_OPTS_STR LOGGER_OPTS_STR "hV"
 
-#define LOGGER_OPTS_CHKMULTI \
+#define LOGGER_OPTS_CHKMULTI do { \
   if (verbose || quiet || debug) \
-    PARSE_ERR("only one of -v, -q and -D can be used at once");
+    PARSE_ERR("only one of -v, -q and -D can be used at once"); \
+} while (0)
 
 #define LOGGER_OPTS_PARSE_CASES \
   case 'v': \
@@ -221,6 +232,9 @@ static inline bool argparse_long(const char *s, long *value) {
     debug = true; \
     break;\
   case LOGFILE_OPT: \
+    /* the option given again: the last one is used */ \
+    if (logfile != stderr) \
+      fclose(logfile); \
     logfile = fopen(optarg, "w");\
     if (logfile == NULL)\
       OPT_ERR(LOGFILE_OPT, "Opening log file '%s' failed, %s",\
@@ -235,25 +249,26 @@ static inline bool argparse_long(const char *s, long *value) {
   case 'h': \
     HELP_AND_EXIT; \
     break; \
-  case ':': \
-    PARSE_ERR("Option '%s': argument required", argv[optind - 1]); \
-    break; \
   case '?': \
     PARSE_ERR("Unknown option or missing argument: '%s'", \
               argv[optind - 1]); \
     break; \
   default: \
-    assert(false);
+    /* an option of the getopt string without a case */ \
+    PARSE_ERR("Option '%s' not handled (internal error)", \
+              argv[optind - 1])
 
-#define CHECK_NARGS(EXPECTED) \
-  if (argc-optind != EXPECTED) \
+#define CHECK_NARGS(EXPECTED) do { \
+  if (argc-optind != (EXPECTED)) \
     PARSE_ERR("Wrong number of arguments (%d required, %d found)", \
-        EXPECTED, argc-optind);
+        (EXPECTED), argc-optind); \
+} while (0)
 
-#define CHECK_MIN_NARGS(EXPECTED) \
-  if (argc-optind < EXPECTED) \
+#define CHECK_MIN_NARGS(EXPECTED) do { \
+  if (argc-optind < (EXPECTED)) \
     PARSE_ERR("Wrong number of arguments (at least %d required, %d found)", \
-        EXPECTED, argc-optind);
+        (EXPECTED), argc-optind); \
+} while (0)
 
 #define LOGGER_OPTS_APPLY(LOGGER) \
   {\

@@ -39,6 +39,7 @@ Memory allocation macros
    #define OPT_ERR(C, FMT, ...)
    #define ARG_ERR(N, FMT, ...)
    static inline bool argparse_long(const char *s, long *value);
+   #define ARGPARSE_STORE(DESTPTR, VALUE)
    #define PARSE_INTEGER_OPT_MIN(C, DESTPTR, MINVALUE)
    #define PARSE_INTEGER_OPT_MIN_MAX(C, DESTPTR, MINVALUE, MAXVALUE)
    #define PARSE_INTEGER_ARG_MIN(N, DESTPTR, MINVALUE)

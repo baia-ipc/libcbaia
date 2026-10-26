@@ -168,7 +168,8 @@ token or the value of a macro; ``BOOLSTR(b)`` gives ``"T"`` or ``"F"``.
 ``-V``, ``--version``  output the program name and ``VERSION`` and exit
 =====================  ===================================================
 
-Only one of ``-q``, ``-v`` and ``-D`` can be given. A program which
+Only one of ``-q``, ``-v`` and ``-D`` can be given; if ``-L`` is given
+more than once, the last file is used. A program which
 needs the letter ``L`` for another option defines ``LOGFILE_OPT``,
 ``LOGFILE_OPT_STR`` and ``LOGFILE_OPT_HELP`` before including the
 header.
@@ -196,8 +197,9 @@ header.
 usage, and exit:
 
 ``PARSE_INTEGER_OPT_MIN(c, ptr, min)``
-   parse the integer value of the option ``c`` into ``*ptr`` (``long``),
-   at least ``min``
+   parse the integer value of the option ``c`` into ``*ptr`` (an
+   integer of any type: the value is parsed as a ``long``, and an error is
+   reported if it does not fit in the type of ``*ptr``), at least ``min``
 ``PARSE_INTEGER_OPT_MIN_MAX(c, ptr, min, max)``
    the same, between ``min`` and ``max``
 ``PARSE_INTEGER_ARG_MIN(n, ptr, min)``

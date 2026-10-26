@@ -224,6 +224,18 @@ static void argparse_test(void) {
   test_assert(!argparse_long("3abc", &value));
   test_assert(!argparse_long("", &value));
   test_assert(!argparse_long("99999999999999999999", &value));
+  /* the value must fit in the destination */
+  int i;
+  long big = 1L << 40, minus1 = -1;
+  test_assert(ARGPARSE_STORE(&i, 42L));
+  test_eq_int(i, 42);
+  test_assert(!ARGPARSE_STORE(&i, big));
+  unsigned int u;
+  test_assert(!ARGPARSE_STORE(&u, minus1));
+  size_t z;
+  test_assert(ARGPARSE_STORE(&z, big));
+  test_assert(!ARGPARSE_STORE(&z, minus1));
+  test_eq_str(BOOLSTR(false), "F");
 }
 
 static void bits_test(void) {
