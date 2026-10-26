@@ -327,11 +327,13 @@ Merging of sorted files
 
 .. code-block:: c
 
+   typedef bool (*merge_getelem_f)(char **elem, size_t *elemsize, FILE *file,
+       Logger *logger);
+   typedef void (*merge_writeelem_f)(FILE *file, char *elem, Logger *logger);
+   typedef int (*merge_cmpelems_f)(const void *elem1, const void *elem2);
    void merge_n_files(size_t nfiles, const char *basename, const char *sfx,
-       bool use_stdout,
-       bool getelem(char **elem, size_t *elemsize, FILE *file, Logger *logger),
-       void writeelem(FILE *file, char *elem, Logger *logger),
-       int cmpelems(const void *elem1, const void *elem2), Logger *logger);
+       bool use_stdout, merge_getelem_f getelem, merge_writeelem_f writeelem,
+       merge_cmpelems_f cmpelems, Logger *logger);
 
 **file-sorter.h**
 

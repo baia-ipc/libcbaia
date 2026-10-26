@@ -3,31 +3,26 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include <stdint.h>
 #include <errno.h>
 #include <assert.h>
 #include <string.h>
-#include <unistd.h>
 #include "alloc.h"
-#include "strutils.h"
 #include "file.h"
 #include "heap.h"
 #include "file-merger.h"
 
 static
 void get_elem_and_add_to_queue(char **elems, size_t *elem_sizes, FILE **files,
-    size_t f,
-    bool getelem(char **elem, size_t *elemsize, FILE *file, Logger *logger),
-    size_t *n_open_files, heap_t *queue, Logger *logger)
+    size_t f, merge_getelem_f getelem, size_t *n_open_files, heap_t *queue,
+    Logger *logger)
 {
   bool has_elem;
   assert(files[f] != NULL);
   has_elem = getelem(elems + f, elem_sizes + f, files[f], logger);
   if (!has_elem)
   {
-    xfclose(&files[f], logger);
+    xfclose(&files[f], logger); /* sets files[f] to NULL */
     (*n_open_files)--;
-    files[f] = NULL;
   }
   else
     heap_push(queue, elems + f);
@@ -37,9 +32,8 @@ static
 void merge_n_files_at_once(size_t nfiles, size_t offset,
     const char *basename, const char *sfx, bool use_stdout,
     bool partial_merging, size_t partial_output_n,
-    bool getelem(char **elem, size_t *elemsize, FILE *file, Logger *logger),
-    void writeelem(FILE *file, char *elem, Logger *logger),
-    int cmpelems(const void *elem1, const void *elem2), Logger *logger)
+    merge_getelem_f getelem, merge_writeelem_f writeelem,
+    merge_cmpelems_f cmpelems, Logger *logger)
 {
   char *partial_fname = NULL;
   char **filenames;
@@ -99,10 +93,8 @@ void merge_n_files_at_once(size_t nfiles, size_t offset,
 #define NFILES_MAX 512
 
 void merge_n_files(size_t nfiles, const char *basename, const char *sfx,
-    bool use_stdout,
-    bool getelem(char **elem, size_t *elemsize, FILE *file, Logger *logger),
-    void writeelem(FILE *file, char *elem, Logger *logger),
-    int cmpelems(const void *elem1, const void *elem2), Logger *logger)
+    bool use_stdout, merge_getelem_f getelem, merge_writeelem_f writeelem,
+    merge_cmpelems_f cmpelems, Logger *logger)
 {
   if (nfiles == 1)
   {
@@ -114,6 +106,9 @@ void merge_n_files(size_t nfiles, const char *basename, const char *sfx,
       size_t n;
       while ((n = fread(buffer, sizeof(char), sizeof(buffer), file)) > 0)
         xfwrite(buffer, sizeof(char), n, stdout, logger);
+      LCHECK(!ferror(file), logger, "Reading file '%s' failed, %s\n",
+             filename, strerror(errno));
+      xfclose(&file, logger);
       xfunlink(filename, NULL, logger);
       free(filename);
     }

@@ -296,6 +296,39 @@ static void file_sorter_test(void) {
   }
   test_eq_size(n, SORT_N_LINES);
   fclose(f);
+  unlink(sorted);
+  /* a single part, to the standard output (redirected to a file): the part
+     is copied, and closed (the next free descriptor is the same) */
+  nfiles = sort_file_parts(path, NULL, path, ".sorted", 1 << 20, 16,
+      read_lines_in_buffer, sort_lines, output_lines, NULL);
+  test_eq_size(nfiles, 1);
+  fflush(stdout);
+  int saved_stdout = dup(1);
+  f = fopen(sorted, "w");
+  test_assert(f != NULL);
+  dup2(fileno(f), 1);
+  fclose(f);
+  int fd_before = dup(0);
+  close(fd_before);
+  merge_n_files(nfiles, path, ".sorted", true, get_line, write_line,
+                cmp_line_ptrs, NULL);
+  int fd_after = dup(0);
+  close(fd_after);
+  fflush(stdout);
+  dup2(saved_stdout, 1);
+  close(saved_stdout);
+  test_eq_int(fd_after, fd_before);
+  f = fopen(sorted, "r");
+  test_assert(f != NULL);
+  n = 0;
+  prev[0] = '\0';
+  while (xgetline(&line, &size, f, NULL)) {
+    test_assert(strcmp(prev, line) <= 0);
+    strcpy(prev, line);
+    n++;
+  }
+  test_eq_size(n, SORT_N_LINES);
+  fclose(f);
   free(line);
   unlink(sorted);
   unlink(path);
