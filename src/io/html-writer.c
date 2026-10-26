@@ -46,8 +46,9 @@ static void end_start_tag(html_writer_t *w) {
   w->start = NULL;
 }
 
-/* start a line of content of the current element (outside of a line) */
-static void begin_line(html_writer_t *w) {
+size_t html_begin_lines(html_writer_t *w) {
+  assert(w != NULL);
+  end_start_tag(w);
   assert(!in_line(w));
   if (w->depth > 0) {
     unsigned char *c = &w->content[w->depth - 1];
@@ -55,7 +56,12 @@ static void begin_line(html_writer_t *w) {
       fputc('\n', w->f);  /* the line of its start tag ends */
     *c = CONTENT_LINES;
   }
-  indent(w, w->depth);
+  return w->depth * INDENT;
+}
+
+/* start a line of content of the current element (outside of a line) */
+static void begin_line(html_writer_t *w) {
+  fprintf(w->f, "%*s", (int)html_begin_lines(w), "");
 }
 
 static void start_tag(html_writer_t *w, const char *tag, bool is_void) {

@@ -406,6 +406,18 @@ Self-contained HTML reports: a page with a style for light and dark themes (no e
        size_t n_selected, const char *x_label, const char *y_label,
        const char *selected_label);
 
+**html-template.h**
+
+HTML templates: static markup (e.g. the skeleton of a page) written as a normal, indented HTML file, embedded in the program at compile time (dev/embed.sh), with named placeholders filled when it is written:
+
+.. code-block:: c
+
+   #define HTML_TEMPLATE_MAX_VALUES
+   #define HTML_TEMPLATE_MAX_NESTING
+   #define html_template(W, TMPL, ...)
+   void html_template_values(html_writer_t *w, const char *tmpl,
+       const char *const *kv, size_t n);
+
 **html-writer.h**
 
 Writing HTML (and inline SVG) element by element: the text and the attribute values are escaped in one place, and the output is indented, one element per line, so that the nesting is visible both in the code and in the page.
@@ -438,6 +450,7 @@ Writing HTML (and inline SVG) element by element: the text and the attribute val
    void html_tag_text(html_writer_t *w, const char *tag, const char *text);
    void html_tag_textf(html_writer_t *w, const char *tag, const char *fmt, ...)
      __attribute__((format(printf, 3, 4)));
+   size_t html_begin_lines(html_writer_t *w);
 
 **md5.h**
 

@@ -105,6 +105,14 @@ void html_tag_text(html_writer_t *w, const char *tag, const char *text);
 void html_tag_textf(html_writer_t *w, const char *tag, const char *fmt, ...)
   __attribute__((format(printf, 3, 4)));
 
+/*
+   Prepare the writing of lines of markup (e.g. a template, see
+   html-template.h) as content of the current element: returns the
+   indentation of the lines (number of spaces); the lines are then written
+   to w->f, each one ending with a newline
+*/
+size_t html_begin_lines(html_writer_t *w);
+
 /* Unit tests */
 void html_writer_test(void);
 

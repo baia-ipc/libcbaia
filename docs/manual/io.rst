@@ -192,6 +192,37 @@ content (e.g. ``<p>see <code>out.tsv</code></p>``), as a line break
 between text and inline elements would add a space in the page.
 ``html_writer_end()`` checks that all elements were closed.
 
+**Templates** (``html-template.h``). Static markup, e.g. the skeleton of
+a page, is better written as an HTML file, indented normally, than as
+C string literals: the file is embedded in the program at compile time
+(see "Data files" in :ref:`installation`) and written by::
+
+   html_template(w, page_tmpl, "title", title, "css", css,
+                 "footer", footer);
+
+with the values given as name and value pairs of strings. In the
+template, ``{{name}}`` is replaced by the value, escaped; ``{{{name}}}`` by
+the value as it is (trusted markup); the text between ``{{#name}}`` and
+``{{/name}}`` (a section) is written only if the value is not ``NULL``;
+a line containing only a section tag is not written::
+
+   <!-- (c) 2026 Name (comment lines are not embedded) -->
+   <title>{{title}}</title>
+   <style>
+     {{{css}}}
+   </style>
+   {{#footer}}
+   <p class="note">{{footer}}</p>
+   {{/footer}}
+
+The template is indented as the current element of the writer, and the
+lines of a multi-line value as the line of its placeholder (a newline at
+the end of the value is dropped). A placeholder without a value, a value
+not used, a ``NULL`` value outside of its section and an invalid tag
+(names: lower case letters, digits and ``_``) are programming errors: the
+program is aborted with a message, also when compiled with ``NDEBUG``, so
+that any test writing the template finds them.
+
 .. _html-reports:
 
 HTML reports (``html-page.h``)
