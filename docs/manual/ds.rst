@@ -81,8 +81,10 @@ HyperLogLog (``hyperloglog.h``)
 The estimation of the number of distinct elements of a multiset (e.g.
 the distinct molecules among the reads of a sample) in a fixed amount of
 memory: 4 KiB (2\ :sup:`12` one-byte registers), with a relative standard
-error of about 1.6% (Flajolet et al. 2007, with the small-range
-correction of Heule et al. 2013). The sketch is a plain structure,
+error of about 1.6% (the estimator of Flajolet et al. 2007, with its
+small-range correction by linear counting; 64-bit hash values, as in
+Heule et al. 2013, so that no large-range correction is needed). The
+sketch is a plain structure,
 ``hll_t``; sketches of parts of the data (e.g. computed by different
 threads) can be merged:
 

@@ -275,7 +275,7 @@ Binary min-heap of pointers, ordered by a comparison function (the smallest elem
 
 **hyperloglog.h**
 
-HyperLogLog: estimation of the number of distinct elements of a multiset, using a small fixed amount of memory (Flajolet et al. 2007, with the small-range correction by linear counting of Heule et al. 2013).
+HyperLogLog: estimation of the number of distinct elements of a multiset, using a small fixed amount of memory: the estimator and its small-range correction (linear counting, for estimates up to 2.5 times the number of registers) of Flajolet et al. 2007; 64-bit hash values, as in Heule et al. 2013, so that no large-range correction is needed.
 
 .. code-block:: c
 

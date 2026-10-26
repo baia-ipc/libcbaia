@@ -63,7 +63,8 @@ double hll_estimate(const hll_t *self) {
   }
   double alpha = 0.7213 / (1.0 + 1.079 / m);
   double estimate = alpha * m * m / sum;
-  /* small range: linear counting */
+  /* small range: linear counting (Flajolet et al. 2007); no large range
+     correction with 64-bit hashes (Heule et al. 2013) */
   if (estimate <= 2.5 * m && zeros > 0)
     estimate = m * log(m / (double)zeros);
   return estimate;
