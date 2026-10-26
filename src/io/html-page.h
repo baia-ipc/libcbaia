@@ -31,6 +31,22 @@ extern const char *const html_page_css;
 */
 void html_page_start(FILE *f, const char *title, long refresh);
 
+/* A logo: image URL (e.g. a data URI, "data:image/webp;base64,..."), an
+   optional variant for the dark color scheme (NULL: none), the alternative
+   text and the height of the image (pixels) */
+typedef struct {
+  const char *src, *src_dark, *alt;
+  int height;
+} html_logo_t;
+
+/*
+   As html_page_start(), with the h1 heading made of the <logo> (NULL:
+   none), followed by <heading> (e.g. the title without the name shown by
+   the logo)
+*/
+void html_page_start_logo(FILE *f, const char *title,
+    const html_logo_t *logo, const char *heading, long refresh);
+
 /* End the page, with a <footer> note (NULL: none) */
 void html_page_end(FILE *f, const char *footer);
 
