@@ -30,9 +30,15 @@ const char *const html_page_css =
   "-apple-system,'Segoe UI',Roboto,sans-serif;margin:0;line-height:1.45}\n"
   "main{max-width:1000px;margin:0 auto;padding:16px}\n"
   "h1{font-size:1.6em;margin:0.4em 0 0.1em}"
-  "h1.logo{display:flex;flex-wrap:wrap;align-items:flex-end;gap:4px 16px}"
-  "h1.logo img{display:block;width:auto}"
-  "h1.logo span{color:var(--ink2);font-weight:500;padding-bottom:0.1em}\n"
+  "h1.logo{margin-top:0.2em}h1.logo img{display:block;width:auto}"
+  "h1.logo span{display:block;margin-top:6px;font-size:0.6em;"
+  "font-weight:500;letter-spacing:0.95em;text-transform:uppercase;"
+  "color:var(--ink2)}\n"
+  ".head{display:flex;flex-wrap:wrap;align-items:flex-start;gap:0 32px}"
+  ".head .updated{font-size:0.8em}"
+  ".head .side{flex:1 1 420px;min-width:0}"
+  ".head .side>h2:first-child{border-top:none;margin-top:0.4em;"
+  "padding-top:0}\n"
   "h2{font-size:1.3em;margin:1.6em 0 0.4em;padding-top:0.6em;"
   "border-top:2px solid var(--grid)}h3{font-size:1.05em;margin:1.2em 0 "
   "0.3em}\n"
@@ -60,12 +66,8 @@ const char *const html_page_css =
   "svg .a{stroke:var(--accent);fill:none}svg .line{stroke:var(--sample);"
   "fill:none;stroke-width:2}\n";
 
-void html_page_start_logo(FILE *f, const char *title,
-    const html_logo_t *logo, const char *heading, long refresh) {
-  assert(f != NULL);
-  assert(title != NULL);
-  assert(heading != NULL);
-  assert(logo == NULL || logo->src != NULL);
+/* the head of the page and the start of the body */
+static void write_head(FILE *f, const char *title, long refresh) {
   fputs("<!doctype html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8"
         "\">\n<meta name=\"viewport\" content=\"width=device-width, "
         "initial-scale=1\">\n", f);
@@ -75,23 +77,10 @@ void html_page_start_logo(FILE *f, const char *title,
   fputs_html_escaped(title, f);
   fprintf(f, "</title>\n<style>\n%s</style>\n</head>\n<body>\n<main>\n",
           html_page_css);
-  if (logo == NULL)
-    fputs("<h1>", f);
-  else {
-    fputs("<h1 class=\"logo\"><picture>", f);
-    if (logo->src_dark != NULL) {
-      fputs("<source media=\"(prefers-color-scheme: dark)\" srcset=\"", f);
-      fputs_html_escaped(logo->src_dark, f);
-      fputs("\">", f);
-    }
-    fputs("<img src=\"", f);
-    fputs_html_escaped(logo->src, f);
-    fputs("\" alt=\"", f);
-    fputs_html_escaped(logo->alt != NULL ? logo->alt : "", f);
-    fprintf(f, "\" height=\"%d\"></picture><span>", logo->height);
-  }
-  fputs_html_escaped(heading, f);
-  fputs(logo == NULL ? "</h1>\n" : "</span></h1>\n", f);
+}
+
+/* the time of writing */
+static void write_updated(FILE *f) {
   time_t now = time(NULL);
   char date[64];
   strftime(date, sizeof(date), "%Y-%m-%d %H:%M:%S", localtime(&now));
@@ -99,7 +88,42 @@ void html_page_start_logo(FILE *f, const char *title,
 }
 
 void html_page_start(FILE *f, const char *title, long refresh) {
-  html_page_start_logo(f, title, NULL, title, refresh);
+  assert(f != NULL);
+  assert(title != NULL);
+  write_head(f, title, refresh);
+  fputs("<h1>", f);
+  fputs_html_escaped(title, f);
+  fputs("</h1>\n", f);
+  write_updated(f);
+}
+
+void html_page_start_logo(FILE *f, const char *title,
+    const html_logo_t *logo, const char *heading, long refresh) {
+  assert(f != NULL);
+  assert(title != NULL);
+  assert(logo != NULL && logo->src != NULL);
+  assert(heading != NULL);
+  write_head(f, title, refresh);
+  fputs("<div class=\"head\">\n<div>\n<h1 class=\"logo\"><picture>", f);
+  if (logo->src_dark != NULL) {
+    fputs("<source media=\"(prefers-color-scheme: dark)\" srcset=\"", f);
+    fputs_html_escaped(logo->src_dark, f);
+    fputs("\">", f);
+  }
+  fputs("<img src=\"", f);
+  fputs_html_escaped(logo->src, f);
+  fputs("\" alt=\"", f);
+  fputs_html_escaped(logo->alt != NULL ? logo->alt : "", f);
+  fprintf(f, "\" height=\"%d\"></picture><span>", logo->height);
+  fputs_html_escaped(heading, f);
+  fputs("</span></h1>\n", f);
+  write_updated(f);
+  fputs("</div>\n<div class=\"side\">\n", f);
+}
+
+void html_page_head_end(FILE *f) {
+  assert(f != NULL);
+  fputs("</div>\n</div>\n", f);
 }
 
 void html_page_end(FILE *f, const char *footer) {
@@ -337,6 +361,8 @@ void html_page_test(void) {
   test_assert(f != NULL);
   html_logo_t logo = {"logo.png", "logo-dark.png", "Test", 80};
   html_page_start_logo(f, "Test report", &logo, "report", 0);
+  fputs("<p>side</p>\n", f);
+  html_page_head_end(f);
   html_page_end(f, NULL);
   fclose(f);
   test_assert(strstr(out, "<title>Test report</title>") != NULL);
@@ -345,5 +371,7 @@ void html_page_test(void) {
               "(prefers-color-scheme: dark)\" srcset=\"logo-dark.png\">"
               "<img src=\"logo.png\" alt=\"Test\" height=\"80\"></picture>"
               "<span>report</span></h1>") != NULL);
+  test_assert(strstr(out, "<div class=\"side\">\n<p>side</p>\n</div>\n"
+              "</div>\n") != NULL);
   free(out);
 }

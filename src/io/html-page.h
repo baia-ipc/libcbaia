@@ -40,12 +40,18 @@ typedef struct {
 } html_logo_t;
 
 /*
-   As html_page_start(), with the h1 heading made of the <logo> (NULL:
-   none), followed by <heading> (e.g. the title without the name shown by
-   the logo)
+   As html_page_start(), with a head made of two columns: on the left, the
+   h1 heading, made of the <logo> with <heading> under it (e.g. the title
+   without the name shown by the logo; small, spaced capitals), and the
+   time of writing; on the right, the content written next (e.g. a table
+   of the parameters), up to html_page_head_end(); on narrow screens, the
+   right column is moved below the left one
 */
 void html_page_start_logo(FILE *f, const char *title,
     const html_logo_t *logo, const char *heading, long refresh);
+
+/* End the head started by html_page_start_logo() */
+void html_page_head_end(FILE *f);
 
 /* End the page, with a <footer> note (NULL: none) */
 void html_page_end(FILE *f, const char *footer);
