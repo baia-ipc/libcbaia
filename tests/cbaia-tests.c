@@ -340,6 +340,7 @@ static void run_fastq_reader_test(void) { fastq_reader_test(tmpdir); }
 static void run_bgzf_compressor_test(void) { bgzf_compressor_test(tmpdir); }
 static void run_bam_reader_test(void) { bam_reader_test(tmpdir); }
 static void run_ubam_writer_test(void) { ubam_writer_test(tmpdir); }
+static void run_sam_header_test(void) { sam_header_test(tmpdir); }
 static void run_reads_reader_test(void) { reads_reader_test(tmpdir); }
 static void run_outfiles_test(void) { outfiles_test(tmpdir); }
 static void run_md5_test(void) { md5_test(tmpdir); }
@@ -373,7 +374,7 @@ static test_group_t test_groups[] = {
   {'m', "BAM reader", run_bam_reader_test, false},
   {'n', "uBAM writer", run_ubam_writer_test, false},
   {'S', "SAM tags", sam_tags_test, false},
-  {'A', "SAM header", sam_header_test, false},
+  {'A', "SAM header", run_sam_header_test, false},
   {'j', "MinKNOW read metadata", minknow_metadata_test, false},
   {'d', "reads reader (FASTQ or BAM)", run_reads_reader_test, false},
   {'t', "output files", run_outfiles_test, false},

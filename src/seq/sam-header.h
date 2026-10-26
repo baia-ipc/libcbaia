@@ -82,7 +82,7 @@ char *sam_header_command_line(int argc, char *const argv[]);
 const char *sam_header_line_id(const char *line, size_t line_len,
     size_t *len);
 
-/* Unit tests */
-void sam_header_test(void);
+/* Unit tests (<tmpdir>: directory for temporary files) */
+void sam_header_test(const char *tmpdir);
 
 #endif

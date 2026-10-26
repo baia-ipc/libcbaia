@@ -4,10 +4,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 #include "alloc.h"
 #include "bam-reader.h"
+#include "bgzf-compressor.h"
+#include "file.h"
 #include "sam-header.h"
 #include "test.h"
+#include "ubam-writer.h"
 
 void sam_header_inputs_init(sam_header_inputs_t *self) {
   assert(self != NULL);
@@ -214,7 +218,65 @@ static void test_text(strbuf_t *text, const char *exp) {
   strbuf_clear(text);
 }
 
-void sam_header_test(void) {
+/* write a BAM file with the header <text> (no reads) */
+static char *write_bam(const char *tmpdir, const char *name,
+    const char *text) {
+  strbuf_t data, out;
+  strbuf_init(&data);
+  strbuf_init(&out);
+  ubam_writer_header(&data, text);
+  bgzf_compressor_t *c = bgzf_compressor_new(6);
+  bgzf_compressor_run(c, data.s, data.len, &out);
+  bgzf_compressor_delete(c);
+  strbuf_append(&out, (const char *)bgzf_eof, BGZF_EOF_LEN);
+  char *path = path_join(tmpdir, name);
+  FILE *f = fopen(path, "wb");
+  test_assert(f != NULL);
+  test_eq_size(fwrite(out.s, 1, out.len, f), out.len);
+  fclose(f);
+  strbuf_free(&data);
+  strbuf_free(&out);
+  return path;
+}
+
+/* the read groups and programs of the BAM files among the inputs */
+static void test_add_files(const char *tmpdir) {
+  char *files[3];
+  files[0] = write_bam(tmpdir, "cbaia-tests-sam-header1.bam",
+                       "@HD\tVN:1.6\n@RG\tID:r1\tSM:x\n"
+                       "@PG\tID:basecaller\tPN:dorado\n");
+  files[1] = path_join(tmpdir, "cbaia-tests-sam-header.fastq");
+  FILE *f = fopen(files[1], "w");
+  test_assert(f != NULL);
+  fputs("@r1\nACGT\n+\nIIII\n", f);
+  fclose(f);
+  files[2] = write_bam(tmpdir, "cbaia-tests-sam-header2.bam",
+                       "@RG\tID:r1\tSM:x\n@RG\tID:r2\n"
+                       "@PG\tID:prog\tPN:prog\tPP:basecaller\n");
+  sam_header_inputs_t in;
+  sam_header_inputs_init(&in);
+  sam_header_inputs_add_files(&in, files, 3, NULL);
+  test_eq_size(in.n_rg, 2);
+  test_eq_str(in.rg_ids[0], "r1");
+  test_eq_str(in.rg_ids[1], "r2");
+  test_eq_str(in.last_pg, "prog");
+  const char *rg = "@RG\tID:r1\tSM:x\n@RG\tID:r2\n";
+  test_assert(in.rg_lines.len == strlen(rg) &&
+              memcmp(in.rg_lines.s, rg, strlen(rg)) == 0);
+  /* no files */
+  sam_header_inputs_clear(&in);
+  sam_header_inputs_add_files(&in, NULL, 0, NULL);
+  test_eq_size(in.n_rg, 0);
+  test_assert(in.last_pg == NULL);
+  sam_header_inputs_free(&in);
+  for (size_t i = 0; i < 3; i++) {
+    unlink(files[i]);
+    free(files[i]);
+  }
+}
+
+void sam_header_test(const char *tmpdir) {
+  test_add_files(tmpdir);
   size_t len;
   const char *id = sam_header_line_id("@RG\tID:run1\tSM:x", 16, &len);
   test_assert(id != NULL && len == 4 && strncmp(id, "run1", 4) == 0);
