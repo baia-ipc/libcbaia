@@ -367,7 +367,9 @@ Numeric utilities (``numutils.h``)
    the median of the values counted in a histogram, whose bin ``b``
    counts the values from ``b * bin_width`` to ``(b + 1) * bin_width -
    1``, with ``total`` values in all: the middle of the bin containing
-   the median (the middle of the first bin if ``total`` is 0);
+   the median (the middle of the first bin if ``total`` is 0; the middle
+   of the last bin if ``total`` exceeds the counts and the median is
+   beyond them);
 ``double nice_number(double v)``
    ``v`` rounded up to 1, 2 or 5 times a power of 10 (at least 1), e.g.
    for the maximum of the axis of a plot: 130 gives 200, 4000 gives

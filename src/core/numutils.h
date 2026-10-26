@@ -21,7 +21,10 @@ static inline long floordiv(long a, long b) {
    Median of the values counted in a histogram of <n_bins> bins of width
    <bin_width> (bin b: values from b * bin_width to (b + 1) * bin_width - 1),
    with <total> values in all: the middle of the bin containing the median
-   (the middle of the first bin if total is 0)
+   (the middle of the first bin if total is 0); if total exceeds the sum of
+   the counts and the median is not among the counted values, the middle
+   of the last bin (usually counting also the larger values); 0 if n_bins
+   is 0
 */
 size_t hist_median(const size_t *hist, size_t n_bins, size_t bin_width,
     size_t total);
