@@ -24,10 +24,16 @@
 /* the CSS of the page (written by html_page_start()) */
 extern const char *const html_page_css;
 
+/* minimum interval of the reload of a page (seconds) */
+#define HTML_PAGE_MIN_RELOAD 1
+
 /*
    Start the page: head (title, style; if <refresh> > 0, the page is
-   reloaded every <refresh> seconds, e.g. for a report updated during a
-   run), the title as h1 heading and the time of writing ("Updated: ...")
+   reloaded, e.g. for a report rewritten during a run: at an interval
+   halved, down to HTML_PAGE_MIN_RELOAD seconds, if the page has changed
+   since the last reload, otherwise doubled, up to <refresh> seconds; this
+   requires JavaScript, otherwise every <refresh> seconds), the title as
+   h1 heading and the time of writing ("Updated: ...")
 */
 void html_page_start(FILE *f, const char *title, long refresh);
 
