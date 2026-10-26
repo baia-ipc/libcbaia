@@ -10,11 +10,13 @@ and zlib.
 The modules are organized in four components:
 
 - `core`: memory allocation, logging, command line interface, files,
-  strings, progress display, unit tests;
+  strings, numeric utilities, progress display, unit tests;
 - `ds`: data structures (Bloom filter, set, heap, HyperLogLog);
-- `io`: external sorting, parallel gzip and BGZF compression, MD5;
-- `seq`: FASTQ and BAM reading and writing, barcode whitelists, cell
-  calling, library complexity.
+- `io`: external sorting, parallel gzip and BGZF compression, MD5, HTML
+  reports;
+- `seq`: FASTQ and BAM reading and writing, SAM tags and headers, edit
+  distance of short sequences, barcode whitelists, cell calling, library
+  complexity.
 
 ## Installation
 
@@ -55,7 +57,7 @@ bin/prog: src/prog.c $(CBAIA_LIBS)
 
 The modules are then included by their name (e.g. `#include "logger.h"`).
 Complete example programs (a read counter, a barcode demultiplexer, a
-logging demo) are in [docs/manual/examples](docs/manual/examples).
+logging demo, an HTML report) are in [docs/manual/examples](docs/manual/examples).
 
 ## Documentation
 

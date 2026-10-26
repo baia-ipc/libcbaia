@@ -69,8 +69,9 @@ shown in :numref:`fig-components`:
    the base functionality of a command line program, used by all other
    components: memory allocation (``alloc.h``), logging (``logger.h``),
    command line interface (``argparse-def.h``), files and directories
-   (``file.h``), strings (``strutils.h``, ``strbuf.h``), progress display
-   (``progress.h``), unit tests (``test.h``);
+   (``file.h``), strings (``strutils.h``, ``strbuf.h``), numeric
+   utilities (``numutils.h``), progress display (``progress.h``),
+   terminal colors (``colors.h``), unit tests (``test.h``);
 
 ``ds``
    data structures: bit operations, Bloom filter, set of integers, heap,
@@ -78,13 +79,15 @@ shown in :numref:`fig-components`:
 
 ``io``
    handling of large files: sorting of files which do not fit in memory,
-   parallel gzip and BGZF compression, MD5 checksums;
+   parallel gzip and BGZF compression, MD5 checksums; self-contained HTML
+   reports with plots;
 
 ``seq``
    sequences and sequencing reads: reverse complement, FASTQ and BAM
-   reading and writing, a common reader of FASTQ and BAM files, output
-   files of several destinations, barcode whitelists, cell calling and
-   library complexity.
+   reading and writing, a common reader of FASTQ and BAM files, SAM tags
+   and MinKNOW metadata in the read titles, the header of BAM output,
+   output files of several destinations, the edit distance of short
+   sequences, barcode whitelists, cell calling and library complexity.
 
 .. _fig-components:
 

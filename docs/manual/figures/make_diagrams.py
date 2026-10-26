@@ -47,16 +47,17 @@ def save(fig, outdir, name):
 
 def components(outdir):
   """the components, their modules, and the main dependencies"""
-  fig, ax = setup(9, 5.4)
+  fig, ax = setup(9, 6.3)
   W, H, DY = 1.9, 0.42, 0.6
   # component: (x of the frame, columns, modules)
   comps = [
     ("core", 0.0, 2, ["alloc", "logger", "argparse-def", "file",
-                       "strutils", "strbuf", "progress", "colors", "test"]),
+                       "strutils", "strbuf", "progress", "colors", "test",
+                       "numutils"]),
     ("ds", 4.4, 1, ["bitwise", "bloom-filter", "set", "heap",
                      "hyperloglog"]),
     ("io", 6.65, 1, ["file-sorter", "file-merger", "gzip-compressor",
-                      "bgzf-compressor", "md5"]),
+                      "bgzf-compressor", "md5", "html-page"]),
   ]
   top = 4.6
   pos = {}
@@ -75,8 +76,9 @@ def components(outdir):
       box(ax, mx, my, W, H, m, COLORS[name])
       pos[m] = (mx, my)
   # seq: two columns, below
-  seq = ["sequtil", "fastq-reader", "fastq-writer", "bam-reader",
-         "ubam-writer", "reads-reader", "outfiles", "whitelist",
+  seq = ["sequtil", "sam-header", "fastq-reader", "bam-reader",
+         "fastq-writer", "reads-reader", "ubam-writer", "outfiles",
+         "sam-tags", "edit-distance", "minknow-metadata", "whitelist",
          "complexity", "cell-caller"]
   x, ncols = 2.2, 2
   stop = top - 3.55
@@ -107,6 +109,9 @@ def components(outdir):
   edge("reads-reader", "bam-reader")
   edge("bam-reader", "fastq-reader")
   edge("cell-caller", "whitelist")
+  edge("sam-header", "bam-reader")
+  edge("ubam-writer", "sam-tags")
+  edge("minknow-metadata", "sam-tags")
   edge("file-merger", "heap")
   # external code
   ex, ey = 7.3, stop - h

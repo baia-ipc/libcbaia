@@ -6,7 +6,8 @@ particular **bioinformatics tools** working with sequencing reads: memory
 allocation and logging with clear error messages, a uniform command line
 interface, file operations, data structures, external sorting, parallel
 gzip and BGZF compression, FASTQ and BAM input and output, barcode
-correction and other building blocks of read processing tools.
+correction, HTML reports and other building blocks of read processing
+tools.
 
 This manual is written for **C developers** who want to use the library
 in their programs, or to contribute to it. The first chapters show how to

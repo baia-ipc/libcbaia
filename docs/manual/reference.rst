@@ -121,6 +121,7 @@ File system interaction
    #define xfmap_chksig(fname, sfx, fsize, fd, expected_signature, filedesc, helpmsg, logger)
    bool is_directory(const char *path);
    void xmakedirs(const char *path, Logger *logger);
+   char *path_join(const char *dir, const char *name);
    char *path_basename(const char *path);
    typedef bool (*list_dir_filter_t)(const char *name, const char *path,
        void *data);
@@ -160,6 +161,17 @@ Logging library
    void DEBUG_NTRACE(const char *fmt, ...)
         __attribute__ ((format (printf,1,2)));
    #define DEBUG_NTRACE(fmt, ...)
+
+**numutils.h**
+
+Numeric utilities: integer division rounding towards minus infinity, the median of a histogram, and the rounding of a value to a "nice" number (for the axes of plots).
+
+.. code-block:: c
+
+   static inline long floordiv(long a, long b);
+   size_t hist_median(const size_t *hist, size_t n_bins, size_t bin_width,
+       size_t total);
+   double nice_number(double v);
 
 **progress.h**
 
@@ -205,6 +217,8 @@ Growable string buffer, for building output text without allocations for each pi
    void fputs_json_string(const char *s, FILE *f);
    void fputs_html_escaped(const char *s, FILE *f);
    void format_duration(double seconds, char *buf, size_t size);
+   bool parse_duration(const char *s, double default_unit, long *seconds);
+   static inline bool is_space(char c);
 
 **test.h**
 
@@ -351,6 +365,26 @@ Compression of data blocks as gzip members; the concatenation of gzip members is
        size_t len, strbuf_t *out);
    void gzip_compressor_delete(gzip_compressor_t *self);
 
+**html-page.h**
+
+Self-contained HTML reports: a page with a style for light and dark themes (no external resources), tiles with the main values, and plots as inline SVG (horizontal bar chart, histogram, barcode rank plot).
+
+.. code-block:: c
+
+   extern const char *const html_page_css;
+   void html_page_start(FILE *f, const char *title, long refresh);
+   void html_page_end(FILE *f, const char *footer);
+   void html_tile(FILE *f, const char *value, const char *label);
+   const char *html_num(size_t n);
+   double html_percent(size_t a, size_t b);
+   void html_hbars(FILE *f, size_t n, const char *const *labels,
+       const size_t *values, const char *const *classes, size_t total,
+       double mean);
+   void html_histogram(FILE *f, const size_t *hist, size_t n_bins,
+       size_t bin_width, const char *what, const char *unit,
+       const char *empty);
+   void html_knee(FILE *f, const uint64_t *counts, size_t n, size_t n_cells);
+
 **md5.h**
 
 MD5 message digest (RFC 1321), e.g. for the checksums of files in metadata (as the md5 of the onlists of seqspec files) or for checking downloads. Not to be used for security purposes.
@@ -423,6 +457,18 @@ Library complexity of a sample: estimation of the number of distinct molecules o
    } complexity_t;
    void complexity_estimate(size_t reads, double distinct_keys,
        double mean_key_length, double error_rate, complexity_t *out);
+
+**edit-distance.h**
+
+Bounded edit distance of short sequences (e.g. indices, barcodes, UMIs, compared with the sequences of a list): dynamic programming in the diagonal band of width 2k + 1 around the main diagonal, stopping as soon as a row exceeds the maximum distance k; for sequences of at most SHORT_EDIT_DISTANCE_MAX bases (for longer sequences, use e.g. edlib).
+
+.. code-block:: c
+
+   #define SHORT_EDIT_DISTANCE_MAX
+   static inline long short_edit_distance(const char *a, size_t alen,
+       const char *b, size_t blen, long k);
+   static inline long short_prefix_distance(const char *query, size_t qlen,
+       const char *target, size_t tlen, long k, size_t *end);
 
 **fastq-reader.h**
 
@@ -503,6 +549,33 @@ Reader of the reads of a FASTQ file (optionally gzipped) or of an unaligned BAM 
    bool reads_reader_is_reads_filename(const char *name);
    size_t reads_reader_count(const char *filename, Logger *logger);
    bool reads_reader_file_complete(const char *path);
+
+**sam-header.h**
+
+SAM header text of BAM files written from BAM input (e.g. the unaligned BAM of Dorado), keeping the provenance of the reads: - the read groups (@RG) of the inputs, so that the records keep the RG tag of their input; a program which distributes the reads to several destinations (e.g. a demultiplexer) can rename them per destination; - the programs (@PG) of the inputs, followed by the @PG line of the program, linked to the last one of the inputs (PP), as samtools does.
+
+.. code-block:: c
+
+   typedef struct {
+     strbuf_t rg_lines, pg_lines;
+     char **rg_ids;
+     size_t n_rg;
+     char *last_pg;
+   } sam_header_inputs_t;
+   void sam_header_inputs_init(sam_header_inputs_t *self);
+   void sam_header_inputs_clear(sam_header_inputs_t *self);
+   void sam_header_inputs_free(sam_header_inputs_t *self);
+   void sam_header_inputs_add(sam_header_inputs_t *self, const char *text);
+   void sam_header_inputs_add_files(sam_header_inputs_t *self,
+       char *const *files, size_t n_files, Logger *logger);
+   void sam_header_append_read_groups(strbuf_t *text,
+       const sam_header_inputs_t *inputs, const char *name);
+   void sam_header_append_programs(strbuf_t *text,
+       const sam_header_inputs_t *inputs, const char *program,
+       const char *version, const char *command_line);
+   char *sam_header_command_line(int argc, char *const argv[]);
+   const char *sam_header_line_id(const char *line, size_t line_len,
+       size_t *len);
 
 **sam-tags.h**
 

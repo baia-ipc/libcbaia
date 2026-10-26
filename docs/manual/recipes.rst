@@ -51,7 +51,11 @@ The structure is that of most read processing programs:
    buffers are cleared and reused for the next batch.
 
 No memory is allocated for each read: the batch, the buffers of the
-destinations and the compressor are reused. The same structure, with the
+destinations and the compressor are reused. With BAM input, the program
+can also write BAM output (``outfiles_set_bam()``, ``ubam-writer.h``),
+keeping the tags of the reads; the header of each output file is built
+with ``sam-header.h`` from the read groups and programs of the inputs
+(:ref:`sam-header`). The same structure, with the
 work of step 2 and the compression of step 3 done by several threads,
 gives a parallel program.
 
@@ -153,6 +157,8 @@ Statistics are accumulated by each thread in its own counters, merged
 under the output lock; the same holds for the sketches
 (``hll_merge()``) and the cell callers (``cell_caller_merge()``).
 
+.. _recipe-realtime:
+
 Processing a sequencing run in real time
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -189,7 +195,13 @@ stream ending with a newline, or a BAM file with the end-of-file
 marker), so that a file which is still being written is not processed;
 the minimum age protects against files whose writing pauses. The output
 files are opened in append mode (``outfiles_set_append()``), so that
-the reads of each new file are appended to the outputs.
+the reads of each new file are appended to the outputs. Durations given
+by the user (e.g. the minimum age, or the time after which the program
+stops if no new files arrive) are parsed with ``parse_duration()``
+(``strutils.h``), which accepts e.g. ``90s``, ``5m`` or ``1.5h``. A
+report of the results so far can be rewritten after each file, with
+``html_page_start()`` called with a ``refresh`` interval, so that the
+page open in the browser follows the run (:ref:`html-reports`).
 
 A two-pass analysis of single-cell reads
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -202,4 +214,6 @@ then selected, and the reads are processed in a second pass, correcting
 the barcodes using the cells only. The first pass needs only the
 barcodes (e.g. the first bases after an adaptor), and can be made
 parallel in the same way as the processing, with a cell caller for each
-thread, merged at the end.
+thread, merged at the end. The counts of the barcodes, in decreasing
+order (``cell_caller_sorted_counts()``), and the number of cells give
+the barcode rank plot of the report (``html_knee()``).

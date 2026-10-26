@@ -53,27 +53,3 @@ same file. The vendored library is built with the ``DEBUGFLAGS`` of the
 project, and rebuilt automatically when they change (e.g. after a build
 of the library alone with other flags, by ``make test`` in its
 directory).
-
-Using library modules instead of project modules
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-When the generic modules of Lumipore (FASTQ/BAM reader, output files,
-whitelist, cell caller, library complexity, helpers) were moved to the
-library, the performance of Lumipore was compared before and after, on
-four public Nanopore runs and a simulated dataset (4 threads, median of
-6–8 runs, alternating the versions):
-
-==============================================  ==============  ==============  ===========
-data                                            wall time (s)   CPU time (s)    memory (MB)
-==============================================  ==============  ==============  ===========
-simulated, 400,000 reads                        10.60 → 10.78   37.4 → 37.9     21 → 21
-ERR17727206, 200,000 reads                      14.78 → 14.47   53.3 → 52.8     50 → 50
-SRR35368620, 200,000 reads                      7.17 → 7.05     25.3 → 25.0     27 → 27
-SRR39379402 (single index), 200,000 reads       4.36 → 4.38     14.4 → 14.4     20 → 20
-SRR21714350 (10x, cell calling), 200,000 reads  19.66 → 19.82   56.8 → 56.4     166 → 166
-==============================================  ==============  ==============  ===========
-
-The differences are within the variation between runs. The number of
-instructions, counted with callgrind on one thread, was the same within
-0.02% (20,000 simulated reads; 10,000 reads of SRR21714350, with the
-barcode correction), and the outputs were identical.

@@ -5,10 +5,12 @@ Sequences and sequencing reads
 
 The ``seq`` component contains the modules for sequences and for the
 files of sequencing reads: FASTQ (plain or gzipped) and unaligned BAM
-(as written by the Nanopore basecallers), for reading and writing, and
-the output files of programs which distribute the reads to several
-destinations. The modules for barcodes, cells and library complexity are
-described in :ref:`barcodes`.
+(as written by the Nanopore basecallers), for reading and writing, the
+SAM tags and the read metadata in the titles of the reads, the header of
+BAM output, and the output files of programs which distribute the reads
+to several destinations. The modules for barcodes (including the edit
+distance of short sequences), cells and library complexity are described
+in :ref:`barcodes`.
 
 Sequence utilities (``sequtil.h``)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -134,7 +136,7 @@ The writers append records to a ``strbuf_t``, which is then compressed
    a FASTQ record, in four lines (the title without ``@``);
 ``ubam_writer_header(&out, text)``
    the header of an unaligned BAM file, with the SAM header text (no
-   reference sequences);
+   reference sequences; see :ref:`sam-header`);
 ``ubam_writer_record(&out, title, title_len, seq, qual, len)``
    an unmapped BAM record (flag 4): the title contains the read name and
    SAM tags in text format, separated by tabs (as returned by the BAM
@@ -146,6 +148,91 @@ The writers append records to a ``strbuf_t``, which is then compressed
 Thus, a program can read FASTQ or BAM, and write FASTQ or BAM, keeping
 the tags of the input (e.g. the read group, the channel, or the tags
 added by the program, such as ``CB`` and ``UB`` for single-cell data).
+
+.. _sam-header:
+
+The header of BAM output (``sam-header.h``)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+A program which writes BAM files from BAM input (e.g. the unaligned BAM
+of Dorado) keeps the provenance of the reads in the SAM header text given
+to ``ubam_writer_header()``: the read groups (``@RG``) of the inputs, so
+that the ``RG`` tags of the records still refer to a read group of the
+header, and the programs (``@PG``) of the inputs, followed by the
+``@PG`` line of the program itself, linked to the last one of the inputs
+(``PP``), as samtools does.
+
+The read groups and programs of the inputs are collected in a
+``sam_header_inputs_t`` (a plain structure: ``rg_ids`` and ``n_rg`` are
+the IDs of the read groups, ``last_pg`` the ID of the last program, or
+``NULL``):
+
+``void sam_header_inputs_init(sam_header_inputs_t *self)``, ``void sam_header_inputs_clear(sam_header_inputs_t *self)``, ``void sam_header_inputs_free(sam_header_inputs_t *self)``
+   initialize it (no read groups and programs), remove all read groups
+   and programs, free its memory;
+``void sam_header_inputs_add(sam_header_inputs_t *self, const char *text)``
+   add the ``@RG`` and ``@PG`` lines of a SAM header text (e.g. returned
+   by ``bam_reader_header()``), except those with an ID already added
+   (e.g. the same read group in several files of a run);
+``void sam_header_inputs_add_files(sam_header_inputs_t *self, char *const *files, size_t n_files, Logger *logger)``
+   the same, for the BAM files among the input files (the other files,
+   e.g. FASTQ, are skipped).
+
+The header text is then built with:
+
+``void sam_header_append_read_groups(strbuf_t *text, const sam_header_inputs_t *inputs, const char *name)``
+   append the read groups of the inputs; with a ``name`` (a destination,
+   e.g. a sample, of a program which distributes the reads), first a read
+   group ``name`` (``SM:name``), then each read group ``X`` of the inputs
+   renamed as ``name.X``, with its fields and ``SM:name``; the program
+   then writes ``RG:Z:name.X`` in the records of the destination (or
+   ``RG:Z:name``, for reads without read group);
+``void sam_header_append_programs(strbuf_t *text, const sam_header_inputs_t *inputs, const char *program, const char *version, const char *command_line)``
+   append the programs of the inputs and the ``@PG`` line of the
+   program: ``ID:program`` (``program.1``, ``.2``, ... if an input was
+   already written by it), ``PN:program``, ``PP:`` the last program of the
+   inputs, ``VN:version``, ``CL:command_line``;
+``char *sam_header_command_line(int argc, char *const argv[])``
+   the command line for the ``CL`` field: the arguments separated by
+   spaces, with tabs and newlines replaced by spaces (allocated);
+``const char *sam_header_line_id(const char *line, size_t line_len, size_t *len)``
+   the value of the ``ID`` field of a header line (not 0-terminated, its
+   length in ``*len``); ``NULL`` if none.
+
+For example, a demultiplexer writing a BAM file for each sample sets the
+header of each destination of the output files (:ref:`outfiles`):
+
+.. code-block:: c
+
+   sam_header_inputs_t inputs;
+   sam_header_inputs_init(&inputs);
+   sam_header_inputs_add_files(&inputs, files, n_files, logger);
+   char *cl = sam_header_command_line(argc, argv);
+   for (size_t d = 0; d < n_destinations; d++) {
+     strbuf_clear(&text);
+     strbuf_append_str(&text, "@HD\tVN:1.6\tSO:unknown\n");
+     sam_header_append_read_groups(&text, &inputs, names[d]);
+     sam_header_append_programs(&text, &inputs, "demux", VERSION, cl);
+     strbuf_append_char(&text, '\0');        /* 0-terminated */
+     strbuf_clear(&bam);
+     ubam_writer_header(&bam, text.s);
+     strbuf_clear(&compressed);
+     bgzf_compressor_run(bgzf, bam.s, bam.len, &compressed);
+     outfiles_set_bam(out, d, compressed.s, compressed.len);
+   }
+   free(cl);
+   sam_header_inputs_free(&inputs);
+
+With an input ``in.bam`` with the read groups ``run1_A`` and ``run1_B``
+and the basecaller as last program, the header of the sample ``S1``
+written by ``demux -o out in.bam`` is (fields separated by tabs)::
+
+   @HD  VN:1.6  SO:unknown
+   @RG  ID:S1  SM:S1
+   @RG  ID:S1.run1_A  PL:ONT  SM:S1
+   @RG  ID:S1.run1_B  PL:ONT  SM:S1
+   @PG  ID:basecaller  PN:dorado  VN:0.9
+   @PG  ID:demux  PN:demux  PP:basecaller  VN:1.0  CL:demux -o out in.bam
 
 SAM tags in read titles (``sam-tags.h``)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

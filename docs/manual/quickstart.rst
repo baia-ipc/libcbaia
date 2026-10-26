@@ -65,7 +65,8 @@ filter function, here the files of reads
 
 **Messages.** The results go to the standard output; the messages to the
 logger: ``lprintf(logger, LOG_INFO, ...)`` is shown only in the verbose
-mode, ``LOG_SUCCESS`` unless ``-q`` is given, ``LOG_WARN`` always.
+mode, ``LOG_SUCCESS`` and ``LOG_WARN`` unless ``-q`` is given (which
+leaves only the errors), ``LOG_ERROR`` always.
 
 **Freeing the memory.** All objects are deleted before exiting: the
 programs are tested under valgrind, which reports memory leaks.

@@ -12,11 +12,13 @@ The library:
 Makefile          build, test and installation targets
 cbaia.mk          Makefile fragment for the projects vendoring the library
 src/<component>/  sources and headers of the modules of each component:
-  core/           memory allocation, logging, files, strings, command line,
-                  unit test macros
+  core/           memory allocation, logging, files, strings, numeric
+                  utilities, command line, unit test macros
   ds/             data structures
-  io/             external sorting, gzip and BGZF compression
-  seq/            sequences, FASTQ and BAM files
+  io/             external sorting, gzip and BGZF compression, MD5,
+                  HTML reports
+  seq/            sequences, FASTQ and BAM files, SAM tags and headers,
+                  barcodes, cells, library complexity
 tests/            unit test program
 dev/, scripts/    scripts for the projects (object lists, program tests)
 docs/             documentation (this file)

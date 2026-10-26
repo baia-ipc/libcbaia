@@ -7,7 +7,7 @@
 #                output with the expected results
 #
 
-PROGS = readcount bcdemux logdemo
+PROGS = readcount bcdemux logdemo htmlreport
 
 # the default goal (before the rules of cbaia.mk)
 all: $(PROGS)
@@ -35,6 +35,8 @@ check: $(PROGS)
 	$(VALGRIND) ./logdemo -n 1000 2> out/logdemo.err
 	sed 's/^# [0-9-]* [0-9:]* |/#/' out/logdemo.err | diff - expected/logdemo.log
 	! ./logdemo -q -n 10 -e 2> /dev/null
+	$(VALGRIND) ./htmlreport -q out/report.html
+	grep -v '>Updated: ' out/report.html | diff - expected/report.html
 	rm -rf out
 	@echo "[OK] examples"
 

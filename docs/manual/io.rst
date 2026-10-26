@@ -4,8 +4,9 @@ Large files and compression
 ---------------------------
 
 The ``io`` component contains modules for handling large files: sorting
-files which do not fit in memory, and compressing output data in
-parallel.
+files which do not fit in memory, compressing output data in parallel,
+and computing checksums; and the writing of the results of a program as
+an HTML report.
 
 External sorting (``file-sorter.h``, ``file-merger.h``)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -131,3 +132,81 @@ downloads; not for security purposes:
    md5_update(&md5, data, len);
    md5_update(&md5, more, more_len);
    md5_final(&md5, hex);
+
+.. _html-reports:
+
+HTML reports (``html-page.h``)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+A program can summarize its results in an HTML report, to be opened in a
+browser. The pages are **self-contained**: the style is included in the
+page and the plots are inline SVG, so that a report can be copied or sent
+as a single file, and viewed offline; the style follows the light or
+dark theme of the browser. A report is written as:
+
+``void html_page_start(FILE *f, const char *title, long refresh)``
+   the head of the page (title, style) and the start of the body: the
+   title as ``h1`` heading, and the time of writing ("Updated: ...");
+   if ``refresh`` > 0, the browser reloads the page every ``refresh``
+   seconds (for a report rewritten during a run, see
+   :ref:`recipe-realtime`);
+the content
+   written by the program (headings ``h2``, paragraphs, tables), with the
+   functions below for the tiles and the plots;
+``void html_page_end(FILE *f, const char *footer)``
+   the end of the page, with a footer note (``NULL``: none).
+
+The content:
+
+``void html_tile(FILE *f, const char *value, const char *label)``
+   a tile with a main value and its label (both HTML); the tiles are
+   written inside a ``<div class="tiles">``, which shows them in a row;
+``void html_hbars(FILE *f, size_t n, const char *const *labels, const size_t *values, const char *const *classes, size_t total, double mean)``
+   a horizontal bar chart: for each of the ``n`` values, its label, a bar
+   and the value with its percentage of ``total``; ``classes[i]`` is the
+   class of the bar: ``"s"`` (main color, e.g. the samples) or ``"p"``
+   (muted, e.g. the unassigned reads); if ``mean`` > 0, a dashed line at
+   that value;
+``void html_histogram(FILE *f, const size_t *hist, size_t n_bins, size_t bin_width, const char *what, const char *unit, const char *empty)``
+   a histogram of counts in bins of width ``bin_width`` (bin ``b``: the
+   values from ``b * bin_width`` to ``(b + 1) * bin_width - 1``, as for
+   ``hist_median()``), up to the bin of the 99.5th percentile; the x axis
+   is labelled ``what (unit)``; if all counts are 0, the note ``empty`` is
+   written instead;
+``void html_knee(FILE *f, const uint64_t *counts, size_t n, size_t n_cells)``
+   a barcode rank plot ("knee plot", log-log): the counts of reads of
+   the barcodes in decreasing order (e.g. from
+   ``cell_caller_sorted_counts()``), with a dashed line at the rank
+   ``n_cells`` (the barcodes identified as cells; 0: none);
+``const char *html_num(size_t n)``
+   a number with thousands separators (``1,234,567``), for the text of
+   the report; the result is in a static buffer, overwritten after four
+   calls, so that up to four numbers can be used in one ``fprintf()``
+   (not thread-safe: write the report from one thread);
+``double html_percent(size_t a, size_t b)``
+   ``100 * a / b`` (0 if ``b`` is 0).
+
+The strings given as labels, titles and notes of the plots are escaped;
+the values and labels of the tiles are HTML (e.g. ``92.5%`` or
+``<code>ACGT</code>``): text from the input must be escaped with
+``fputs_html_escaped()`` (``strutils.h``). ``html_page_css`` contains the
+style, e.g. for a page written otherwise; besides the headings and tables
+(numbers right-aligned), it defines the classes ``p.sub`` (subtitle),
+``p.note`` (small, muted text), ``p.running`` (a highlighted box, e.g.
+"run in progress") and ``td.seq`` (sequences, in monospace).
+
+The example program ``htmlreport`` (``docs/manual/examples/htmlreport.c``)
+writes the report of a demultiplexer (with example values,
+:numref:`fig-html-report`):
+
+.. literalinclude:: examples/htmlreport.c
+   :language: c
+   :start-at: FILE *f = xfopen
+   :end-at: xfclose
+
+.. _fig-html-report:
+
+.. figure:: figures/html_report.png
+   :width: 80%
+
+   The report written by ``htmlreport``, in a browser (light theme).

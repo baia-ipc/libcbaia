@@ -33,7 +33,8 @@ not created, e.g. in cleanup code).
 A few *plain data structures* are defined in the headers, as their
 fields are read by the callers: e.g. ``fastq_batch_t`` (a batch of
 records), ``strbuf_t`` (a string buffer), ``hll_t`` (a HyperLogLog
-sketch), ``whitelist_match_t`` and ``complexity_t`` (results). They are
+sketch), ``sam_header_inputs_t`` (the read groups and programs of the
+inputs), ``whitelist_match_t`` and ``complexity_t`` (results). They are
 initialized and freed by ``_init()`` and ``_free()`` functions, or are
 filled by the functions that return them.
 
@@ -44,7 +45,8 @@ The header of each function says who owns the memory of the values it
 returns:
 
 * strings and arrays returned by functions such as ``strcat_alloc()``,
-  ``path_basename()``, ``list_dir()`` or ``whitelist_codes()`` are
+  ``path_join()``, ``path_basename()``, ``list_dir()`` or
+  ``whitelist_codes()`` are
   allocated, and must be freed by the caller (with ``free()``);
 * strings passed to constructors are *copied* when they are kept (e.g.
   the description of ``progress_new()``), unless documented otherwise;
@@ -94,7 +96,9 @@ tests and in small tools.
 Threads
 ~~~~~~~
 
-The modules have no global state (except constants). Different objects
+The modules have no global state (except constants; the one exception
+is ``html_num()`` of the HTML reports, which returns its result in a
+static buffer). Different objects
 can thus be used by different threads at the same time; an object is
 not protected by locks, and is used by one thread at a time (or only
 read, e.g. a whitelist shared by the threads after its construction).

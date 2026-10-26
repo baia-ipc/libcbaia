@@ -24,3 +24,10 @@
         -w data/barcodes.txt -d 1 -o out data/reads.fastq -- ls out
       node $F/screenshot.js /tmp/t.html $F/term_bcdemux.png
       rm -rf out
+
+- `html_report.png`: the report written by the example program
+  `htmlreport`, screenshot of its `<main>` element in a window 900 pixels
+  wide (from `docs/manual/examples`, after `make`):
+
+      ./htmlreport /tmp/report.html
+      node ../figures/screenshot.js /tmp/report.html ../figures/html_report.png main 900

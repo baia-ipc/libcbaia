@@ -59,7 +59,7 @@ with a level; it shows the messages up to its own level:
 level              shown by    meaning
 =================  ==========  ==================================================
 ``LOG_ERROR``      always      the program is interrupted
-``LOG_WARN``       always      a problem, but the program continues
+``LOG_WARN``       not ``-q``  a problem, but the program continues
 ``LOG_SUCCESS``    not ``-q``  an operation was completed successfully
 ``LOG_PHASE``      ``-v``      start or end of a phase of the program
 ``LOG_INFO``       ``-v``      additional information
@@ -160,7 +160,7 @@ token or the value of a macro; ``BOOLSTR(b)`` gives ``"T"`` or ``"F"``.
 **The common options**, handled by ``COMMON_OPTS_PARSE_CASES``:
 
 =====================  ===================================================
-``-q``, ``--quiet``    level ``LOG_WARN``: no success messages
+``-q``, ``--quiet``    level ``LOG_ERROR``: only the error messages
 ``-v``, ``--verbose``  level ``LOG_PARAM``: information and parameters
 ``-D``, ``--debug``    level ``LOG_DEBUG``
 ``-g``, ``--logfile``  write the messages to a file
@@ -262,6 +262,10 @@ the debug messages. Further functions:
 ``void xmakedirs(const char *path, Logger *logger)``
    create a directory and its parents, if they do not exist (as ``mkdir
    -p``);
+``char *path_join(const char *dir, const char *name)``
+   the path ``dir/name`` (allocated), without doubling the slash if
+   ``dir`` ends with one; ``name`` if ``dir`` is empty:
+   ``path_join("out/", "S1")`` gives ``"out/S1"``;
 ``char *path_basename(const char *path)``
    the last component of a path, without trailing slashes (allocated):
    ``"run/fastq_pass/"`` gives ``"fastq_pass"``;
@@ -305,7 +309,28 @@ Strings (``strutils.h``, ``strbuf.h``)
    report);
 ``void format_duration(double seconds, char *buf, size_t size)``
    format a duration as ``HH:MM:SS``, or ``D d HH:MM:SS`` from one day
-   (rounded to the second; negative values as 0).
+   (rounded to the second; negative values as 0);
+``bool parse_duration(const char *s, double default_unit, long *seconds)``
+   parse a duration given by the user: a non-negative number, optionally
+   followed by the unit ``s``, ``m`` or ``h`` (e.g. ``30s``, ``1.5h``);
+   a number without unit is in units of ``default_unit`` seconds (e.g.
+   60: minutes). The result is in seconds (rounded); ``false`` if the
+   string is not valid, e.g. for an option:
+
+   .. code-block:: c
+
+      case 'a':   /* --min-age, default unit: minutes */
+        if (!parse_duration(optarg, 60, &min_age))
+          OPT_ERR('a', "a duration is expected, e.g. 90s, 5m or 1.5h "
+                  "(%s found)", optarg);
+        break;
+
+``bool is_space(char c)``
+   whether a character is whitespace, as for the ``split()`` and
+   ``strip()`` of Python (ASCII: space, ``\t``, ``\n``, ``\v``,
+   ``\f``, ``\r`` and the separators ``\x1c``–``\x1f``); inline (it is
+   used, e.g., by the FASTQ reader to remove the trailing whitespace of
+   the lines).
 
 ``strbuf.h`` implements a growable string buffer, ``strbuf_t``, for
 building output text (e.g. a batch of FASTQ records) without an
@@ -324,6 +349,35 @@ is not 0-terminated. The functions are inline:
    strbuf_clear(&buf);           /* empty, the memory is kept */
    strbuf_append(&buf, seq, len);
    strbuf_free(&buf);
+
+Numeric utilities (``numutils.h``)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``long floordiv(long a, long b)``
+   ``a / b`` rounded towards minus infinity, as ``//`` in Python (the
+   ``/`` of C rounds towards zero: ``-7 / 2`` is ``-3``, ``floordiv(-7,
+   2)`` is ``-4``); inline; ``b`` must not be 0. Useful for reproducing
+   exactly the results of Python programs (see also ``py_slice()`` of
+   ``sequtil.h``);
+``size_t hist_median(const size_t *hist, size_t n_bins, size_t bin_width, size_t total)``
+   the median of the values counted in a histogram, whose bin ``b``
+   counts the values from ``b * bin_width`` to ``(b + 1) * bin_width -
+   1``, with ``total`` values in all: the middle of the bin containing
+   the median (the middle of the first bin if ``total`` is 0);
+``double nice_number(double v)``
+   ``v`` rounded up to 1, 2 or 5 times a power of 10 (at least 1), e.g.
+   for the maximum of the axis of a plot: 130 gives 200, 4000 gives
+   5000.
+
+.. code-block:: c
+
+   size_t hist[100] = {0}, total = 0;   /* read lengths, bins of 50 bp */
+   for (each read) {
+     size_t b = len / 50;
+     hist[b < 100 ? b : 99]++;
+     total++;
+   }
+   size_t median = hist_median(hist, 100, 50, total);   /* e.g. 425 */
 
 Progress display (``progress.h``)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
