@@ -182,9 +182,19 @@ void ubam_writer_record(strbuf_t *out, const char *title, size_t title_len,
     const char *seq, const char *qual, size_t len) {
   assert(out != NULL);
   assert(title != NULL);
+  /* the read name is the first word of the title (as in FASTQ files,
+     whose titles are kept as they are, leading whitespace included) */
+  const char *name = title, *end = title + title_len;
+  while (name < end && is_space(*name))
+    name++;
   size_t name_len = 0;
-  while (name_len < title_len && !isspace((unsigned char)title[name_len]))
+  while (name + name_len < end && !is_space(name[name_len]))
     name_len++;
+  const char *tags = name + name_len;
+  if (name_len == 0) {  /* (then there are no tags) */
+    name = UBAM_NO_READ_NAME;
+    name_len = strlen(UBAM_NO_READ_NAME);
+  }
   size_t l_read_name = (name_len < UBAM_MAX_READ_NAME ? name_len :
                         UBAM_MAX_READ_NAME) + 1;
   size_t start = out->len;
@@ -200,14 +210,14 @@ void ubam_writer_record(strbuf_t *out, const char *title, size_t title_len,
   bam_put32(out, 0xffffffff);
   bam_put32(out, 0xffffffff);
   bam_put32(out, 0);
-  strbuf_append(out, title, l_read_name - 1);
+  strbuf_append(out, name, l_read_name - 1);
   strbuf_append_char(out, '\0');
   for (size_t i = 0; i < len; i += 2)
     strbuf_append_char(out, (char)((base_code(seq[i]) << 4) |
                        (i + 1 < len ? base_code(seq[i + 1]) : 0)));
   for (size_t i = 0; i < len; i++)
     strbuf_append_char(out, (char)(qual[i] - 33));
-  const char *p = title + name_len, *end = title + title_len;
+  const char *p = tags;
   while (p < end) {
     p++;
     const char *e = memchr(p, '\t', (size_t)(end - p));
@@ -222,7 +232,46 @@ void ubam_writer_record(strbuf_t *out, const char *title, size_t title_len,
 
 /* --- unit tests --- */
 
+/* write a single record (no tags) to <b> (cleared before) */
+static void write_record(strbuf_t *b, const char *title, const char *seq,
+    const char *qual) {
+  strbuf_clear(b);
+  ubam_writer_record(b, title, strlen(title), seq, qual, strlen(seq));
+}
+
+/* the read name of the record in <b> (0-terminated) */
+static const char *record_name(const strbuf_t *b) {
+  return b->s + 4 + BAM_CORE_LEN;
+}
+
+/* the tags of the record in <b> (binary), and their length */
+static const char *record_tags(const strbuf_t *b, size_t len,
+    size_t *tags_len) {
+  size_t from = 4 + BAM_CORE_LEN + (uint8_t)b->s[12] + (len + 1) / 2 + len;
+  *tags_len = b->len - from;
+  return b->s + from;
+}
+
+/* read name: the first word of the title */
+static void test_read_name(void) {
+  strbuf_t b;
+  strbuf_init(&b);
+  write_record(&b, " \tr1 x\tRG:Z:a", "A", "I");
+  test_eq_str(record_name(&b), "r1");
+  size_t tags_len;
+  const char *tags = record_tags(&b, 1, &tags_len);
+  test_assert(tags_len == 5 && memcmp(tags, "RGZa", 5) == 0);
+  write_record(&b, "", "A", "I");
+  test_eq_str(record_name(&b), UBAM_NO_READ_NAME);
+  write_record(&b, "  ", "A", "I");
+  test_eq_str(record_name(&b), UBAM_NO_READ_NAME);
+  record_tags(&b, 1, &tags_len);
+  test_eq_size(tags_len, 0);
+  strbuf_free(&b);
+}
+
 void ubam_writer_test(const char *tmpdir) {
+  test_read_name();
   strbuf_t data, out;
   strbuf_init(&data);
   strbuf_init(&out);

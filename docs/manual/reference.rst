@@ -702,6 +702,7 @@ Encoding of unaligned BAM data (header and records), to be compressed with BGZF 
 .. code-block:: c
 
    #define UBAM_MAX_READ_NAME
+   #define UBAM_NO_READ_NAME
    void ubam_writer_header(strbuf_t *out, const char *text);
    void ubam_writer_record(strbuf_t *out, const char *title, size_t title_len,
        const char *seq, const char *qual, size_t len);

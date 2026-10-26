@@ -149,8 +149,10 @@ The writers append records to a ``strbuf_t``, which is then compressed
    SAM tags in text format, separated by tabs (as returned by the BAM
    reader); the tags are encoded in binary form (integers with the
    smallest type, as htslib does); fields which are not valid SAM tags
-   are not written; names longer than ``UBAM_MAX_READ_NAME`` (254) are
-   truncated.
+   are not written. The read name is the first word of the title
+   (leading whitespace is skipped; ``*``, i.e. ``UBAM_NO_READ_NAME``, if
+   the title is empty); names longer than ``UBAM_MAX_READ_NAME`` (254)
+   are truncated.
 
 Thus, a program can read FASTQ or BAM, and write FASTQ or BAM, keeping
 the tags of the input (e.g. the read group, the channel, or the tags

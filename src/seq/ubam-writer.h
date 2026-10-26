@@ -21,12 +21,16 @@
 /* maximum length of a read name in BAM (longer names are truncated) */
 #define UBAM_MAX_READ_NAME 254
 
+/* read name written for an empty title (the unavailable QNAME of SAM) */
+#define UBAM_NO_READ_NAME "*"
+
 /* Append the header (SAM header text <text>, no reference) to <out> */
 void ubam_writer_header(strbuf_t *out, const char *text);
 
 /*
-   Append a record to <out>: <title> (length <title_len>): read name and
-   tags; <seq> and <qual> (Phred+33): <len> bases
+   Append a record to <out>: <title> (length <title_len>): read name (the
+   first word, leading whitespace is skipped; UBAM_NO_READ_NAME if none)
+   and tags; <seq> and <qual> (Phred+33): <len> bases
 */
 void ubam_writer_record(strbuf_t *out, const char *title, size_t title_len,
     const char *seq, const char *qual, size_t len);
