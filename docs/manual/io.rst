@@ -6,7 +6,7 @@ Large files and compression
 The ``io`` component contains modules for handling large files: sorting
 files which do not fit in memory, compressing output data in parallel,
 and computing checksums; and the writing of the results of a program as
-an HTML report.
+an HTML report (with an HTML element writer).
 
 External sorting (``file-sorter.h``, ``file-merger.h``)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -132,6 +132,65 @@ downloads; not for security purposes:
    md5_update(&md5, data, len);
    md5_update(&md5, more, more_len);
    md5_final(&md5, hex);
+
+.. _html-writer:
+
+Writing HTML (``html-writer.h``)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The markup of the HTML reports (:ref:`html-reports`), including their
+inline SVG plots, is written by an element writer, ``html_writer_t``,
+which a program can also use for its own content. It escapes the text and
+the attribute values in one place, and indents the output, one element
+per line, so that the nesting is visible in the code as in the page::
+
+   html_writer_t w;
+   html_writer_init(&w, f);
+   html_open(&w, "table");
+   html_open(&w, "tr");
+   html_inline(&w);                         /* a row on one line */
+   html_tag_text(&w, "td", name);           /* escaped */
+   html_open(&w, "td");
+   html_attr(&w, "class", "%s", "seq");
+   html_textf(&w, "%zu", count);
+   html_close(&w);
+   html_close(&w);
+   html_close(&w);
+   html_writer_end(&w);
+
+writes::
+
+   <table>
+     <tr><td>S1 &amp; S2</td><td class="seq">42</td></tr>
+   </table>
+
+``void html_open(html_writer_t *w, const char *tag)``
+   starts an element; ``void html_close(html_writer_t *w)`` ends the
+   innermost open element;
+``void html_elem(html_writer_t *w, const char *tag)``
+   an element without content and end tag: an HTML void element (e.g.
+   ``img``, ``meta``) or, inside ``svg``, any element (written as
+   ``<rect .../>``);
+``void html_attr(html_writer_t *w, const char *name, const char *fmt, ...)``
+   an attribute, with the value formatted as by ``printf()``, then
+   escaped; the attributes follow ``html_open()`` or ``html_elem()``
+   directly: the start tag is completed by the next call of any other
+   function. Each attribute is a separate call, so that the compiler
+   checks the format and arguments of each value (it could not check
+   name and value pairs passed as variable arguments);
+``void html_text(html_writer_t *w, const char *text)``, ``void html_textf(html_writer_t *w, const char *fmt, ...)``
+   text, escaped; ``void html_raw(html_writer_t *w, const char *markup)``
+   writes trusted markup in the same way, without escaping;
+``void html_tag_text(html_writer_t *w, const char *tag, const char *text)``, ``html_tag_textf()``
+   an element without attributes containing only text, e.g. a heading;
+``void html_inline(html_writer_t *w)``
+   writes the content of the element just started on the same line as
+   its tags.
+
+An element containing text is always written on one line, with all its
+content (e.g. ``<p>see <code>out.tsv</code></p>``), as a line break
+between text and inline elements would add a space in the page.
+``html_writer_end()`` checks that all elements were closed.
 
 .. _html-reports:
 

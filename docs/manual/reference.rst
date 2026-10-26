@@ -406,6 +406,39 @@ Self-contained HTML reports: a page with a style for light and dark themes (no e
        size_t n_selected, const char *x_label, const char *y_label,
        const char *selected_label);
 
+**html-writer.h**
+
+Writing HTML (and inline SVG) element by element: the text and the attribute values are escaped in one place, and the output is indented, one element per line, so that the nesting is visible both in the code and in the page.
+
+.. code-block:: c
+
+   #define HTML_WRITER_MAX_DEPTH
+   typedef struct {
+     FILE *f;
+     const char *tags[HTML_WRITER_MAX_DEPTH];
+     unsigned char content[HTML_WRITER_MAX_DEPTH];
+     size_t depth;
+     size_t inline_from;
+     size_t svg;
+     const char *start;
+     bool start_void;
+   } html_writer_t;
+   void html_writer_init(html_writer_t *w, FILE *f);
+   void html_writer_end(html_writer_t *w);
+   void html_open(html_writer_t *w, const char *tag);
+   void html_elem(html_writer_t *w, const char *tag);
+   void html_attr(html_writer_t *w, const char *name, const char *fmt, ...)
+     __attribute__((format(printf, 3, 4)));
+   void html_inline(html_writer_t *w);
+   void html_text(html_writer_t *w, const char *text);
+   void html_textf(html_writer_t *w, const char *fmt, ...)
+     __attribute__((format(printf, 2, 3)));
+   void html_raw(html_writer_t *w, const char *markup);
+   void html_close(html_writer_t *w);
+   void html_tag_text(html_writer_t *w, const char *tag, const char *text);
+   void html_tag_textf(html_writer_t *w, const char *tag, const char *fmt, ...)
+     __attribute__((format(printf, 3, 4)));
+
 **md5.h**
 
 MD5 message digest (RFC 1321), e.g. for the checksums of files in metadata (as the md5 of the onlists of seqspec files) or for checking downloads. Not to be used for security purposes.

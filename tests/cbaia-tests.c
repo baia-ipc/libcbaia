@@ -25,6 +25,7 @@
 #include "gzip-compressor.h"
 #include "heap.h"
 #include "html-page.h"
+#include "html-writer.h"
 #include "hyperloglog.h"
 #include "logger.h"
 #include "md5.h"
@@ -80,6 +81,7 @@
   " -l : test cell caller\n"\
   " -i : test library complexity\n"\
   " -5 : test MD5 digest\n"\
+  " -W : test HTML writer\n"\
   " -H : test HTML reports\n"\
   "\n"\
   "Other options:\n"\
@@ -418,6 +420,7 @@ static test_group_t test_groups[] = {
   {'l', "cell caller", run_cell_caller_test, false},
   {'i', "library complexity", complexity_test, false},
   {'5', "MD5 digest", run_md5_test, false},
+  {'W', "HTML writer", html_writer_test, false},
   {'H', "HTML reports", html_page_test, false},
 };
 #define N_TEST_GROUPS (sizeof(test_groups) / sizeof(test_groups[0]))
