@@ -7,12 +7,13 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define test_assert(TEST) \
+#define test_assert(TEST) do {\
   if (!(TEST)) {\
     fprintf(stderr, "Test assertion failed in file %s at line %i: %s\n", \
             __FILE__, __LINE__, #TEST);\
     exit(EXIT_FAILURE);\
-  }
+  }\
+} while (0)
 
 #define test_eq(FOUND, EXP, TYPE, FMT) do {\
   TYPE _FOUND = FOUND;\
