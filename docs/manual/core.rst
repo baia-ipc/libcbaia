@@ -363,7 +363,9 @@ is not 0-terminated. The functions are inline:
 To write directly into the buffer (e.g. the output of a compressor),
 ``strbuf_reserve(&buf, n)`` returns a pointer to space for ``n``
 characters at the end of the content, and ``strbuf_commit(&buf, k)``
-adds the ``k`` characters written there to the content.
+adds the ``k`` characters written there to the content;
+``strbuf_truncate(&buf, len)`` removes the content after its first
+``len`` characters (e.g. a piece which turned out to be invalid).
 
 Numeric utilities (``numutils.h``)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

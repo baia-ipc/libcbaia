@@ -125,7 +125,7 @@ static bool put_array(strbuf_t *out, const char *v, size_t len) {
   bam_set32(out->s + count_pos, count);
   return true;
 invalid:
-  out->len = start;
+  strbuf_truncate(out, start);
   return false;
 }
 
@@ -209,7 +209,7 @@ static void put_tag(strbuf_t *out, const char *t, size_t len,
       goto invalid;
   }
 invalid:
-  out->len = start;
+  strbuf_truncate(out, start);
 }
 
 void ubam_writer_record(strbuf_t *out, const char *title, size_t title_len,

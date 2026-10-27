@@ -8,6 +8,7 @@
 #ifndef STRBUF_H
 #define STRBUF_H
 
+#include <assert.h>
 #include <stddef.h>
 #include <string.h>
 #include "alloc.h"
@@ -38,6 +39,13 @@ static inline void strbuf_free(strbuf_t *self) {
 /* Remove the content (keeping the memory) */
 static inline void strbuf_clear(strbuf_t *self) {
   self->len = 0;
+}
+
+/* Remove the content after the first <len> characters (at most the
+   length of the content), keeping the memory */
+static inline void strbuf_truncate(strbuf_t *self, size_t len) {
+  assert(len <= self->len);
+  self->len = len;
 }
 
 /* Append <len> characters */

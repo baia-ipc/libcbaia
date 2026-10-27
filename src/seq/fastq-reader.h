@@ -9,6 +9,8 @@
    span several lines (a line starting with '@' ends the qualities, if they
    are at least as long as the sequence); the title on the "+" line is
    optional, but must be equal to the title of the record, if present.
+   Unlike Biopython, which skips any text before the first record, a file
+   whose first line does not start with '@' is not valid.
 */
 
 #ifndef FASTQ_READER_H

@@ -203,6 +203,7 @@ Growable string buffer, for building output text without allocations for each pi
    static inline void strbuf_init(strbuf_t *self);
    static inline void strbuf_free(strbuf_t *self);
    static inline void strbuf_clear(strbuf_t *self);
+   static inline void strbuf_truncate(strbuf_t *self, size_t len);
    static inline void strbuf_append(strbuf_t *self, const char *s,
        size_t len);
    static inline void strbuf_append_str(strbuf_t *self, const char *s);

@@ -128,10 +128,11 @@ static bool read_line(fastq_reader_t *self, strbuf_t *out) {
 }
 
 /* remove trailing whitespace from data[from..] */
-static size_t rstrip(strbuf_t *data, size_t from) {
-  while (data->len > from && is_space(data->s[data->len - 1]))
-    data->len--;
-  return data->len - from;
+static void rstrip(strbuf_t *data, size_t from) {
+  size_t len = data->len;
+  while (len > from && is_space(data->s[len - 1]))
+    len--;
+  strbuf_truncate(data, len);
 }
 
 __attribute__ ((format (printf, 2, 3), noreturn))
@@ -196,7 +197,11 @@ size_t fastq_reader_read_batch(fastq_reader_t *self, fastq_batch_t *batch,
                      "unexpected end of file");
       if (first_char(&self->line) == '+')
         break;
+      size_t piece_from = data->len;
       append_line(self, 0, data);
+      for (size_t i = piece_from; i < data->len; i++)
+        if (data->s[i] == ' ' || data->s[i] == '\t')
+          format_error(self, "whitespace is not allowed in the sequence");
     }
     rec->seq_len = data->len - rec->seq_from;
     /* the title of the "+" line is optional, but must match */
@@ -207,10 +212,7 @@ size_t fastq_reader_read_batch(fastq_reader_t *self, fastq_batch_t *batch,
          memcmp(data->s + plus_title, data->s + rec->title_from,
                 rec->title_len) != 0))
       format_error(self, "sequence and quality captions differ");
-    data->len = plus_title;
-    for (size_t i = rec->seq_from; i < rec->seq_from + rec->seq_len; i++)
-      if (data->s[i] == ' ' || data->s[i] == '\t')
-        format_error(self, "whitespace is not allowed in the sequence");
+    strbuf_truncate(data, plus_title);
     /* qualities, until the title of the next record or the end of file */
     rec->qual_from = data->len;
     rec->qual_missing = false;

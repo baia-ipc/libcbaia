@@ -34,8 +34,10 @@ content) in **batches** of records. The parsing follows the Biopython
 ``FastqGeneralIterator``: the title is kept as it is (except trailing
 whitespace), sequences and qualities can span several lines, and the
 title of the ``+`` line is optional, but must be equal to that of the
-record, if present. Invalid records interrupt the program with a
-message giving the file and the problem.
+record, if present. Unlike Biopython, which skips any text before the
+first record, a file whose first line does not start with ``@`` is not
+valid. Invalid records interrupt the program with a message giving the
+file, the line and the problem.
 
 A batch (``fastq_batch_t``) stores all its records in one buffer
 (``data``); each record (``fastq_record_t``) gives the offsets and

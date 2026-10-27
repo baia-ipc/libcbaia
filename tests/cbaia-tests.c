@@ -68,6 +68,9 @@ static void strutils_test(void) {
   strbuf_append_char(&buf, ';');
   strbuf_append_long(&buf, 0);
   test_assert(buf.len == 9 && memcmp(buf.s, "x=-1234;0", 9) == 0);
+  strbuf_truncate(&buf, 7);
+  strbuf_append_char(&buf, ',');
+  test_assert(buf.len == 8 && memcmp(buf.s, "x=-1234,", 8) == 0);
   strbuf_clear(&buf);
   for (size_t i = 0; i < 10000; i++)
     strbuf_append(&buf, "abc", 3);
