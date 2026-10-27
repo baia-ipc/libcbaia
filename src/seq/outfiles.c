@@ -23,6 +23,7 @@
 struct outfiles_t {
   char *prefix;   /* <outdir>/<basename>. */
   FILE **files;
+  char **names;   /* name of each destination, once its file is open */
   size_t n_destinations;
   bool append;
   bool bam;            /* false: FASTQ output */
@@ -38,6 +39,7 @@ static outfiles_t* new_with_prefix(const char *prefix,
   XMALLOC(self, sizeof(outfiles_t));
   self->prefix = xstrdup(prefix);
   XCALLOC(self->files, n_destinations + 1, sizeof(FILE *));
+  XCALLOC(self->names, n_destinations + 1, sizeof(char *));
   self->n_destinations = n_destinations;
   self->append = false;
   self->bam = false;
@@ -130,6 +132,7 @@ void outfiles_write(outfiles_t *self, size_t destination, const char *name,
     self->files[destination] = xfopen(base, sfx, self->append ? "ab" : "wb",
                                       "output file", self->logger);
     free(base);
+    self->names[destination] = xstrdup(name);
     if (self->bam && !has_header) {
       assert(self->bam_headers[destination] != NULL);
       write_or_exit(self, self->files[destination],
@@ -148,12 +151,15 @@ void outfiles_delete(outfiles_t *self) {
       continue;
     if (self->bam)
       write_or_exit(self, self->files[i], (const char *)bgzf_eof,
-                    BGZF_EOF_LEN, "a destination");
+                    BGZF_EOF_LEN, self->names[i]);
     xfclose(&self->files[i], self->logger);
   }
   free(self->files);
-  for (size_t i = 0; i < self->n_destinations; i++)
+  for (size_t i = 0; i < self->n_destinations; i++) {
+    free(self->names[i]);
     free(self->bam_headers[i]);
+  }
+  free(self->names);
   free(self->bam_headers);
   free(self->bam_header_lens);
   free(self->prefix);
