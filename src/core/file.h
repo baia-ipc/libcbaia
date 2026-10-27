@@ -106,6 +106,10 @@ void read_file(FILE *file, char **buffer, size_t *bufsize, Logger* logger);
       "I/O error while writing a file\n");\
 } while (0)
 
+/* minimum buffer size of read_lines_in_buffer(): one byte of the file, the
+   newline appended at the end of the file, and the \0 */
+#define READ_LINES_MIN_BUFSIZE 3
+
 /*
    Read as many lines as possible from file content into the buffer
    (at most bufsize-2 bytes) and set the next available byte to \0.
@@ -117,12 +121,13 @@ void read_file(FILE *file, char **buffer, size_t *bufsize, Logger* logger);
    Input parameters:
    - <file> the input file
    - <buffer> the buffer
-   - <bufsize> the size of the buffer
+   - <bufsize> the size of the buffer, at least READ_LINES_MIN_BUFSIZE
 
    Return value:
    - number of lines read
 
    Fails if:
+   - bufsize is less than READ_LINES_MIN_BUFSIZE
    - fread on the file fails
    - no newline has been found and EOF has not been reached
      (ie. a line is longer than the buffer)

@@ -252,8 +252,9 @@ the debug messages. Further functions:
 * ``read_file(file, &buffer, &size, logger)``: read a whole file into an
   allocated buffer;
 * ``read_lines_in_buffer(file, buffer, bufsize, &lines, &linesbufsize,
-  logger)``: read as many complete lines as fit into a buffer, and split
-  them (used by the file sorter);
+  logger)``: read as many complete lines as fit into a buffer (of at
+  least ``READ_LINES_MIN_BUFSIZE`` bytes), and split them (used by the
+  file sorter);
 * ``xfmap()``/``xfunmap()``: map a file into memory (an empty file is
   an error, as it cannot be mapped);
 * ``xfopen_chksig()``, ``xfopen_putsig()``, ``xfmap_chksig()``,

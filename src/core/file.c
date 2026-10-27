@@ -210,7 +210,9 @@ size_t read_lines_in_buffer(FILE *file, char *buffer, const size_t bufsize,
 
   assert(file != NULL);
   assert(buffer != NULL);
-  assert(bufsize > 0);
+  LCHECK(bufsize >= READ_LINES_MIN_BUFSIZE, logger,
+         "read_lines_in_buffer: the buffer size must be at least %d bytes "
+         "(%zu)\n", READ_LINES_MIN_BUFSIZE, bufsize);
   if (feof(file))
     return 0;
   nitemsread = fread(buffer, 1, bufsize-2, file);
@@ -241,12 +243,13 @@ size_t read_lines_in_buffer(FILE *file, char *buffer, const size_t bufsize,
   buffer[lastnewline+1] = 0;
   if (nlines == 0)
   {
-    if (bufsize > LONG_LINE_PFXLEN) buffer[LONG_LINE_PFXLEN] = '\0';
-    else buffer[bufsize-1] = '\0';
+    /* the bytes read are buffer[0..nitemsread-1] */
+    bool prefix = nitemsread > LONG_LINE_PFXLEN;
+    buffer[prefix ? LONG_LINE_PFXLEN : nitemsread] = '\0';
     lprintf(logger, LOG_ERROR, "A line of the input file is larger "
         "than the available buffer size (%zu bytes).\n", bufsize);
     lprintf(logger, LOG_ERROR, "Long line%s: %s\n",
-        bufsize > LONG_LINE_PFXLEN ? " starts with" : "", buffer);
+        prefix ? " starts with" : "", buffer);
     lprintf(logger, LOG_ERROR, "Suggestion: determine the maximal length "
         " of lines in the file "
         "(e.g. awk 'length>m{m=length} END{print m}' filename)"
@@ -289,7 +292,7 @@ FILE* _xfopen_chksig(const char *fname, const char *sfx, const char *mode,
 {
   FILE *result = _xfopen(fname, sfx, mode, description, logger, _file, _line);
   char *signature;
-  int len = strlen(expected_signature);
+  size_t len = strlen(expected_signature);
   assert(mode[0] == 'r');
   XMALLOC(signature, len);
   xfread(signature, (size_t)1, len, result, logger);
@@ -341,7 +344,9 @@ bool is_directory(const char *path)
 void xmakedirs(const char *path, Logger *logger)
 {
   char *p = xstrdup(path);
-  for (char *s = p + 1; *s != '\0'; s++)
+  /* from the second character (the first is the root, if '/'); none for
+     an empty path, for which mkdir() fails (ENOENT) */
+  for (char *s = p + (p[0] != '\0'); *s != '\0'; s++)
     if (*s == '/') {
       *s = '\0';
       mkdir(p, 0777);
@@ -396,7 +401,9 @@ char **list_dir(const char *dir, list_dir_filter_t filter, void *data,
   size_t cap = 0;
   *n = 0;
   struct dirent *e;
-  while ((e = readdir(d)) != NULL) {
+  /* readdir() returns NULL both at the end of the directory and on error,
+     setting errno only on error */
+  while (errno = 0, (e = readdir(d)) != NULL) {
     if (e->d_name[0] == '.')
       continue;
     char *path = path_join(dir, e->d_name);
@@ -406,7 +413,10 @@ char **list_dir(const char *dir, list_dir_filter_t filter, void *data,
     } else
       free(path);
   }
-  closedir(d);
+  LCHECK(errno == 0, logger, "Reading directory '%s' failed, %s\n", dir,
+         strerror(errno));
+  LCHECK(closedir(d) == 0, logger, "Closing directory '%s' failed, %s\n",
+         dir, strerror(errno));
   if (*n > 1)
     qsort(paths, *n, sizeof(char *), cmpstrptr);
   return paths;

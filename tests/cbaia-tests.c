@@ -167,6 +167,21 @@ static void file_utils_test(void) {
   test_eq_size(content_size, 4);
   test_eq_str(content, "abc\n");
   free(content);
+  /* read_lines_in_buffer with the minimum buffer size: one empty line
+     at a time */
+  test_assert(freopen(NULL, "w+", zf) != NULL);
+  test_assert(fputs("\n\n", zf) >= 0);
+  rewind(zf);
+  char buffer[READ_LINES_MIN_BUFSIZE], **lines = NULL;
+  size_t linesbufsize = 0, nlines = 0, nread;
+  while ((nread = read_lines_in_buffer(zf, buffer, sizeof buffer, &lines,
+          &linesbufsize, NULL)) > 0) {
+    test_eq_size(nread, 1);
+    test_eq_str(lines[0], "\n");
+    nlines += nread;
+  }
+  test_eq_size(nlines, 2);
+  free(lines);
   fclose(zf);
   free(zpath);
   char *nth = compute_nth_filename("x", ".y", 12);

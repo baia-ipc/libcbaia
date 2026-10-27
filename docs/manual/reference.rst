@@ -104,6 +104,7 @@ File system interaction
    void read_file(FILE *file, char **buffer, size_t *bufsize, Logger* logger);
    #define xfread(PTR, SIZE, NMEMB, STREAM, LOGGER)
    #define xfwrite(PTR, SIZE, NMEMB, STREAM, LOGGER)
+   #define READ_LINES_MIN_BUFSIZE
    size_t read_lines_in_buffer(FILE *file, char *buffer, const size_t bufsize,
        char ***lines, size_t *linesbufsize, Logger *logger);
    char *compute_nth_filename(const char *basename, const char *sfx, size_t n);
