@@ -1,13 +1,7 @@
 /* (c) 2017 Giorgio Gonnella */
 
-#include <stdbool.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include <stdint.h>
-#include <string.h>
-#include <errno.h>
-#include <assert.h>
-#include <unistd.h>
 #include "alloc.h"
 #include "file.h"
 #include "file-sorter.h"
@@ -25,6 +19,8 @@ size_t sort_file_parts(
   FILE *file;
   char *buffer, **elems;
   size_t nelems, nfiles, elemsbuffersize = elems_bufsize_init, nelems_total;
+  LCHECK(elems_bufsize_init > 0, logger, "sort_file_parts: the initial "
+         "size of the array of the element pointers must be at least 1\n");
   XMALLOC(buffer, bufsize);
   XMALLOC(elems, elemsbuffersize);
   file = xfopen(infname, infsfx, "r", NULL, logger);
@@ -49,8 +45,8 @@ size_t sort_file_parts(
   lprintf(logger, LOG_INFO, "Sorted: %zu element%s in %zu part%s\n",
         nelems_total, nelems_total != 1 ? "s" : "",
         nfiles, nfiles != 1 ? "s" : "");
-  XFREE(buffer);
-  XFREE(elems);
+  free(buffer);
+  free(elems);
   xfclose(&file, logger);
   return nfiles;
 }
