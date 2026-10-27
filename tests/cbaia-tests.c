@@ -6,7 +6,6 @@
 /* the help, with the test options of the table of the test groups */
 #define PRINT_PURPOSE(STREAM) print_purpose(STREAM, argv[0])
 
-#include <assert.h>
 #include <errno.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -51,8 +50,9 @@
 
 #define DEFAULT_TMPDIR "/tmp"
 
-/* the tests which need it get the directory for temporary files */
-static const char *tmpdir = DEFAULT_TMPDIR;
+/* the directory for temporary files (option -T), passed to the tests
+   which need it */
+static const char *opt_tmpdir = DEFAULT_TMPDIR;
 
 static void strutils_test(void) {
   char *s = strcat_alloc("abc", "de");
@@ -122,7 +122,7 @@ static bool only_txt(const char *name, const char *path, void *data) {
   return str_has_suffix(name, ".txt");
 }
 
-static void file_utils_test(void) {
+static void file_utils_test(const char *tmpdir) {
   char *joined = path_join("out", "S01.fastq.gz");
   test_eq_str(joined, "out/S01.fastq.gz");
   free(joined);
@@ -295,7 +295,7 @@ static int cmp_line_ptrs(const void *a, const void *b) {
   return strcmp(*(char *const *)a, *(char *const *)b);
 }
 
-static void file_sorter_test(void) {
+static void file_sorter_test(const char *tmpdir) {
   char *path = strcat_alloc(tmpdir, "/cbaia-tests-sort");
   FILE *f = fopen(path, "w");
   test_assert(f != NULL);
@@ -385,56 +385,47 @@ static void file_sorter_test(void) {
   free(path);
 }
 
-static void run_gzip_compressor_test(void) { gzip_compressor_test(tmpdir); }
-static void run_fastq_reader_test(void) { fastq_reader_test(tmpdir); }
-static void run_bgzf_compressor_test(void) { bgzf_compressor_test(tmpdir); }
-static void run_bam_reader_test(void) { bam_reader_test(tmpdir); }
-static void run_ubam_writer_test(void) { ubam_writer_test(tmpdir); }
-static void run_sam_header_test(void) { sam_header_test(tmpdir); }
-static void run_reads_reader_test(void) { reads_reader_test(tmpdir); }
-static void run_outfiles_test(void) { outfiles_test(tmpdir); }
-static void run_md5_test(void) { md5_test(tmpdir); }
-static void run_whitelist_test(void) { whitelist_test(tmpdir); }
-static void run_cell_caller_test(void) { cell_caller_test(tmpdir); }
-
+/* a test group: run or, for the tests which need the directory for
+   temporary files, run_tmpdir */
 typedef struct {
   char option;
   const char *description;
   void (*run)(void);
+  void (*run_tmpdir)(const char *tmpdir);
   bool selected;
 } test_group_t;
 
 static test_group_t test_groups[] = {
-  {'s', "string utilities and string buffer", strutils_test, false},
-  {'N', "numeric utilities", numutils_test, false},
-  {'k', "file and directory utilities", file_utils_test, false},
-  {'a', "argument parsing", argparse_test, false},
-  {'o', "progress display", progress_test, false},
-  {'z', "gzip compressor", run_gzip_compressor_test, false},
-  {'c', "BGZF compressor", run_bgzf_compressor_test, false},
-  {'b', "bit operations and bloom filter", bits_test, false},
-  {'e', "set", set_test, false},
-  {'p', "heap", heap_test, false},
-  {'y', "HyperLogLog", hll_test, false},
-  {'f', "file sorting and merging", file_sorter_test, false},
-  {'u', "sequence utilities", sequtil_test, false},
-  {'E', "edit distance of short sequences", edit_distance_test, false},
-  {'r', "FASTQ reader", run_fastq_reader_test, false},
-  {'x', "FASTQ writer", fastq_writer_test, false},
-  {'m', "BAM reader", run_bam_reader_test, false},
-  {'n', "uBAM writer", run_ubam_writer_test, false},
-  {'S', "SAM tags", sam_tags_test, false},
-  {'A', "SAM header", run_sam_header_test, false},
-  {'j', "MinKNOW read metadata", minknow_metadata_test, false},
-  {'d', "reads reader (FASTQ or BAM)", run_reads_reader_test, false},
-  {'t', "output files", run_outfiles_test, false},
-  {'w', "barcode whitelist", run_whitelist_test, false},
-  {'l', "cell caller", run_cell_caller_test, false},
-  {'i', "library complexity", complexity_test, false},
-  {'5', "MD5 digest", run_md5_test, false},
-  {'W', "HTML writer", html_writer_test, false},
-  {'M', "HTML templates", html_template_test, false},
-  {'H', "HTML reports", html_page_test, false},
+  {'s', "string utilities and string buffer", strutils_test, NULL, false},
+  {'N', "numeric utilities", numutils_test, NULL, false},
+  {'k', "file and directory utilities", NULL, file_utils_test, false},
+  {'a', "argument parsing", argparse_test, NULL, false},
+  {'o', "progress display", progress_test, NULL, false},
+  {'z', "gzip compressor", NULL, gzip_compressor_test, false},
+  {'c', "BGZF compressor", NULL, bgzf_compressor_test, false},
+  {'b', "bit operations and bloom filter", bits_test, NULL, false},
+  {'e', "set", set_test, NULL, false},
+  {'p', "heap", heap_test, NULL, false},
+  {'y', "HyperLogLog", hll_test, NULL, false},
+  {'f', "file sorting and merging", NULL, file_sorter_test, false},
+  {'u', "sequence utilities", sequtil_test, NULL, false},
+  {'E', "edit distance of short sequences", edit_distance_test, NULL, false},
+  {'r', "FASTQ reader", NULL, fastq_reader_test, false},
+  {'x', "FASTQ writer", fastq_writer_test, NULL, false},
+  {'m', "BAM reader", NULL, bam_reader_test, false},
+  {'n', "uBAM writer", NULL, ubam_writer_test, false},
+  {'S', "SAM tags", sam_tags_test, NULL, false},
+  {'A', "SAM header", NULL, sam_header_test, false},
+  {'j', "MinKNOW read metadata", minknow_metadata_test, NULL, false},
+  {'d', "reads reader (FASTQ or BAM)", NULL, reads_reader_test, false},
+  {'t', "output files", NULL, outfiles_test, false},
+  {'w', "barcode whitelist", NULL, whitelist_test, false},
+  {'l', "cell caller", NULL, cell_caller_test, false},
+  {'i', "library complexity", complexity_test, NULL, false},
+  {'5', "MD5 digest", NULL, md5_test, false},
+  {'W', "HTML writer", html_writer_test, NULL, false},
+  {'M', "HTML templates", html_template_test, NULL, false},
+  {'H', "HTML reports", html_page_test, NULL, false},
 };
 #define N_TEST_GROUPS (sizeof(test_groups) / sizeof(test_groups[0]))
 
@@ -467,9 +458,12 @@ void parseargs(int argc, char *argv[],
     COMMON_OPTS_STR "T:";
   size_t len = strlen(optstring);
   for (size_t i = 0; i < N_TEST_GROUPS; i++) {
-    /* the test options must not be used by other options */
-    assert(strchr(optstring, test_groups[i].option) == NULL);
-    assert(len + 1 < sizeof(optstring));
+    /* the test options must not be used by other options (checked also
+       without assertions, as the tests are compiled with -DNDEBUG) */
+    if (strchr(optstring, test_groups[i].option) != NULL)
+      fatal_printf("Test option -%c used twice\n", test_groups[i].option);
+    if (len + 1 >= sizeof(optstring))
+      fatal_printf("Too many test options\n");
     optstring[len++] = test_groups[i].option;
     optstring[len] = '\0';
   }
@@ -490,7 +484,7 @@ void parseargs(int argc, char *argv[],
       continue;
     switch (c) {
       case 'T':
-        tmpdir = optarg;
+        opt_tmpdir = optarg;
         break;
       COMMON_OPTS_PARSE_CASES;
     }
@@ -509,7 +503,10 @@ int main(int argc, char *argv[]) {
     if (test_groups[i].selected) {
       lprintf(logger, LOG_PHASE, "Testing %s...\n",
               test_groups[i].description);
-      test_groups[i].run();
+      if (test_groups[i].run_tmpdir != NULL)
+        test_groups[i].run_tmpdir(opt_tmpdir);
+      else
+        test_groups[i].run();
     }
   lprintf(logger, LOG_SUCCESS, "All tests passed\n");
   delete_logger(logger);
