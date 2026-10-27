@@ -67,5 +67,6 @@ endif
 # Makefile, which sets it)
 CBAIA_EMBED = $(CBAIA_DIR)/dev/embed.sh
 
+.PHONY: cbaia-clean
 cbaia-clean:
 	$(MAKE) -C $(CBAIA_DIR) cleanup
