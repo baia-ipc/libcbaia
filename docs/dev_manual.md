@@ -144,9 +144,13 @@ Headers have an include guard, named after the file in upper case:
 
 ### Formatting
 
-- indentation by 2 spaces, no tabs;
-- lines up to 80 characters; continuation lines of function signatures
-  and calls are indented by 4 spaces or aligned to the opening parenthesis;
+- indentation by 2 spaces, no tabs, in C as in the Python and shell
+  scripts (e.g. `docs/manual/*.py`, `tests/fuzz/*.sh`);
+- lines up to 80 characters, in C, Python and shell, whenever possible
+  (long lines are wrapped: in Python inside parentheses or with implicit
+  concatenation of strings, in shell with `\`); continuation lines of
+  function signatures and calls are indented by 4 spaces or aligned to
+  the opening parenthesis;
 - the opening brace is on the same line of the statement or function
   signature; exception: the `parseargs()` function of programs, where the
   long parameter list is followed by the brace on a separate line;
