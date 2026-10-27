@@ -177,6 +177,8 @@ Headers have an include guard, named after the file in upper case:
 - functions of a module are prefixed by the module name:
   `samples_info_new()`, `samples_info_match()`, `samples_info_delete()`;
 - internal (non-exported) functions are `static` and do not need the prefix;
+  those which must be in a header (used by `static inline` functions) end
+  with `_` (e.g. `short_edit_rows_()`), and are not part of the API;
 - the object on which a function operates is the first parameter and is
   called `self`;
 - functions which are wrapped by a macro adding the source location are
