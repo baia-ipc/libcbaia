@@ -36,7 +36,8 @@
 
    The tag and attribute names must be string literals (or live as long
    as the element is open); at most HTML_WRITER_MAX_DEPTH elements can be
-   open at the same time.
+   open at the same time (opening one more exits the program with an error
+   message).
 */
 
 #ifndef HTML_WRITER_H

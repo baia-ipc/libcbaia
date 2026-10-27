@@ -76,8 +76,13 @@ static void start_tag(html_writer_t *w, const char *tag, bool is_void) {
 }
 
 void html_open(html_writer_t *w, const char *tag) {
+  assert(w != NULL);
+  assert(tag != NULL);
+  /* the open elements are stored in arrays of fixed size */
+  if (w->depth >= HTML_WRITER_MAX_DEPTH)
+    fatal_printf("html_open: <%s> nested too deeply (more than %d open "
+                 "elements)\n", tag, HTML_WRITER_MAX_DEPTH);
   start_tag(w, tag, false);
-  assert(w->depth < HTML_WRITER_MAX_DEPTH);
   w->tags[w->depth] = tag;
   w->content[w->depth] = CONTENT_NONE;
   w->depth++;
@@ -332,6 +337,31 @@ void html_writer_test(void) {
                  strlen(exp_end));
     test_assert(strncmp(out, exp_start, strlen(exp_start)) == 0);
     test_eq_str(out + strlen(out) - strlen(exp_end), exp_end);
+    free(out);
+  }
+  /* the maximum number of open elements */
+  {
+    WRITER_TEST_START;
+    for (size_t i = 0; i < HTML_WRITER_MAX_DEPTH; i++)
+      html_open(&w, "div");
+    test_eq_size(w.depth, (size_t)HTML_WRITER_MAX_DEPTH);
+    for (size_t i = 0; i < HTML_WRITER_MAX_DEPTH; i++)
+      html_close(&w);
+    html_writer_end(&w);
+    fclose(f);
+    /* the innermost element (empty) on one line */
+    char *exp = NULL;
+    size_t exp_size = 0;
+    FILE *e = open_memstream(&exp, &exp_size);
+    test_assert(e != NULL);
+    for (int i = 0; i < HTML_WRITER_MAX_DEPTH - 1; i++)
+      fprintf(e, "%*s<div>\n", INDENT * i, "");
+    fprintf(e, "%*s<div></div>\n", INDENT * (HTML_WRITER_MAX_DEPTH - 1), "");
+    for (int i = HTML_WRITER_MAX_DEPTH - 2; i >= 0; i--)
+      fprintf(e, "%*s</div>\n", INDENT * i, "");
+    fclose(e);
+    test_eq_str(out, exp);
+    free(exp);
     free(out);
   }
 }
