@@ -21,10 +21,10 @@
 struct Set
 {
   size_t k;
-  SET_TYPE** mainbuf;
+  set_elem_t** mainbuf;
   size_t *mainbufsize;
   size_t *mainbuffill;
-  SET_TYPE** insbuf;
+  set_elem_t** insbuf;
   size_t *insbufsize;
   size_t *insbuffill;
   bloom_filter_t *bf;
@@ -44,7 +44,9 @@ Set *set_new(size_t insertion_buffer_size, size_t bloom_filter_size,
 {
   Set *set;
   size_t i;
-  assert(k < sizeof(SET_TYPE) * CHAR_BIT);
+  assert(k < sizeof(set_elem_t) * CHAR_BIT);
+  if (insertion_buffer_size == 0)
+    fatal_printf("set_new: the insertion buffer size must be at least 1\n");
   size_t nsets = NSETS(k);
   XMALLOC(set, sizeof *set);
   XMALLOC(set->mainbuf, nsets * sizeof(*set->mainbuf));
@@ -56,9 +58,9 @@ Set *set_new(size_t insertion_buffer_size, size_t bloom_filter_size,
   for (i = 0; i < nsets; i++) {
     set->mainbufsize[i] = mainbuf_inc(k);
     set->mainbuffill[i] = 0;
-    XMALLOC(set->mainbuf[i], set->mainbufsize[i] * sizeof(SET_TYPE));
+    XMALLOC(set->mainbuf[i], set->mainbufsize[i] * sizeof(set_elem_t));
     set->insbufsize[i] = insertion_buffer_size;
-    XMALLOC(set->insbuf[i], set->insbufsize[i] * sizeof(SET_TYPE));
+    XMALLOC(set->insbuf[i], set->insbufsize[i] * sizeof(set_elem_t));
     set->insbuffill[i] = 0;
   }
   set->k = k;
@@ -72,7 +74,7 @@ Set *set_new(size_t insertion_buffer_size, size_t bloom_filter_size,
 
 static int set_elem_cmp(const void *a_ptr, const void *b_ptr)
 {
-  SET_TYPE a = *(SET_TYPE*)a_ptr, b = *(SET_TYPE*)b_ptr;
+  set_elem_t a = *(set_elem_t*)a_ptr, b = *(set_elem_t*)b_ptr;
 #ifdef GG_SET_DEBUG
   printf("set_elem_cmp; keys %zu and %zu = %d\n", a, b, (a > b) - (a < b));
 #endif
@@ -83,7 +85,7 @@ static int set_elem_cmp(const void *a_ptr, const void *b_ptr)
 static void dbg_show_buffer(const Set *set, size_t i, bool ins, const char *msg)
 {
   size_t j, fill;
-  SET_TYPE *buf;
+  set_elem_t *buf;
   const char *bufname;
   if (ins)
   {
@@ -158,7 +160,7 @@ static void set_finalize_insertions_i(Set *set, size_t i)
   dbg_show_buffer(set, i, true, " before sorting");
 #endif
   qsort(set->insbuf[i], set->insbuffill[i],
-      sizeof(SET_TYPE), set_elem_cmp);
+      sizeof(set_elem_t), set_elem_cmp);
 #ifdef GG_SET_DEBUG
   dbg_show_buffer(set, i, true, " after sorting");
 #endif
@@ -182,7 +184,7 @@ void set_finalize_insertions(Set *set) {
     set_finalize_insertions_i(set, i);
 }
 
-void set_insert_simple(Set *set, SET_TYPE key) {
+void set_insert_simple(Set *set, set_elem_t key) {
   if (set->bf != NULL)
     bloom_filter_insert(set->bf, key);
   size_t i = key & MASK(set->k);
@@ -200,18 +202,18 @@ void set_insert_simple(Set *set, SET_TYPE key) {
     set_finalize_insertions_i(set, i);
 }
 
-void set_insert(Set *set, SET_TYPE key)
+void set_insert(Set *set, set_elem_t key)
 {
   if (!set_query(set, key))
     set_insert_simple(set, key);
 }
 
 #ifdef SET_USE_SET_BSEARCH
-static bool set_bsearch(const Set *set, size_t i, SET_TYPE key)
+static bool set_bsearch(const Set *set, size_t i, set_elem_t key)
 {
   if (set->mainbuffill[i] > 0) {
     size_t lower = 0, upper = set->mainbuffill[i]-1, mid;
-    SET_TYPE midvalue;
+    set_elem_t midvalue;
     while (lower <= upper) {
       mid = lower + ((upper-lower)>>1);
       assert(mid < set->mainbuffill[i]);
@@ -233,7 +235,7 @@ static bool set_bsearch(const Set *set, size_t i, SET_TYPE key)
 }
 #endif
 
-bool set_query(const Set *set, SET_TYPE key)
+bool set_query(const Set *set, set_elem_t key)
 {
   if (set->bf != NULL && !bloom_filter_query(set->bf, key))
     return false;
@@ -399,18 +401,18 @@ void set_test(void)
   set_delete(set);
   /* with bloom filter and buckets */
   set = set_new(4, 10, 2);
-  for (SET_TYPE key = 0; key < 1000; key += 3)
+  for (set_elem_t key = 0; key < 1000; key += 3)
     set_insert(set, key);
   set_finalize_insertions(set);
-  for (SET_TYPE key = 0; key < 1000; key++)
+  for (set_elem_t key = 0; key < 1000; key++)
     test_assert(set_query(set, key) == (key % 3 == 0));
   set_delete(set);
   /* many buckets: the initial main buffers are not empty */
   set = set_new(2, 0, 16);
-  for (SET_TYPE key = 0; key < 200000; key += 7)
+  for (set_elem_t key = 0; key < 200000; key += 7)
     set_insert(set, key);
   set_finalize_insertions(set);
-  for (SET_TYPE key = 0; key < 200000; key++)
+  for (set_elem_t key = 0; key < 200000; key++)
     test_assert(set_query(set, key) == (key % 7 == 0));
   set_delete(set);
 }

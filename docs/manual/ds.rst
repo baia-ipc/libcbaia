@@ -39,12 +39,12 @@ may have been:
 Set of integers (``set.h``)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-A set of ``size_t`` values, for large numbers of elements with little
-memory overhead: a sorted array, queried by binary search, plus an
-unsorted insertion buffer, which is sorted and merged into the array when
-full. Optionally, the elements are divided into 2\ :sup:`k` buckets (by
-their lowest *k* bits), and a Bloom filter speeds up the queries of
-absent elements.
+A set of ``set_elem_t`` (``size_t``) values, for large numbers of
+elements with little memory overhead: a sorted array, queried by binary
+search, plus an unsorted insertion buffer, which is sorted and merged
+into the array when full. Optionally, the elements are divided into
+2\ :sup:`k` buckets (by their lowest *k* bits), and a Bloom filter speeds
+up the queries of absent elements.
 
 .. code-block:: c
 

@@ -300,14 +300,14 @@ Implementation: - Sorted array S plus an unsorted buffer B - Query is by binary 
 
 .. code-block:: c
 
-   typedef size_t SET_TYPE;
+   typedef size_t set_elem_t;
    typedef struct Set Set;
    Set *set_new(size_t insertion_buffer_size, size_t bloom_filter_size,
                 size_t k);
-   void set_insert_simple(Set *set, SET_TYPE key);
-   void set_insert(Set *set, SET_TYPE key);
+   void set_insert_simple(Set *set, set_elem_t key);
+   void set_insert(Set *set, set_elem_t key);
    void set_finalize_insertions(Set *set);
-   bool set_query(const Set *set, SET_TYPE key);
+   bool set_query(const Set *set, set_elem_t key);
    void set_delete(Set *set);
 
 Large files and compression (``io``)
