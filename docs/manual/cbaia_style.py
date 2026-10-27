@@ -9,6 +9,6 @@ from pygments.token import Comment
 from sphinx.pygments_styles import SphinxStyle
 
 class CbaiaStyle(SphinxStyle):
-    styles = dict(SphinxStyle.styles)
-    styles[Comment] = "#408090"
-    styles[Comment.Preproc] = "#06287e"
+  styles = dict(SphinxStyle.styles)
+  styles[Comment] = "#408090"
+  styles[Comment.Preproc] = "#06287e"
