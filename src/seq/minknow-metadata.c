@@ -55,11 +55,6 @@ static bool convert(strbuf_t *out, const char *field) {
   return minknow_metadata_append_sam_tag(out, field, strlen(field));
 }
 
-static void test_content(const strbuf_t *out, const char *exp) {
-  test_eq_size(out->len, strlen(exp));
-  test_assert(memcmp(out->s, exp, out->len) == 0);
-}
-
 void minknow_metadata_test(void) {
   strbuf_t out;
   strbuf_init(&out);
@@ -74,7 +69,7 @@ void minknow_metadata_test(void) {
   test_assert(convert(&out, "barcode_alias=lib1"));
   test_assert(convert(&out, "parent_read_id=r1"));
   test_assert(convert(&out, "basecall_model_version_id=dna_r10@v5"));
-  test_content(&out, "\tri:Z:abc\trn:i:12\tch:i:7"
+  test_eq_mem(out.s, out.len, "\tri:Z:abc\trn:i:12\tch:i:7"
       "\tst:Z:2024-05-01T10:00:00Z\tPU:Z:FAX12345\tpg:Z:exp1\tsi:Z:pool1"
       "\tob:Z:barcode01\toa:Z:lib1\tpi:Z:r1\tbm:Z:dna_r10@v5");
   /* not converted: unknown key, no '=', key prefix of a known one */
@@ -88,6 +83,6 @@ void minknow_metadata_test(void) {
   test_assert(convert(&out, "ch=x1"));
   test_assert(convert(&out, "read="));
   test_assert(convert(&out, "sample_id="));
-  test_content(&out, "\tch:Z:x1\trn:Z:\tsi:Z:");
+  test_eq_mem(out.s, out.len, "\tch:Z:x1\trn:Z:\tsi:Z:");
   strbuf_free(&out);
 }

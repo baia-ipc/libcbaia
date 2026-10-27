@@ -7,12 +7,11 @@
 #include <zlib.h>
 #include "alloc.h"
 #include "bam-reader.h"
-#include "bgzf-compressor.h"
 #include "file.h"
 #include "reads-reader.h"
 #include "strutils.h"
 #include "test.h"
-#include "ubam-writer.h"
+#include "test-bam.h"
 
 #define READS_READER_BUFSIZE (1 << 20)
 
@@ -147,25 +146,9 @@ static char *write_gz(const char *tmpdir, const char *name, const char *data,
 /* write a BAM file with the reads r1 and r2 (with the end-of-file marker
    if <eof>) */
 static char *write_bam(const char *tmpdir, const char *name, bool eof) {
-  strbuf_t data, out;
-  strbuf_init(&data);
-  strbuf_init(&out);
-  ubam_writer_header(&data, "@HD\tVN:1.6\tSO:unknown\n");
-  ubam_writer_record(&data, "r1", 2, "ACGT", "IIII", 4);
-  ubam_writer_record(&data, "r2", 2, "GG", "II", 2);
-  bgzf_compressor_t *c = bgzf_compressor_new(6);
-  bgzf_compressor_run(c, data.s, data.len, &out);
-  bgzf_compressor_delete(c);
-  if (eof)
-    strbuf_append(&out, (const char *)bgzf_eof, BGZF_EOF_LEN);
-  char *path = path_join(tmpdir, name);
-  FILE *f = fopen(path, "wb");
-  test_assert(f != NULL);
-  test_eq_size(fwrite(out.s, 1, out.len, f), out.len);
-  fclose(f);
-  strbuf_free(&data);
-  strbuf_free(&out);
-  return path;
+  const char *const titles[] = {"r1", "r2"};
+  return test_bam_file(tmpdir, name, "@HD\tVN:1.6\tSO:unknown\n", titles,
+                       2, eof);
 }
 
 static void test_bam(const char *tmpdir, Logger *logger) {
@@ -181,7 +164,9 @@ static void test_bam(const char *tmpdir, Logger *logger) {
   test_assert(memcmp(batch.data.s + batch.records[0].title_from, "r1", 2)
               == 0);
   test_eq_size(reads_reader_read_batch(r, &batch, 10), 1);
-  test_assert(memcmp(batch.data.s + batch.records[0].seq_from, "GG", 2)
+  test_assert(memcmp(batch.data.s + batch.records[0].title_from, "r2", 2)
+              == 0);
+  test_assert(memcmp(batch.data.s + batch.records[0].seq_from, "ACGT", 4)
               == 0);
   test_eq_size(reads_reader_read_batch(r, &batch, 10), 0);
   fastq_batch_free(&batch);
@@ -231,7 +216,8 @@ void reads_reader_test(const char *tmpdir) {
   free(path);
   /* multi-line records, blank lines: the records are counted, not lines */
   const char *fq2 = "@r1\nAC\nGT\n+\nII\nII\n\n@r2\nG\n+\nI\n";
-  path = write_gz(tmpdir, "cbaia-tests-reads-reader3.fastq.gz", fq2, strlen(fq2));
+  path = write_gz(tmpdir, "cbaia-tests-reads-reader3.fastq.gz", fq2,
+                  strlen(fq2));
   test_eq_size(reads_reader_count(path, logger), 2);
   unlink(path);
   free(path);

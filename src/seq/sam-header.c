@@ -7,11 +7,10 @@
 #include <unistd.h>
 #include "alloc.h"
 #include "bam-reader.h"
-#include "bgzf-compressor.h"
 #include "file.h"
 #include "sam-header.h"
 #include "test.h"
-#include "ubam-writer.h"
+#include "test-bam.h"
 
 void sam_header_inputs_init(sam_header_inputs_t *self) {
   assert(self != NULL);
@@ -221,22 +220,7 @@ static void test_text(strbuf_t *text, const char *exp) {
 /* write a BAM file with the header <text> (no reads) */
 static char *write_bam(const char *tmpdir, const char *name,
     const char *text) {
-  strbuf_t data, out;
-  strbuf_init(&data);
-  strbuf_init(&out);
-  ubam_writer_header(&data, text);
-  bgzf_compressor_t *c = bgzf_compressor_new(6);
-  bgzf_compressor_run(c, data.s, data.len, &out);
-  bgzf_compressor_delete(c);
-  strbuf_append(&out, (const char *)bgzf_eof, BGZF_EOF_LEN);
-  char *path = path_join(tmpdir, name);
-  FILE *f = fopen(path, "wb");
-  test_assert(f != NULL);
-  test_eq_size(fwrite(out.s, 1, out.len, f), out.len);
-  fclose(f);
-  strbuf_free(&data);
-  strbuf_free(&out);
-  return path;
+  return test_bam_file(tmpdir, name, text, NULL, 0, true);
 }
 
 /* the read groups and programs of the BAM files among the inputs */

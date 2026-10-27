@@ -236,6 +236,7 @@ Growable string buffer, for building output text without allocations for each pi
    #define test_eq_long(FOUND, EXP)
    #define test_eq_str(FOUND, EXP)
    #define test_eq_char(FOUND, EXP)
+   #define test_eq_mem(FOUND, LEN, EXP)
 
 Data structures (``ds``)
 ~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -699,6 +700,10 @@ Sequence utilities: reverse complement and substrings with the semantics of the 
 
    void reverse_complement(const char *seq, size_t len, char *dest);
    void py_slice(long len, long start, long stop, long *from, long *slice_len);
+
+**test-bam.h**
+
+BAM data and files for the unit tests of the modules reading or writing BAM files (internal: not part of the API, it can change).
 
 **ubam-writer.h**
 

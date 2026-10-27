@@ -481,7 +481,9 @@ uses the macros of `test.h`:
 - `test_eq(found, expected, type, format)` and the shortcuts
   `test_eq_size`, `test_eq_int`, `test_eq_long`, `test_eq_char`,
   `test_eq_str`: compare two values and output `[OK]` or the differing
-  values.
+  values;
+- `test_eq_mem(found, len, expected)`: the same for `len` characters which
+  are not 0-terminated (e.g. the content of a `strbuf_t`).
 
 The unit tests are run by a test program (e.g. `bin/cbaia-tests`), with one
 option for each test group (listed in a table), so that they can be run

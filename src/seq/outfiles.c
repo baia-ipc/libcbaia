@@ -18,7 +18,7 @@
 #include "reads-reader.h"
 #include "strutils.h"
 #include "test.h"
-#include "ubam-writer.h"
+#include "test-bam.h"
 
 struct outfiles_t {
   char *prefix;   /* <outdir>/<basename>. */
@@ -181,20 +181,6 @@ static char *slurp(const char *path, size_t *len) {
 
 #define TEST_BAM_TEXT "@HD\tVN:1.6\tSO:unknown\n"
 
-/* BGZF-compressed BAM data: the header (if <title> is NULL) or a record */
-static void bgzf_bam(strbuf_t *out, const char *title) {
-  strbuf_t data;
-  strbuf_init(&data);
-  if (title == NULL)
-    ubam_writer_header(&data, TEST_BAM_TEXT);
-  else
-    ubam_writer_record(&data, title, strlen(title), "ACGT", "IIII", 4);
-  strbuf_clear(out);
-  bgzf_compressor_t *c = bgzf_compressor_new(OUTFILES_COMPRESSLEVEL);
-  bgzf_compressor_run(c, data.s, data.len, out);
-  bgzf_compressor_delete(c);
-  strbuf_free(&data);
-}
 
 /* check a BAM file: its header, the names of its reads (separated by
    spaces) and a single end-of-file marker, at the end */
@@ -240,10 +226,11 @@ static void write_bam(const char *outdir, bool append, size_t dest,
   strbuf_init(&data);
   outfiles_t *o = outfiles_new(outdir, "data/run3.bam", 2, logger);
   outfiles_set_append(o, append);
-  bgzf_bam(&data, NULL);
+  test_bam_data(&data, TEST_BAM_TEXT, NULL, 0);
   outfiles_set_bam(o, 0, data.s, data.len);
   outfiles_set_bam(o, 1, data.s, data.len);
-  bgzf_bam(&data, title);
+  strbuf_clear(&data);
+  test_bam_data(&data, NULL, &title, 1);
   outfiles_write(o, dest, name, data.s, data.len);
   outfiles_delete(o);
   strbuf_free(&data);

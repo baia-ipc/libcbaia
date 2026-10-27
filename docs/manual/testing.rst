@@ -23,6 +23,13 @@ if it needs files), using the macros of ``test.h``:
    shortcuts of ``test_eq`` for ``size_t``, ``int``, ``long``, ``char``
 ``test_eq_str(found, exp)``
    compare two strings
+``test_eq_mem(found, len, exp)``
+   compare ``len`` characters, not 0-terminated (e.g. the content of a
+   ``strbuf_t``), with a string
+
+The unit tests of the modules reading or writing BAM files share the
+helpers of ``test-bam.h`` (internal), which write BAM data or files with
+a given header and reads.
 
 e.g.:
 

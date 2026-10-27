@@ -53,4 +53,20 @@
 #define test_eq_char(FOUND, EXP) \
   test_eq(FOUND, EXP, char, "%c")
 
+/* compare <len> characters at FOUND (not 0-terminated, e.g. the content of
+   a strbuf_t) with the 0-terminated string EXP */
+#define test_eq_mem(FOUND, LEN, EXP) do {\
+  const char *_FOUND = FOUND;\
+  size_t _LEN = LEN;\
+  const char *_EXP = EXP;\
+  if (_LEN != strlen(_EXP) || (_LEN > 0 && memcmp(_FOUND, _EXP, _LEN) != 0)) {\
+    fprintf(stderr, "Test failed in file %s at line %i: %s = "\
+                    "\"%.*s\" != \"%s\"\n", \
+            __FILE__, __LINE__, #FOUND, (int)_LEN, _FOUND, _EXP);\
+    exit(EXIT_FAILURE);\
+  } else {\
+    fprintf(stderr, "[OK] %s = \"%s\"\n", #FOUND, _EXP);\
+  }\
+} while (0)
+
 #endif

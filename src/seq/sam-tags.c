@@ -31,11 +31,6 @@ void sam_tag_append_int(strbuf_t *out, const char *tag, long value) {
   strbuf_append_long(out, value);
 }
 
-static void test_content(const strbuf_t *out, const char *exp) {
-  test_eq_size(out->len, strlen(exp));
-  test_assert(memcmp(out->s, exp, out->len) == 0);
-}
-
 void sam_tags_test(void) {
   test_assert(sam_tag_is_valid("RG:Z:run1", 9));
   test_assert(sam_tag_is_valid("ch:i:12", 7));
@@ -52,6 +47,6 @@ void sam_tags_test(void) {
   sam_tag_append_int(&out, "xn", -15);
   sam_tag_start(&out, "QT", 'Z');
   strbuf_append_str(&out, "II I");
-  test_content(&out, "\tCB:Z:ACGT\tmk:i:2\txn:i:-15\tQT:Z:II I");
+  test_eq_mem(out.s, out.len, "\tCB:Z:ACGT\tmk:i:2\txn:i:-15\tQT:Z:II I");
   strbuf_free(&out);
 }
