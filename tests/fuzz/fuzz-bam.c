@@ -4,8 +4,9 @@
    Fuzzing harness: BAM files (the BGZF/gzip decompression is done by
    zlib). The header is encoded again as an unaligned BAM header, the
    records are read in small batches and encoded again as unaligned BAM
-   records (with the tags of the input); the records are also counted, and
-   the end-of-file marker is checked.
+   records (with the tags of the input, and the missing qualities written
+   again as missing); the records are also counted, and the end-of-file
+   marker is checked.
 */
 
 #include "fuzz-common.h"
@@ -38,8 +39,10 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
       for (size_t i = 0; i < n; i++) {
         const fastq_record_t *r = batch.records + i;
         const char *d = batch.data.s;
+        /* missing qualities written again as missing (NULL) */
         ubam_writer_record(&out, d + r->title_from, r->title_len,
-                           d + r->seq_from, d + r->qual_from, r->seq_len);
+                           d + r->seq_from, r->qual_missing ? NULL :
+                           d + r->qual_from, r->seq_len);
         strbuf_clear(&out);
       }
     bam_reader_delete(reader);

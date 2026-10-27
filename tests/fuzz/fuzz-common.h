@@ -47,6 +47,10 @@ void __wrap_exit(int status) {
 
 static void fuzz_record_fds(void) {
   DIR *dir = opendir("/proc/self/fd");
+  if (dir == NULL) {
+    perror("/proc/self/fd");
+    abort();
+  }
   struct dirent *e;
   while ((e = readdir(dir)) != NULL) {
     int fd = atoi(e->d_name);

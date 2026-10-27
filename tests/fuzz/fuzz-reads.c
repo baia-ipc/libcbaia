@@ -41,11 +41,17 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
         const char *d = batch.data.s;
         fastq_writer_record(&out, d + r->title_from, r->title_len,
                             d + r->seq_from, d + r->qual_from, r->seq_len);
+        /* missing qualities (BAM input) written again as missing */
         ubam_writer_record(&out, d + r->title_from, r->title_len,
-                           d + r->seq_from, d + r->qual_from, r->seq_len);
+                           d + r->seq_from, r->qual_missing ? NULL :
+                           d + r->qual_from, r->seq_len);
         if (r->seq_len + 1 > rc_size) {
           rc_size = r->seq_len + 1;
           rc = realloc(rc, rc_size);
+          if (rc == NULL) {
+            perror("realloc");
+            abort();
+          }
         }
         reverse_complement(d + r->seq_from, r->seq_len, rc);
         strbuf_clear(&out);
