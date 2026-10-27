@@ -110,12 +110,16 @@ int main(int argc, char *argv[]) {
   size_t blen = whitelist_barcode_length(wl), unassigned = n_barcodes;
   char **names;
   XMALLOC(names, sizeof(char *) * (n_barcodes + 1));
+  /* khash does not exit on allocation failures: kh_init() returns NULL,
+     kh_put() sets absent to -1 */
   khash_t(dest) *dest = kh_init(dest);
+  LCHECK(dest != NULL, logger, "Failed allocating the destinations\n");
   for (size_t i = 0; i < n_barcodes; i++) {
     XMALLOC(names[i], blen + 1);
     whitelist_decode(wl, codes[i], names[i]);
     int absent;
     khiter_t k = kh_put(dest, dest, codes[i], &absent);
+    LCHECK(absent != -1, logger, "Failed allocating the destinations\n");
     kh_value(dest, k) = i;
   }
   names[unassigned] = "unassigned";

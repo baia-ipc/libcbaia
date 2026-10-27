@@ -122,9 +122,13 @@ caller (a map from barcodes to counts):
    KHASH_MAP_INIT_STR(counts, size_t)   /* string -> size_t */
 
    khash_t(counts) *h = kh_init(counts);
+   if (h == NULL)
+     fatal_printf("Failed allocating the counts\n");
    int absent;
    khiter_t k = kh_put(counts, h, name, &absent);  /* the key is not
                                                        copied */
+   if (absent == -1)
+     fatal_printf("Failed allocating the counts\n");
    if (absent)
      kh_value(h, k) = 0;
    kh_value(h, k)++;
@@ -133,7 +137,10 @@ caller (a map from barcodes to counts):
      printf("%zu\n", kh_value(h, k));
    kh_destroy(counts, h);
 
-Other initializers: ``KHASH_MAP_INIT_INT64``, ``KHASH_SET_INIT_INT64``,
+khash does not exit on allocation failures: ``kh_init()`` returns
+``NULL`` and ``kh_put()`` sets its last argument to -1; they are checked
+as above (or with ``LCHECK``). Other initializers:
+``KHASH_MAP_INIT_INT64``, ``KHASH_SET_INIT_INT64``,
 ``KHASH_SET_INIT_STR``, ``KHASH_MAP_INIT_INT`` (see the header of
 ``khash.h``). With string keys, the strings are not copied: they must
 live as long as the table (or be copied, and freed before
