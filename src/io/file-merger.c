@@ -52,7 +52,8 @@ void merge_n_files_at_once(size_t nfiles, size_t offset,
   XMALLOC(filenames, nfiles * sizeof(*filenames));
   XMALLOC(files, nfiles * sizeof(*files));
   XMALLOC(elems, nfiles * sizeof(*elems));
-  XMALLOC(elem_sizes, nfiles * sizeof(*elem_sizes));
+  /* zeroed: the size of an element buffer which is still NULL is 0 */
+  XCALLOC(elem_sizes, nfiles, sizeof(*elem_sizes));
   n_open_files = 0;
   for (f = 0; f < nfiles; f++)
   {
@@ -90,7 +91,39 @@ void merge_n_files_at_once(size_t nfiles, size_t offset,
     free(partial_fname);
 }
 
+/* maximum number of files merged at once (open at the same time) */
 #define NFILES_MAX 512
+
+/* merge the files <basename><sfx>.N, for N from offset to
+   offset+nfiles-1; if they are more than NFILES_MAX, they are merged in
+   batches of NFILES_MAX, into the files numbered from offset+nfiles on,
+   which are then merged in the same way (thus, in more than two rounds,
+   if the batches are more than NFILES_MAX) */
+static void merge_files_range(size_t nfiles, size_t offset,
+    const char *basename, const char *sfx, bool use_stdout,
+    merge_getelem_f getelem, merge_writeelem_f writeelem,
+    merge_cmpelems_f cmpelems, Logger *logger)
+{
+  if (nfiles > NFILES_MAX)
+  {
+    size_t i, batch_nfiles, r_nfiles, batchnum = 0;
+    for (i = 0; i < nfiles; i += NFILES_MAX) {
+      r_nfiles = nfiles - i;
+      batch_nfiles = (r_nfiles < NFILES_MAX) ? r_nfiles : NFILES_MAX;
+      merge_n_files_at_once(batch_nfiles, offset + i, basename, sfx, false,
+          true, offset + nfiles + batchnum, getelem, writeelem, cmpelems,
+          logger);
+      batchnum++;
+    }
+    merge_files_range(batchnum, offset + nfiles, basename, sfx, use_stdout,
+        getelem, writeelem, cmpelems, logger);
+  }
+  else
+  {
+    merge_n_files_at_once(nfiles, offset, basename, sfx, use_stdout,
+        false, 0, getelem, writeelem, cmpelems, logger);
+  }
+}
 
 void merge_n_files(size_t nfiles, const char *basename, const char *sfx,
     bool use_stdout, merge_getelem_f getelem, merge_writeelem_f writeelem,
@@ -119,22 +152,7 @@ void merge_n_files(size_t nfiles, const char *basename, const char *sfx,
       free(filename);
     }
   }
-  else if (nfiles > NFILES_MAX)
-  {
-    size_t offset, batch_nfiles, r_nfiles, batchnum = 0;
-    for (offset = 0; offset < nfiles; offset += NFILES_MAX) {
-      r_nfiles = nfiles - offset;
-      batch_nfiles = (r_nfiles < NFILES_MAX) ? r_nfiles : NFILES_MAX;
-      merge_n_files_at_once(batch_nfiles, offset, basename, sfx, false,
-          true, nfiles + batchnum, getelem, writeelem, cmpelems, logger);
-      batchnum++;
-    }
-    merge_n_files_at_once(batchnum, nfiles, basename, sfx, use_stdout,
-        false, 0, getelem, writeelem, cmpelems, logger);
-  }
   else
-  {
-    merge_n_files_at_once(nfiles, 0, basename, sfx, use_stdout,
-        false, 0, getelem, writeelem, cmpelems, logger);
-  }
+    merge_files_range(nfiles, 0, basename, sfx, use_stdout, getelem,
+        writeelem, cmpelems, logger);
 }

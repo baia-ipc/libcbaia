@@ -19,7 +19,9 @@ A file larger than the available memory is sorted in two steps:
    ...; it returns the number of parts;
 2. ``merge_n_files()`` merges the sorted parts, using a heap, into the
    output file ``<out><sfx>`` (or the standard output), deleting the
-   parts.
+   parts; at most 512 parts are open at the same time: more parts are
+   merged in batches, into further temporary files, which are then
+   merged in the same way.
 
 The elements and their order are defined by functions passed by the
 caller, so that any kind of record can be sorted. For text lines, the

@@ -14,7 +14,8 @@
   file, false if eof was reached and exits the program if an error occurred;
   furthermore, it stores the element in a char* buffer, which is pointed by
   elem, allocated if NULL and reallocated if not large enough; its size is
-  stored in the size_t pointed by elemsize.
+  stored in the size_t pointed by elemsize (0 at the first call for a
+  file, when the buffer is NULL).
 */
 typedef bool (*merge_getelem_f)(char **elem, size_t *elemsize, FILE *file,
     Logger *logger);
@@ -33,7 +34,9 @@ typedef int (*merge_cmpelems_f)(const void *elem1, const void *elem2);
   The input files are named <basename><sfx>.N (e.g. with sfx ".sorted":
   big.txt.sorted.0), where N is a number between 0 and nfiles-1, as
   written by sort_file_parts() of file-sorter.h; the input files are
-  deleted.
+  deleted. At most 512 files are open at the same time: more files are
+  merged in batches, into further temporary files <basename><sfx>.N
+  (N from nfiles on), which are then merged in the same way.
 
   Parameters:
   - nfiles: number of files to merge

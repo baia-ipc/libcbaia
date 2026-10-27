@@ -343,6 +343,31 @@ static void file_sorter_test(void) {
   }
   test_eq_size(n, SORT_N_LINES);
   fclose(f);
+  unlink(sorted);
+  /* one line per part: more parts than are merged at once (512) */
+  nfiles = sort_file_parts(path, NULL, path, ".sorted", SORT_LINE_LEN + 3,
+      16, read_lines_in_buffer, sort_lines, output_lines, NULL);
+  test_eq_size(nfiles, SORT_N_LINES);
+  merge_n_files(nfiles, path, ".sorted", false, get_line, write_line,
+                cmp_line_ptrs, NULL);
+  f = fopen(sorted, "r");
+  test_assert(f != NULL);
+  n = 0;
+  prev[0] = '\0';
+  while (xgetline(&line, &size, f, NULL)) {
+    test_assert(strcmp(prev, line) <= 0);
+    strcpy(prev, line);
+    n++;
+  }
+  test_eq_size(n, SORT_N_LINES);
+  fclose(f);
+  /* the temporary files were deleted */
+  char *part = compute_nth_filename(path, ".sorted", 0);
+  test_assert(!file_exists(part, NULL));
+  free(part);
+  part = compute_nth_filename(path, ".sorted", SORT_N_LINES);
+  test_assert(!file_exists(part, NULL));
+  free(part);
   free(line);
   unlink(sorted);
   unlink(path);
