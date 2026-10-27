@@ -61,7 +61,10 @@ size_t reads_reader_count(const char *filename, Logger *logger);
    Whether a file of reads is complete: a gzipped file is not truncated
    and its content ends with a newline; a FASTQ file ends with a newline; a
    BAM file (suffix .bam) ends with the BGZF end-of-file marker; false if
-   the file cannot be read
+   the file cannot be read. A gzipped file is decompressed completely
+   (as its last character is not known otherwise): it takes the time of
+   reading the file; an uncompressed or BAM file is read only at its
+   start and end.
 */
 bool reads_reader_file_complete(const char *path);
 

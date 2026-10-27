@@ -16,6 +16,10 @@
 
 #define READS_READER_BUFSIZE (1 << 20)
 
+/* first two bytes of a gzip file */
+#define GZIP_MAGIC_1 0x1f
+#define GZIP_MAGIC_2 0x8b
+
 struct reads_reader_t {
   fastq_reader_t *fastq;
   bam_reader_t *bam;
@@ -77,9 +81,41 @@ size_t reads_reader_count(const char *filename, Logger *logger) {
          fastq_reader_count(filename, logger);
 }
 
+/* whether an uncompressed file ends with a newline (or is empty); false
+   if it cannot be read; *is_gzip: whether it is gzip-compressed instead
+   (and then it is not read further) */
+static bool plain_file_complete(const char *path, bool *is_gzip) {
+  *is_gzip = false;
+  FILE *f = fopen(path, "rb");
+  if (f == NULL)
+    return false;
+  unsigned char magic[2];
+  size_t n = fread(magic, 1, 2, f);
+  bool complete;
+  if (n == 2 && magic[0] == GZIP_MAGIC_1 && magic[1] == GZIP_MAGIC_2) {
+    *is_gzip = true;
+    complete = false;
+  } else if (n == 0)
+    complete = !ferror(f);
+  else
+    complete = fseek(f, -1, SEEK_END) == 0 && fgetc(f) == '\n';
+  fclose(f);
+  return complete;
+}
+
 bool reads_reader_file_complete(const char *path) {
   if (str_has_suffix(path, ".bam"))
     return bam_reader_has_eof_marker(path);
+  bool is_gzip;
+  bool complete = plain_file_complete(path, &is_gzip);
+  if (!is_gzip)
+    return complete;
+  /* the last character of a gzip file is known only by decompressing the
+     whole file (no index; the trailer has only the CRC and the length):
+     the time is that of decompressing the file once (as reading it); it
+     also verifies the integrity of the data (CRC); thus, a program
+     polling the files being written should check their age first, and
+     call it once for each file */
   gzFile f = gzopen(path, "rb");
   if (f == NULL)
     return false;
@@ -172,7 +208,7 @@ void reads_reader_test(const char *tmpdir) {
   test_eq_size(reads_reader_filename_suffix_len("a.fastq"), 6);
   test_eq_size(reads_reader_filename_suffix_len("a.gz"), 0);
   const char *fq = "@r1\nACGT\n+\nIIII\n@r2\nGG\n+\nII\n";
-  char *path = write_gz(tmpdir, "reads_reader_test.fastq.gz", fq,
+  char *path = write_gz(tmpdir, "cbaia-tests-reads-reader.fastq.gz", fq,
                         strlen(fq));
   test_assert(reads_reader_file_complete(path));
   test_eq_size(reads_reader_count(path, logger), 2);
@@ -187,7 +223,7 @@ void reads_reader_test(const char *tmpdir) {
   unlink(path);
   free(path);
   /* last line incomplete */
-  path = write_gz(tmpdir, "reads_reader_test2.fastq.gz", fq,
+  path = write_gz(tmpdir, "cbaia-tests-reads-reader2.fastq.gz", fq,
                   strlen(fq) - 1);
   test_assert(!reads_reader_file_complete(path));
   test_eq_size(reads_reader_count(path, logger), 2);
@@ -195,11 +231,28 @@ void reads_reader_test(const char *tmpdir) {
   free(path);
   /* multi-line records, blank lines: the records are counted, not lines */
   const char *fq2 = "@r1\nAC\nGT\n+\nII\nII\n\n@r2\nG\n+\nI\n";
-  path = write_gz(tmpdir, "reads_reader_test3.fastq.gz", fq2, strlen(fq2));
+  path = write_gz(tmpdir, "cbaia-tests-reads-reader3.fastq.gz", fq2, strlen(fq2));
   test_eq_size(reads_reader_count(path, logger), 2);
   unlink(path);
   free(path);
   test_assert(!reads_reader_file_complete("/nonexistent/reads.fastq.gz"));
+  /* uncompressed: complete if empty or ending with a newline */
+  path = path_join(tmpdir, "cbaia-tests-reads-reader.fastq");
+  FILE *f = fopen(path, "w");
+  test_assert(f != NULL);
+  fclose(f);
+  test_assert(reads_reader_file_complete(path));
+  f = fopen(path, "w");
+  test_assert(f != NULL);
+  fputs(fq, f);
+  fclose(f);
+  test_assert(reads_reader_file_complete(path));
+  test_assert(truncate(path, (off_t)strlen(fq) - 1) == 0);
+  test_assert(!reads_reader_file_complete(path));
+  test_assert(truncate(path, 1) == 0);
+  test_assert(!reads_reader_file_complete(path));
+  unlink(path);
+  free(path);
   test_bam(tmpdir, logger);
   delete_logger(logger);
 }

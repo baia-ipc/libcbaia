@@ -124,10 +124,13 @@ Further functions:
 ``bool reads_reader_file_complete(const char *path)``
    whether a file written by another program is complete: a gzipped file
    is not truncated and ends with a newline, a FASTQ file ends with a
-   newline, a BAM file ends with the BGZF end-of-file marker. This is
-   used by programs which process the files of a sequencing run while
-   they are written (e.g. the real-time mode of Lumipore), together with
-   the age of the file:
+   newline, a BAM file ends with the BGZF end-of-file marker. A gzipped
+   file is decompressed completely (its last character is not known
+   otherwise), which takes the time of reading it; an uncompressed or BAM
+   file is read only at its start and end. This is used by programs
+   which process the files of a sequencing run while they are written
+   (e.g. the real-time mode of Lumipore), together with the age of the
+   file:
 
    .. code-block:: c
 
