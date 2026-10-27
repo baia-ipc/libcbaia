@@ -59,6 +59,22 @@ void whitelist_decode(const whitelist_t *self, uint64_t barcode, char *out) {
   out[self->length] = '\0';
 }
 
+/* the set of the barcodes (exits if the allocation fails) */
+static khash_t(barcodes) *new_set(void) {
+  khash_t(barcodes) *set = kh_init(barcodes);
+  if (set == NULL)
+    fatal_printf("Failed allocating the whitelist\n");
+  return set;
+}
+
+/* add <code> to <set> (exits if the allocation fails) */
+static void add_barcode(khash_t(barcodes) *set, uint64_t code) {
+  int ret;
+  kh_put(barcodes, set, code, &ret);
+  if (ret == -1)
+    fatal_printf("Failed allocating the whitelist\n");
+}
+
 __attribute__ ((noreturn))
 static void file_error(const char *path, size_t lineno, const char *msg,
     Logger *logger) {
@@ -75,7 +91,7 @@ whitelist_t* whitelist_new(const char *path, Logger *logger) {
   whitelist_t *self;
   XMALLOC(self, sizeof(whitelist_t));
   self->length = 0;
-  self->set = kh_init(barcodes);
+  self->set = new_set();
   char line[LINE_BUFSIZE];
   size_t lineno = 0;
   while (gzgets(file, line, LINE_BUFSIZE) != NULL) {
@@ -94,9 +110,12 @@ whitelist_t* whitelist_new(const char *path, Logger *logger) {
     if (to == from)
       continue;
     size_t blen = to - from;
-    if (blen > WHITELIST_MAX_BARCODE_LENGTH)
-      file_error(path, lineno, "barcode longer than 32 bases",
-                 logger);
+    if (blen > WHITELIST_MAX_BARCODE_LENGTH) {
+      char msg[64];
+      snprintf(msg, sizeof(msg), "barcode longer than %d bases",
+               WHITELIST_MAX_BARCODE_LENGTH);
+      file_error(path, lineno, msg, logger);
+    }
     if (self->length == 0)
       self->length = blen;
     else if (blen != self->length)
@@ -106,8 +125,7 @@ whitelist_t* whitelist_new(const char *path, Logger *logger) {
     if (!encode(line + from, blen, &code))
       file_error(path, lineno, "barcode with characters other than ACGT",
                  logger);
-    int ret;
-    kh_put(barcodes, self->set, code, &ret);
+    add_barcode(self->set, code);
   }
   int errnum;
   const char *msg = gzerror(file, &errnum);
@@ -129,11 +147,9 @@ whitelist_t* whitelist_new_from_codes(const uint64_t *barcodes, size_t n,
   whitelist_t *self;
   XMALLOC(self, sizeof(whitelist_t));
   self->length = length;
-  self->set = kh_init(barcodes);
-  for (size_t i = 0; i < n; i++) {
-    int ret;
-    kh_put(barcodes, self->set, barcodes[i], &ret);
-  }
+  self->set = new_set();
+  for (size_t i = 0; i < n; i++)
+    add_barcode(self->set, barcodes[i]);
   return self;
 }
 
