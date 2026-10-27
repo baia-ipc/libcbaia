@@ -29,7 +29,12 @@ static inline long floordiv(long a, long b) {
 size_t hist_median(const size_t *hist, size_t n_bins, size_t bin_width,
     size_t total);
 
-/* v rounded up to 1, 2 or 5 times a power of 10 (at least 1) */
+/*
+   The smallest "nice" number not below <v>, i.e. 1, 2 or 5 times a power
+   of 10 (e.g. for the maximum or the step of the axis of a plot):
+   0.3 -> 1, 1.5 -> 2, 3 -> 5, 7 -> 10, 130 -> 200; values up to 1 give 1
+   (the result is never below 1)
+*/
 double nice_number(double v);
 
 /* Unit tests */
