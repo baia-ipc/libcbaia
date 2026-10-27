@@ -176,7 +176,7 @@ void md5_test(const char *tmpdir) {
         "1234567890123456789012345678901234567890",
         "57edf4a22be3c955ac49da2e2107b67a");
   /* a file larger than the buffer: 200,000 times "abc" */
-  char *path = strcat_alloc(tmpdir, "/md5_test.txt");
+  char *path = strcat_alloc(tmpdir, "/cbaia-tests-md5.txt");
   FILE *f = fopen(path, "w");
   test_assert(f != NULL);
   md5_t md5;

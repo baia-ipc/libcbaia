@@ -282,7 +282,7 @@ static void test_bam(const char *outdir, Logger *logger) {
 
 void outfiles_test(const char *tmpdir) {
   Logger *logger = new_logger(stderr, LOG_WARN);
-  char *outdir = strcat_alloc(tmpdir, "/outfiles_test");
+  char *outdir = strcat_alloc(tmpdir, "/cbaia-tests-outfiles");
   outfiles_t *o = outfiles_new_group(outdir, "g1", 2, logger);
   outfiles_write(o, 1, "S2", "ab", 2);
   outfiles_write(o, 1, "S2", "c", 1);

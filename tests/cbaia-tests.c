@@ -135,7 +135,7 @@ static void file_utils_test(void) {
   base = path_basename("reads.fastq");
   test_eq_str(base, "reads.fastq");
   free(base);
-  char *dir = strcat_alloc(tmpdir, "/file_utils_test");
+  char *dir = strcat_alloc(tmpdir, "/cbaia-tests-file-utils");
   char *sub = strcat_alloc(dir, "/a/b");
   xmakedirs(sub, NULL);
   xmakedirs(sub, NULL);   /* existing: no error */
