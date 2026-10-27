@@ -67,8 +67,10 @@ in `.d/`).
 Data used by the code but better written in its own format (e.g. the CSS
 style and the HTML templates of the reports) is kept in data files next
 to the sources and embedded at compile time: `dev/embed.sh` writes a file
-as a C string literal (removing the lines made only of a comment), which
-the source includes, e.g.
+as a C string literal (removing the lines made only of a comment; a CSS
+file is also compacted, one rule per line, so that it can be formatted
+for reading with empty lines and indentation), which the source
+includes, e.g.
 
 ```c
 static const char *const page_css =
