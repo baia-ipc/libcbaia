@@ -16,27 +16,35 @@
    compressed block is not larger than 64 KiB */
 #define BGZF_BLOCK_DATA 0xff00
 
-/* header (with the BC extra field) and footer (CRC32, size) of a block */
-#define BGZF_HEADER_LEN 18
+/* header of a block: the bytes which are the same in each block (gzip
+   header with the FEXTRA flag, XLEN 6, the BC extra subfield of length 2),
+   followed by BSIZE (size of the block minus 1, 16 bits, little endian) */
+#define BGZF_HEADER_BYTES \
+  0x1f, 0x8b, 0x08, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0x06, 0x00, \
+  'B', 'C', 0x02, 0x00
+#define BGZF_BSIZE_OFFSET 16
+#define BGZF_HEADER_LEN (BGZF_BSIZE_OFFSET + 2)
+
+/* footer (CRC32, size) of a block */
 #define BGZF_FOOTER_LEN 8
 #define BGZF_MAX_BLOCK 0x10000
 
-const uint8_t bgzf_eof[BGZF_EOF_LEN] = {
-  0x1f, 0x8b, 0x08, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0x06, 0x00,
-  0x42, 0x43, 0x02, 0x00, 0x1b, 0x00, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00,
-  0x00, 0x00, 0x00, 0x00};
+static const uint8_t bgzf_header[BGZF_BSIZE_OFFSET] = {BGZF_HEADER_BYTES};
+
+/* BSIZE 27, empty deflate data, CRC32 0, size 0 */
+const uint8_t bgzf_eof[BGZF_EOF_LEN] = {BGZF_HEADER_BYTES,
+  0x1b, 0x00, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 
 struct bgzf_compressor_t {
-  z_stream strm;
+  z_stream stream;
   uint8_t block[BGZF_MAX_BLOCK];
 };
 
 bgzf_compressor_t* bgzf_compressor_new(int level) {
   bgzf_compressor_t *self;
-  XMALLOC(self, sizeof(bgzf_compressor_t));
-  memset(&self->strm, 0, sizeof(z_stream));
+  XCALLOC(self, 1, sizeof(bgzf_compressor_t));
   /* raw deflate: the gzip header and footer are written here */
-  if (deflateInit2(&self->strm, level, Z_DEFLATED, -15, 8,
+  if (deflateInit2(&self->stream, level, Z_DEFLATED, -15, 8,
                    Z_DEFAULT_STRATEGY) != Z_OK)
     fatal_printf("Initialization of the BGZF compression failed\n");
   return self;
@@ -45,7 +53,7 @@ bgzf_compressor_t* bgzf_compressor_new(int level) {
 void bgzf_compressor_delete(bgzf_compressor_t *self) {
   if (self == NULL)
     return;
-  deflateEnd(&self->strm);
+  deflateEnd(&self->stream);
   free(self);
 }
 
@@ -58,20 +66,18 @@ static void put_le32(uint8_t *p, uint32_t v) {
 static void compress_block(bgzf_compressor_t *self, const char *data,
     size_t len, strbuf_t *out) {
   uint8_t *b = self->block;
-  const uint8_t header[BGZF_HEADER_LEN - 2] = {0x1f, 0x8b, 0x08, 0x04, 0, 0,
-      0, 0, 0, 0xff, 0x06, 0x00, 'B', 'C', 0x02, 0x00};
-  memcpy(b, header, sizeof(header));
-  deflateReset(&self->strm);
-  self->strm.next_in = (Bytef *)data;
-  self->strm.avail_in = (uInt)len;
-  self->strm.next_out = b + BGZF_HEADER_LEN;
-  self->strm.avail_out = BGZF_MAX_BLOCK - BGZF_HEADER_LEN - BGZF_FOOTER_LEN;
-  if (deflate(&self->strm, Z_FINISH) != Z_STREAM_END)
+  memcpy(b, bgzf_header, sizeof(bgzf_header));
+  deflateReset(&self->stream);
+  self->stream.next_in = (Bytef *)data;
+  self->stream.avail_in = (uInt)len;
+  self->stream.next_out = b + BGZF_HEADER_LEN;
+  self->stream.avail_out = BGZF_MAX_BLOCK - BGZF_HEADER_LEN - BGZF_FOOTER_LEN;
+  if (deflate(&self->stream, Z_FINISH) != Z_STREAM_END)
     fatal_printf("BGZF compression failed\n");
-  size_t block_len = BGZF_HEADER_LEN + self->strm.total_out +
+  size_t block_len = BGZF_HEADER_LEN + self->stream.total_out +
                      BGZF_FOOTER_LEN;
-  b[16] = (uint8_t)((block_len - 1) & 0xff);
-  b[17] = (uint8_t)((block_len - 1) >> 8);
+  b[BGZF_BSIZE_OFFSET] = (uint8_t)((block_len - 1) & 0xff);
+  b[BGZF_BSIZE_OFFSET + 1] = (uint8_t)((block_len - 1) >> 8);
   uint8_t *footer = b + block_len - BGZF_FOOTER_LEN;
   put_le32(footer, (uint32_t)crc32(crc32(0L, Z_NULL, 0), (const Bytef *)data,
                                    (uInt)len));
@@ -107,9 +113,9 @@ void bgzf_compressor_test(const char *tmpdir) {
   size_t pos = 0, n_blocks = 0;
   while (pos < out.len) {
     const uint8_t *b = (const uint8_t *)out.s + pos;
-    test_eq(b[12], 'B', int, "%d");
-    test_eq(b[13], 'C', int, "%d");
-    size_t bsize = (size_t)(b[16] | (b[17] << 8)) + 1;
+    test_assert(memcmp(b, bgzf_header, sizeof(bgzf_header)) == 0);
+    size_t bsize = (size_t)(b[BGZF_BSIZE_OFFSET] |
+                            (b[BGZF_BSIZE_OFFSET + 1] << 8)) + 1;
     test_assert(bsize <= BGZF_MAX_BLOCK);
     pos += bsize;
     n_blocks++;
