@@ -33,8 +33,9 @@ void ubam_writer_header(strbuf_t *out, const char *text);
    first word, leading whitespace is skipped; UBAM_NO_READ_NAME if none)
    and tags; <seq> and <qual> (Phred+33; characters below '!' or above
    '~' are clamped to these; NULL: missing qualities, written as 0xFF):
-   <len> bases. The BAM reader gives missing qualities as '!' (see
-   bam-reader.h), thus a record read and written again has qualities 0.
+   <len> bases. The BAM reader gives missing qualities as '!' and marks
+   the record (qual_missing, see bam-reader.h): for such a record, pass
+   NULL to keep them missing.
 */
 void ubam_writer_record(strbuf_t *out, const char *title, size_t title_len,
     const char *seq, const char *qual, size_t len);

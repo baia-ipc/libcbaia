@@ -368,6 +368,7 @@ void ubam_writer_test(const char *tmpdir) {
                       "CB:Z:ACGT";
   ubam_writer_record(&data, title, strlen(title), "acgtn", "ABCDE", 5);
   ubam_writer_record(&data, "r2", 2, "ACG", "!!I", 3);
+  ubam_writer_record(&data, "r3", 2, "ACG", NULL, 3);
   bgzf_compressor_t *c = bgzf_compressor_new(6);
   bgzf_compressor_run(c, data.s, data.len, &out);
   bgzf_compressor_delete(c);
@@ -381,7 +382,7 @@ void ubam_writer_test(const char *tmpdir) {
   bam_reader_t *r = bam_reader_new(path, NULL);
   fastq_batch_t batch;
   fastq_batch_init(&batch);
-  test_eq(bam_reader_read_batch(r, &batch, 10), (size_t)2, size_t, "%zu");
+  test_eq(bam_reader_read_batch(r, &batch, 10), (size_t)3, size_t, "%zu");
   /* invalid fields are not written, the array tag is not read */
   const char *exp = "r1\tqs:i:12\tch:i:-300\tdu:f:1.5\tst:Z:a b\tXA:A:x\t"
                     "XC:i:4294967295\tCB:Z:ACGT";
@@ -390,9 +391,25 @@ void ubam_writer_test(const char *tmpdir) {
   test_assert(memcmp(batch.data.s + rec->title_from, exp, strlen(exp)) == 0);
   test_assert(memcmp(batch.data.s + rec->seq_from, "ACGTN", 5) == 0);
   test_assert(memcmp(batch.data.s + rec->qual_from, "ABCDE", 5) == 0);
+  test_assert(!rec->qual_missing);
+  /* qualities 0 are not missing qualities */
   rec = batch.records + 1;
   test_eq(rec->title_len, (size_t)2, size_t, "%zu");
   test_assert(memcmp(batch.data.s + rec->qual_from, "!!I", 3) == 0);
+  test_assert(!rec->qual_missing);
+  /* missing qualities: read as '!', marked, and written again as missing */
+  rec = batch.records + 2;
+  test_assert(memcmp(batch.data.s + rec->qual_from, "!!!", 3) == 0);
+  test_assert(rec->qual_missing);
+  strbuf_t again;
+  strbuf_init(&again);
+  ubam_writer_record(&again, batch.data.s + rec->title_from, rec->title_len,
+                     batch.data.s + rec->seq_from, rec->qual_missing ? NULL :
+                     batch.data.s + rec->qual_from, rec->seq_len);
+  const uint8_t *q = record_qual(&again, 3);
+  test_assert(q[0] == BAM_QUAL_MISSING && q[1] == BAM_QUAL_MISSING &&
+              q[2] == BAM_QUAL_MISSING);
+  strbuf_free(&again);
   fastq_batch_free(&batch);
   bam_reader_delete(r);
   unlink(path);

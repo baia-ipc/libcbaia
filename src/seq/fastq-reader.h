@@ -25,6 +25,7 @@ typedef struct {
   size_t title_from, title_len;
   size_t seq_from, seq_len;
   size_t qual_from;          /* the qualities have length seq_len */
+  bool qual_missing;         /* no qualities (BAM input): given as '!' */
 } fastq_record_t;
 
 /* a batch of records */

@@ -576,6 +576,7 @@ Reading of FASTQ files (optionally gzip-compressed) in batches of records.
      size_t title_from, title_len;
      size_t seq_from, seq_len;
      size_t qual_from;
+     bool qual_missing;
    } fastq_record_t;
    typedef struct {
      strbuf_t data;

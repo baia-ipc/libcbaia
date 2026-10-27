@@ -217,6 +217,7 @@ size_t fastq_reader_read_batch(fastq_reader_t *self, fastq_batch_t *batch,
         format_error(self, "whitespace is not allowed in the sequence");
     /* qualities, until the title of the next record or the end of file */
     rec->qual_from = data->len;
+    rec->qual_missing = false;
     bool any = false;
     while (true) {
       if (!next_line(self)) {
@@ -273,6 +274,7 @@ void fastq_reader_test(const char *tmpdir) {
   test_assert(strncmp(batch.data.s + r->seq_from, "ACGT", 4) == 0);
   test_eq_size(r->seq_len, 4);
   test_assert(strncmp(batch.data.s + r->qual_from, "IIII", 4) == 0);
+  test_assert(!r->qual_missing);
   r = batch.records + 1;
   test_eq_size(r->title_len, 2);
   test_assert(strncmp(batch.data.s + r->qual_from, "#$", 2) == 0);

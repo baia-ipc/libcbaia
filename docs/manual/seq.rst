@@ -79,8 +79,8 @@ MinKNOW) without htslib, into the same batches of FASTQ-like records:
   not included;
 * the sequence and the qualities are those of the original read (reverse
   complemented if the record is mapped to the minus strand); missing
-  qualities are written as ``!`` (thus as qualities 0 if the record is
-  written again);
+  qualities are written as ``!`` and the record is marked
+  (``qual_missing``);
 * secondary and supplementary alignments are skipped.
 
 ``bam_reader_header()`` returns the SAM header text (e.g. to copy the
@@ -157,8 +157,9 @@ The writers append records to a ``strbuf_t``, which is then compressed
    are truncated. Quality characters below ``!`` or above ``~`` (out of
    the range of SAM) are clamped to it. Missing qualities (``0xFF`` in
    BAM) are written if ``qual`` is ``NULL``; the BAM reader gives them as
-   ``!`` (as FASTQ has no missing qualities), thus a record read and
-   written again has qualities 0 instead.
+   ``!`` (as FASTQ has no missing qualities) and sets ``qual_missing`` of
+   the record, so that a record read and written again (with ``NULL``
+   qualities if ``qual_missing``) keeps them missing.
 
 Thus, a program can read FASTQ or BAM, and write FASTQ or BAM, keeping
 the tags of the input (e.g. the read group, the channel, or the tags

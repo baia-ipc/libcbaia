@@ -305,11 +305,12 @@ static bool append_record(bam_reader_t *self, size_t len,
   } else
     strbuf_append(data, self->rc, l_seq);
   rec->qual_from = data->len;
-  if (l_seq > 0) {  /* (the buffer can be NULL) */
-    bool missing = qual[0] == BAM_QUAL_MISSING;
+  /* (with no sequence, the qualities buffer can be NULL) */
+  rec->qual_missing = l_seq > 0 && qual[0] == BAM_QUAL_MISSING;
+  if (l_seq > 0) {
     char *q = strbuf_reserve(data, l_seq);
     for (size_t i = 0; i < l_seq; i++)
-      q[i] = missing ? QUAL_MISSING_CHAR :
+      q[i] = rec->qual_missing ? QUAL_MISSING_CHAR :
              (char)(qual[reverse ? l_seq - 1 - i : i] + 33);
     strbuf_commit(data, l_seq);
   }
@@ -452,8 +453,10 @@ void bam_reader_test(const char *tmpdir) {
   check_record(&batch, 0, "r1\tqs:i:12\tst:Z:2026-01-01\tdu:f:1.5\t"
                "ch:i:-3\tRG:Z:run1", "ACGTN", "ABCDE");
   check_record(&batch, 1, "r2", "ACGTT", "EDCBA");
+  test_assert(!batch.records[0].qual_missing);
   test_eq(bam_reader_read_batch(r, &batch, 2), (size_t)1, size_t, "%zu");
   check_record(&batch, 0, "r5", "ACG", "!!!");
+  test_assert(batch.records[0].qual_missing);
   test_eq(bam_reader_read_batch(r, &batch, 2), (size_t)0, size_t, "%zu");
   fastq_batch_free(&batch);
   bam_reader_delete(r);
