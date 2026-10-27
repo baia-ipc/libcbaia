@@ -290,10 +290,12 @@ static inline bool argparse_long(const char *s, long *value) {
   Logger *parse_logger = LOGGER; \
   (void)parse_logger;
 
-#define PARSE_LOG(FMT, ...) \
-  lprintf(parse_logger, LOG_PARAM, FMT, ##__VA_ARGS__);
+#define PARSE_LOG(FMT, ...) do { \
+  lprintf(parse_logger, LOG_PARAM, FMT, ##__VA_ARGS__); \
+} while (0)
 
-#define PARSE_LOG_N(FMT, ...) \
-  lnprintf(parse_logger, LOG_PARAM, FMT, ##__VA_ARGS__);
+#define PARSE_LOG_N(FMT, ...) do { \
+  lnprintf(parse_logger, LOG_PARAM, FMT, ##__VA_ARGS__); \
+} while (0)
 
 #endif

@@ -238,6 +238,13 @@ static void argparse_test(void) {
   test_assert(ARGPARSE_STORE(&z, big));
   test_assert(!ARGPARSE_STORE(&z, minus1));
   test_eq_str(BOOLSTR(false), "F");
+  /* PARSE_LOG and PARSE_LOG_N are statements (e.g. in an if-else without
+     braces); with no logger, the LOG_PARAM messages are not output */
+  Logger *parse_logger = NULL;
+  if (i == 42)
+    PARSE_LOG("Value: %d\n", i);
+  else
+    PARSE_LOG_N("other\n");
 }
 
 static void bits_test(void) {
