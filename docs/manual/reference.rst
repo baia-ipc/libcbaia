@@ -3,7 +3,7 @@
 API reference
 -------------
 
-The declarations of the headers of the library (generated from the headers by ``docs/manual/make_reference.py``; the documentation of each function is in the header, before its declaration). The unit test functions (``<module>_test()``) and the internal functions (``_`` or ``__`` prefix, called by macros) are not listed.
+The declarations of the headers of the library (generated from the headers by ``docs/manual/make_reference.py``; the documentation of each function is in the header, before its declaration). The unit test functions (``<module>_test()``) and the internal functions (``_`` or ``__`` prefix, called by macros, or ``_`` suffix, called by inline functions) are not listed.
 
 Core (``core``)
 ~~~~~~~~~~~~~~~~

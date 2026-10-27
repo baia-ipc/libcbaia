@@ -1,7 +1,6 @@
 /* (c) 2026 Giorgio Gonnella */
 
 #include <stdlib.h>
-#include <string.h>
 #include "edit-distance.h"
 #include "test.h"
 

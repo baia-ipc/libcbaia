@@ -1,8 +1,6 @@
 /* (c) 2026 Giorgio Gonnella */
 
 #include <assert.h>
-#include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 #include "sequtil.h"
 #include "test.h"
