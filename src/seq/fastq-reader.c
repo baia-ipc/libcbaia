@@ -297,6 +297,33 @@ void fastq_reader_test(const char *tmpdir) {
   test_eq_size(fastq_reader_read_batch(reader, &batch, 10), 0);
   fastq_reader_delete(reader);
   test_eq_size(fastq_reader_count(path, NULL), 3);
+  unlink(path);
+  free(path);
+  /* uncompressed, with CRLF line ends; records with an empty sequence */
+  path = strcat_alloc(tmpdir, "/cbaia-tests-reads.fastq");
+  FILE *pf = fopen(path, "w");
+  test_assert(pf != NULL);
+  fputs("@r1 x\r\nACGT\r\n+r1 x\r\nIIII\r\n@r2\r\n+\r\n"
+        "@r3\r\n\r\n+\r\n\r\n@r4\r\nAC\r\n+\r\nII\r\n", pf);
+  fclose(pf);
+  reader = fastq_reader_new(path, NULL);
+  test_eq_size(fastq_reader_read_batch(reader, &batch, 10), 4);
+  r = batch.records;
+  test_eq_mem(batch.data.s + r->title_from, r->title_len, "r1 x");
+  test_eq_mem(batch.data.s + r->seq_from, r->seq_len, "ACGT");
+  test_eq_mem(batch.data.s + r->qual_from, r->seq_len, "IIII");
+  for (size_t i = 1; i <= 2; i++) {
+    r = batch.records + i;
+    test_eq_size(r->title_len, 2);
+    test_eq_size(r->seq_len, 0);
+  }
+  r = batch.records + 3;
+  test_eq_mem(batch.data.s + r->title_from, r->title_len, "r4");
+  test_eq_mem(batch.data.s + r->seq_from, r->seq_len, "AC");
+  test_eq_mem(batch.data.s + r->qual_from, r->seq_len, "II");
+  test_assert(memchr(batch.data.s, '\r', batch.data.len) == NULL);
+  test_eq_size(fastq_reader_read_batch(reader, &batch, 10), 0);
+  fastq_reader_delete(reader);
   fastq_batch_free(&batch);
   unlink(path);
   free(path);

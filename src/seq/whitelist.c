@@ -352,6 +352,12 @@ void whitelist_test(const char *tmpdir) {
   test_eq_str(match_str(wl, "AAAACCCAAGGGTTTTACG", false, 2),
               "AAAACCCCGGGGTTTT:2:16");
   test_eq_str(match_str(wl, "AAAACCCAAGGGTTTTACG", false, 1), "not_found");
+  /* three errors (WHITELIST_MAX_DIST) */
+  test_eq_str(match_str(wl, "AAAAGCCCGTGGTTCTACGT", false, 3),
+              "AAAACCCCGGGGTTTT:3:16");
+  test_eq_str(match_str(wl, "AAAAGCCCGTGGTTCTACGT", false, 2), "not_found");
+  test_eq_str(match_str(wl, "CGTAAAAGCCCGTGGTTCT", true, 3),
+              "AAAACCCCGGGGTTTT:3:16");
   /* N in the sequence */
   test_eq_str(match_str(wl, "ACGTACGTNCGTACGTAAA", false, 1),
               "ACGTACGTACGTACGT:1:16");

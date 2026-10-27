@@ -303,6 +303,20 @@ static void test_read_name(void) {
   test_eq_str(record_name(&b), UBAM_NO_READ_NAME);
   record_tags(&b, 1, &tags_len);
   test_eq_size(tags_len, 0);
+  /* a name longer than UBAM_MAX_READ_NAME is truncated (the tags are
+     kept) */
+  char title[UBAM_MAX_READ_NAME + 20];
+  memset(title, 'n', UBAM_MAX_READ_NAME + 10);
+  strcpy(title + UBAM_MAX_READ_NAME + 10, "\tRG:Z:a");
+  write_record(&b, title, "A", "I");
+  test_eq_size(strlen(record_name(&b)), UBAM_MAX_READ_NAME);
+  test_assert(strspn(record_name(&b), "n") == UBAM_MAX_READ_NAME);
+  tags = record_tags(&b, 1, &tags_len);
+  test_assert(tags_len == 5 && memcmp(tags, "RGZa", 5) == 0);
+  /* exactly UBAM_MAX_READ_NAME characters: not truncated */
+  strcpy(title + UBAM_MAX_READ_NAME, "\tRG:Z:a");
+  write_record(&b, title, "A", "I");
+  test_eq_size(strlen(record_name(&b)), UBAM_MAX_READ_NAME);
   strbuf_free(&b);
 }
 
@@ -345,6 +359,20 @@ static void test_tags(void) {
   ubam_writer_record(&b, "r1\tst:Z:a\0b", 11, "A", "I", 1);
   record_tags(&b, 1, &tags_len);
   test_eq_size(tags_len, 0);
+  /* a name longer than UBAM_MAX_READ_NAME is truncated (the tags are
+     kept) */
+  char title[UBAM_MAX_READ_NAME + 20];
+  memset(title, 'n', UBAM_MAX_READ_NAME + 10);
+  strcpy(title + UBAM_MAX_READ_NAME + 10, "\tRG:Z:a");
+  write_record(&b, title, "A", "I");
+  test_eq_size(strlen(record_name(&b)), UBAM_MAX_READ_NAME);
+  test_assert(strspn(record_name(&b), "n") == UBAM_MAX_READ_NAME);
+  tags = record_tags(&b, 1, &tags_len);
+  test_assert(tags_len == 5 && memcmp(tags, "RGZa", 5) == 0);
+  /* exactly UBAM_MAX_READ_NAME characters: not truncated */
+  strcpy(title + UBAM_MAX_READ_NAME, "\tRG:Z:a");
+  write_record(&b, title, "A", "I");
+  test_eq_size(strlen(record_name(&b)), UBAM_MAX_READ_NAME);
   strbuf_free(&b);
 }
 
