@@ -90,15 +90,18 @@ void* _xfmap(const char *fname, const char *sfx, bool writable,
   assert(fname != NULL);
   fname_and_sfx = (sfx != NULL) ? strcat_alloc(fname, sfx) : (char*)fname;
   *fd = open(fname_and_sfx, writable ? O_RDWR : O_RDONLY);
-  LCHECK(*fd != -1, logger, "Opening file '%s' failed, %s\n",
-              fname_and_sfx, strerror(errno));
-  LCHECK(fstat(*fd, &sb) == 0, logger, "fstat failed on file %s\n",
-      fname_and_sfx);
+  _LCHECK(*fd != -1, logger, _file, _line, "Opening file '%s' failed, %s\n",
+          fname_and_sfx, strerror(errno));
+  _LCHECK(fstat(*fd, &sb) == 0, logger, _file, _line,
+          "fstat failed on file %s, %s\n", fname_and_sfx, strerror(errno));
+  /* mmap() fails with an empty file (EINVAL), not clear as message */
+  _LCHECK(sb.st_size > 0, logger, _file, _line,
+          "Mapping file '%s' failed, the file is empty\n", fname_and_sfx);
   *fsize = sb.st_size;
   map = mmap(0, sb.st_size, PROT_READ | (writable ? PROT_WRITE : 0),
              MAP_SHARED, *fd, 0);
-  LCHECK(map != MAP_FAILED, logger, "Mapping file '%s' failed, %s\n",
-              fname_and_sfx, strerror(errno));
+  _LCHECK(map != MAP_FAILED, logger, _file, _line,
+          "Mapping file '%s' failed, %s\n", fname_and_sfx, strerror(errno));
   _lprintf(logger, LOG_DEBUG, _file, _line,
       "Mapped file %s for %s (%p)\n", fname_and_sfx,
       writable ? "writing" : "reading", map);
@@ -265,7 +268,7 @@ void wrongsig(const char *fname, const char *sfx, const char *desc,
               const char *helpmsg, Logger *logger)
 {
   lprintf(logger, LOG_ERROR, "%s %s%s has a wrong file signature\n",
-      desc, fname, sfx);
+      desc, fname, sfx != NULL ? sfx : "");
   if (helpmsg)
     lprintf(logger, LOG_ERROR, "%s\n", helpmsg);
   exit(EXIT_FAILURE);
@@ -314,6 +317,16 @@ void *_xfmap_chksig(const char *fname, const char *sfx,
     const char *_file, int _line)
 {
   void *result = _xfmap(fname, sfx, false, fsize, fd, logger, _file, _line);
+  size_t len = strlen(expected_signature);
+  if (*fsize < len)
+  {
+    lprintf(logger, LOG_ERROR, "%s %s%s is too short (%zu bytes) to contain "
+        "the file signature (%zu bytes)\n", filedesc, fname,
+        sfx != NULL ? sfx : "", *fsize, len);
+    if (helpmsg)
+      lprintf(logger, LOG_ERROR, "%s\n", helpmsg);
+    exit(EXIT_FAILURE);
+  }
   xchksig((char*)result, expected_signature, fname, sfx, filedesc, helpmsg,
       logger);
   return result;

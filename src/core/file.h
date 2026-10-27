@@ -160,7 +160,8 @@ bool xgetline(char **line, size_t *line_size, FILE *file, Logger *logger);
 bool xgetdelim(char **line, size_t *line_size, int delim, FILE *file,
                Logger *logger);
 
-/* Map file using mmap */
+/* Map file using mmap; an empty file cannot be mapped, the program is
+   then exited with an error message */
 void* _xfmap(const char *fname, const char *sfx, bool writable,
     size_t *fsize, int *fd, Logger *logger, const char *_file, int _line);
 #define xfmap(fname, sfx, writable, fsize, fd, logger) \
@@ -214,7 +215,8 @@ FILE* _xfopen_putsig(const char *fname, const char *sfx, const char *mode,
   _xfopen_putsig(fname, sfx, mode, description, signature, logger,\
       __FILE__, __LINE__)
 
-/* Map file for reading using mmap and check the signature */
+/* Map file for reading using mmap and check the signature; a file
+   shorter than the signature is an error, as a wrong signature */
 void* _xfmap_chksig(const char *fname, const char *sfx,
     size_t *fsize, int *fd, const char *expected_signature,
     const char *filedesc, const char *helpmsg, Logger *logger,
