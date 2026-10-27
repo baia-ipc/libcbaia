@@ -6,8 +6,9 @@
 
    The parsing follows the Biopython FastqGeneralIterator: the title line is
    kept as it is (except trailing whitespace); sequences and qualities can
-   span several lines; the title on the "+" line is optional, but must be
-   equal to the title of the record, if present.
+   span several lines (a line starting with '@' ends the qualities, if they
+   are at least as long as the sequence); the title on the "+" line is
+   optional, but must be equal to the title of the record, if present.
 */
 
 #ifndef FASTQ_READER_H

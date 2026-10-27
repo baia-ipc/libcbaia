@@ -164,11 +164,7 @@ static void append_line(fastq_reader_t *self, size_t from, strbuf_t *data) {
   rstrip(data, piece_from);
 }
 
-/*
-   The parsing follows the Biopython FastqGeneralIterator: sequence and
-   qualities can span several lines; a line starting with '@' ends the
-   qualities, if they are at least as long as the sequence
-*/
+/* parsing as the Biopython FastqGeneralIterator, see fastq-reader.h */
 size_t fastq_reader_read_batch(fastq_reader_t *self, fastq_batch_t *batch,
     size_t max_records) {
   assert(self != NULL);
