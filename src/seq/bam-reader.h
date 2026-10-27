@@ -14,7 +14,8 @@
      (MM, ML, MN), whose positions refer to the whole read;
    - the sequence and qualities are in the orientation of the original
      read (reverse complemented, if the record is mapped to the minus
-     strand); missing qualities are written as '!', and the record is
+     strand); quality values above 93 are written as '~' (the maximum of
+     SAM); missing qualities are written as '!', and the record is
      marked (qual_missing), so that, written again (ubam-writer.h, with
      NULL qualities), they are missing qualities again;
    - secondary and supplementary alignments are skipped.

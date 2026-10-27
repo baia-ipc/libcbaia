@@ -78,7 +78,8 @@ MinKNOW) without htslib, into the same batches of FASTQ-like records:
   move table) and the base modification tags (``MM``, ``ML``, ``MN``) are
   not included;
 * the sequence and the qualities are those of the original read (reverse
-  complemented if the record is mapped to the minus strand); missing
+  complemented if the record is mapped to the minus strand); quality
+  values above 93 are written as ``~`` (the maximum of SAM); missing
   qualities are written as ``!`` and the record is marked
   (``qual_missing``);
 * secondary and supplementary alignments are skipped.

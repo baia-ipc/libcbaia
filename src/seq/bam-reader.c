@@ -19,8 +19,11 @@
 #include "strutils.h"
 #include "test.h"
 
-/* the header text is read in parts of this size */
-#define BAM_HEADER_CHUNK (1 << 20)
+/* the header text and the records are read in parts of this size */
+#define BAM_READ_CHUNK (1 << 20)
+
+/* size of the buffer of zlib for reading the file */
+#define BAM_GZBUFFER_SIZE (1 << 17)
 
 /* missing qualities are written as Q0 */
 #define QUAL_MISSING_CHAR '!'
@@ -91,6 +94,24 @@ static void skip_bytes(bam_reader_t *self, size_t len) {
   }
 }
 
+/* read exactly <len> bytes into <buf> (of capacity *cap, reallocated as
+   needed, also with <extra> bytes after the data), in parts of
+   BAM_READ_CHUNK bytes, so that the memory is allocated only for the data
+   actually present (the length, from the file, may be wrong); returns the
+   buffer */
+static void *read_chunked(bam_reader_t *self, void *buf, size_t *cap,
+    size_t len, size_t extra) {
+  size_t got = 0;
+  while (got < len) {
+    size_t n = len - got < BAM_READ_CHUNK ? len - got : BAM_READ_CHUNK;
+    XCHECKSPACEINCPERC(buf, cap, got + n + extra, 50);
+    read_exact(self, (char *)buf + got, n, false);
+    got += n;
+  }
+  XCHECKSPACEINCPERC(buf, cap, len + extra, 0);
+  return buf;
+}
+
 static uint32_t read_u32(bam_reader_t *self) {
   uint8_t b[4];
   read_exact(self, b, 4, false);
@@ -104,20 +125,10 @@ static char *read_header(bam_reader_t *self) {
   if (!read_exact(self, magic, BAM_MAGIC_LEN, true) ||
       memcmp(magic, BAM_MAGIC, BAM_MAGIC_LEN) != 0)
     format_error(self, "wrong magic number");
-  /* the text is read in parts, so that the memory is allocated only for
-     the data actually present (the length may be wrong) */
-  size_t l_text = read_u32(self), got = 0, cap = 0;
-  char *text = NULL;
-  while (got < l_text) {
-    size_t n = l_text - got < BAM_HEADER_CHUNK ? l_text - got :
-               BAM_HEADER_CHUNK;
-    XCHECKSPACEINCPERC(text, &cap, got + n + 1, 50);
-    read_exact(self, text + got, n, false);
-    got += n;
-  }
-  XCHECKSPACEINCPERC(text, &cap, got + 1, 0);
+  size_t l_text = read_u32(self), cap = 0;
+  char *text = read_chunked(self, NULL, &cap, l_text, 1);
   /* the text can be padded with NUL characters */
-  text[got] = '\0';
+  text[l_text] = '\0';
   uint32_t n_ref = read_u32(self);
   for (uint32_t i = 0; i < n_ref; i++) {
     skip_bytes(self, read_u32(self));
@@ -142,7 +153,7 @@ bam_reader_t* bam_reader_new(const char *filename, Logger *logger) {
   XMALLOC(self, sizeof(bam_reader_t));
   self->file = open_file(filename, logger);
   self->logger = logger;
-  gzbuffer(self->file, 1 << 17);
+  gzbuffer(self->file, BAM_GZBUFFER_SIZE);
   self->filename = xstrdup(filename);
   self->rec = NULL;
   self->rec_cap = 0;
@@ -174,8 +185,8 @@ static size_t next_record(bam_reader_t *self) {
   size_t len = le32(b);
   if (len < BAM_CORE_LEN)
     format_error(self, "record too short");
-  XCHECKSPACEINCPERC(self->rec, &self->rec_cap, len, 50);
-  read_exact(self, self->rec, len, false);
+  /* (block_size, up to 4 GiB, may be wrong) */
+  self->rec = read_chunked(self, self->rec, &self->rec_cap, len, 0);
   return len;
 }
 
@@ -311,7 +322,7 @@ static bool append_record(bam_reader_t *self, size_t len,
     char *q = strbuf_reserve(data, l_seq);
     for (size_t i = 0; i < l_seq; i++)
       q[i] = rec->qual_missing ? QUAL_MISSING_CHAR :
-             (char)(qual[reverse ? l_seq - 1 - i : i] + 33);
+             bam_qual_char(qual[reverse ? l_seq - 1 - i : i]);
     strbuf_commit(data, l_seq);
   }
   return true;
@@ -429,6 +440,17 @@ void bam_reader_test(const char *tmpdir) {
   put_record(&b, "r3", BAM_FSECONDARY, "AAAA", "AAAA", NULL, 0);
   put_record(&b, "r4", BAM_FSUPPLEMENTARY, "AAAA", "AAAA", NULL, 0);
   put_record(&b, "r5", BAM_FUNMAP, "ACG", NULL, NULL, 0);
+  /* quality values above 93 (94, 200), clamped to '~' */
+  put_record(&b, "r6", BAM_FUNMAP, "ACG", "\x7f\xe9I", NULL, 0);
+  /* a record longer than the parts in which it is read */
+  size_t long_len = BAM_READ_CHUNK + 5;
+  char *long_seq, *long_qual;
+  XMALLOC(long_seq, long_len + 1);
+  XMALLOC(long_qual, long_len + 1);
+  memset(long_seq, 'C', long_len);
+  memset(long_qual, 'I', long_len);
+  long_seq[long_len] = long_qual[long_len] = '\0';
+  put_record(&b, "r7", BAM_FUNMAP, long_seq, long_qual, NULL, 0);
   char *path = strcat_alloc(tmpdir, "/cbaia-tests-reads.bam");
   gzFile f = gzopen(path, "wb");
   test_assert(f != NULL);
@@ -445,7 +467,7 @@ void bam_reader_test(const char *tmpdir) {
   fwrite(bgzf_eof, 1, BGZF_EOF_LEN, raw);
   fclose(raw);
   test_assert(bam_reader_has_eof_marker(path));
-  test_eq(bam_reader_count(path, NULL), (size_t)3, size_t, "%zu");
+  test_eq(bam_reader_count(path, NULL), (size_t)5, size_t, "%zu");
   bam_reader_t *r = bam_reader_new(path, NULL);
   fastq_batch_t batch;
   fastq_batch_init(&batch);
@@ -454,10 +476,16 @@ void bam_reader_test(const char *tmpdir) {
                "ch:i:-3\tRG:Z:run1", "ACGTN", "ABCDE");
   check_record(&batch, 1, "r2", "ACGTT", "EDCBA");
   test_assert(!batch.records[0].qual_missing);
-  test_eq(bam_reader_read_batch(r, &batch, 2), (size_t)1, size_t, "%zu");
+  test_eq(bam_reader_read_batch(r, &batch, 2), (size_t)2, size_t, "%zu");
   check_record(&batch, 0, "r5", "ACG", "!!!");
   test_assert(batch.records[0].qual_missing);
+  check_record(&batch, 1, "r6", "ACG", "~~I");
+  test_assert(!batch.records[1].qual_missing);
+  test_eq(bam_reader_read_batch(r, &batch, 2), (size_t)1, size_t, "%zu");
+  check_record(&batch, 0, "r7", long_seq, long_qual);
   test_eq(bam_reader_read_batch(r, &batch, 2), (size_t)0, size_t, "%zu");
+  free(long_seq);
+  free(long_qual);
   fastq_batch_free(&batch);
   bam_reader_delete(r);
   /* a FASTQ file is not a BAM file */

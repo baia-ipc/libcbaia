@@ -33,13 +33,6 @@ static uint8_t base_code(char c) {
   return p == NULL || c == '\0' ? 15 : (uint8_t)(p - BAM_BASES);
 }
 
-/* quality value of a Phred+33 character; the characters out of the range
-   of SAM ('!' to '~') are clamped to it */
-static uint8_t qual_value(char c) {
-  unsigned char u = (unsigned char)c;
-  return u < '!' ? 0 : u > '~' ? '~' - '!' : (uint8_t)(u - '!');
-}
-
 /* parse an integer of a tag value (the whole text) */
 static bool parse_int(const char *s, size_t len, long long *value) {
   char buf[32];
@@ -258,7 +251,7 @@ void ubam_writer_record(strbuf_t *out, const char *title, size_t title_len,
                        (i + 1 < len ? base_code(seq[i + 1]) : 0)));
   for (size_t i = 0; i < len; i++)
     strbuf_append_char(out, qual == NULL ? (char)BAM_QUAL_MISSING :
-                       (char)qual_value(qual[i]));
+                       (char)bam_qual_value(qual[i]));
   const char *p = tags;
   size_t tags_from = out->len;
   while (p < end) {

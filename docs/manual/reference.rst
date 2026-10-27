@@ -494,6 +494,10 @@ Constants and encoding helpers of the BAM format, shared by bam-reader.c and uba
    #define BAM_FSUPPLEMENTARY
    #define BAM_UNMAPPED_BIN
    #define BAM_QUAL_MISSING
+   #define BAM_PHRED_OFFSET
+   #define BAM_QUAL_MAX
+   static inline char bam_qual_char(uint8_t q);
+   static inline uint8_t bam_qual_value(char c);
    static inline void bam_put16(strbuf_t *b, uint16_t v);
    static inline void bam_set32(char *p, uint32_t v);
    static inline void bam_put32(strbuf_t *b, uint32_t v);

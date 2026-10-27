@@ -34,6 +34,26 @@
 /* quality value of missing qualities (the first one is enough) */
 #define BAM_QUAL_MISSING 0xFF
 
+/* offset of the quality characters (Phred+33) of SAM and FASTQ */
+#define BAM_PHRED_OFFSET 33
+
+/* maximum quality value, whose character is '~' (larger values are
+   clamped to it) */
+#define BAM_QUAL_MAX ('~' - BAM_PHRED_OFFSET)
+
+/* Phred+33 character of a quality value, clamped to '~' */
+static inline char bam_qual_char(uint8_t q) {
+  return (char)((q > BAM_QUAL_MAX ? BAM_QUAL_MAX : q) + BAM_PHRED_OFFSET);
+}
+
+/* quality value of a Phred+33 character; the characters out of the range
+   of SAM ('!' to '~') are clamped to it */
+static inline uint8_t bam_qual_value(char c) {
+  unsigned char u = (unsigned char)c;
+  return u < BAM_PHRED_OFFSET ? 0 : u > '~' ? BAM_QUAL_MAX :
+         (uint8_t)(u - BAM_PHRED_OFFSET);
+}
+
 /* Append a 16-bit integer (little-endian) */
 static inline void bam_put16(strbuf_t *b, uint16_t v) {
   char c[2] = {(char)(v & 0xff), (char)(v >> 8)};
