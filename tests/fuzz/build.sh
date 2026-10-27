@@ -12,7 +12,8 @@ set -euo pipefail
 OUT=bin/fuzz
 OBJ=obj/fuzz
 mkdir -p $OUT $OBJ
-SAN="-fsanitize=fuzzer-no-link,address,undefined -fno-sanitize-recover=undefined"
+SAN="-fsanitize=fuzzer-no-link,address,undefined \
+-fno-sanitize-recover=undefined"
 CFLAGS="-g -O1 $SAN -std=gnu11"
 INCLUDES="-Iext/zlib -Iext/khash -Itests/fuzz -Iobj"
 # the components of the library, listed in cbaia.mk

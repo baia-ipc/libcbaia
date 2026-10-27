@@ -22,6 +22,7 @@ cp -n tests/fuzz/seeds/$HARNESS/* $CORPUS/ 2>/dev/null || true
 # allocated (see fuzz-common.h); for the same reason, the fork mode is used
 # (the inputs are run in short-lived child processes); the output of the
 # target is suppressed
-ASAN_OPTIONS=detect_leaks=0 bin/fuzz/fuzz-$HARNESS $CORPUS -max_total_time=$SECONDS_MAX \
-  -detect_leaks=0 -close_fd_mask=3 -max_len=8192 -timeout=10 \
-  -artifact_prefix=$CRASHES/ -fork=$JOBS -print_final_stats=1 -rss_limit_mb=4096
+ASAN_OPTIONS=detect_leaks=0 bin/fuzz/fuzz-$HARNESS $CORPUS \
+  -max_total_time=$SECONDS_MAX -detect_leaks=0 -close_fd_mask=3 \
+  -max_len=8192 -timeout=10 -artifact_prefix=$CRASHES/ -fork=$JOBS \
+  -print_final_stats=1 -rss_limit_mb=4096
