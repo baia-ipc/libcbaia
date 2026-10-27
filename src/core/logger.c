@@ -40,7 +40,7 @@ void delete_logger(Logger* logger) {
 }
 
 #define LEVEL_STR(LEVEL) \
-   (LEVEL) == LOG_ERROR    ? "ERROR" : \
+  ((LEVEL) == LOG_ERROR    ? "ERROR" : \
    (LEVEL) == LOG_WARN     ? "WARNING" : \
    (LEVEL) == LOG_SUCCESS  ? "SUCCESS" : \
    (LEVEL) == LOG_PHASE    ? "PHASE" : \
@@ -48,10 +48,10 @@ void delete_logger(Logger* logger) {
    (LEVEL) == LOG_PARAM    ? "PARAM" : \
    (LEVEL) == LOG_MEM      ? "MEMORY" : \
    (LEVEL) == LOG_TRACE    ? "TRACE" : \
-                             "DEBUG"
+                             "DEBUG")
 
 #define LEVEL_COLOR(LEVEL) \
-   (LEVEL) == LOG_ERROR    ? COLOR_BRIGHT_RED     : \
+  ((LEVEL) == LOG_ERROR    ? COLOR_BRIGHT_RED     : \
    (LEVEL) == LOG_WARN     ? COLOR_BRIGHT_MAGENTA : \
    (LEVEL) == LOG_SUCCESS  ? COLOR_BRIGHT_GREEN   : \
    (LEVEL) == LOG_PHASE    ? COLOR_BRIGHT_YELLOW  : \
@@ -59,7 +59,7 @@ void delete_logger(Logger* logger) {
    (LEVEL) == LOG_PARAM    ? COLOR_BRIGHT_BLUE    : \
    (LEVEL) == LOG_TRACE    ? COLOR_BRIGHT_BLACK   : \
    (LEVEL) == LOG_MEM      ? COLOR_MAGENTA        : \
-                             COLOR_CYAN
+                             COLOR_CYAN)
 
 /* localtime_r: the loggers can be used by several threads */
 #define GET_TIME(S) {\
@@ -112,18 +112,6 @@ void NTRACE(const char *fmt, ...) {
   bool colored = isatty(fileno(stderr));
   LPRINTF(stderr, colored, false, LOG_TRACE, fmt, false, "", 0);
 }
-
-#ifdef SHOW_TRACES
-void _DEBUG_TRACE(const char *file, int line, const char *fmt, ...) {
-  bool colored = isatty(fileno(stderr));
-  LPRINTF(stderr, colored, true, LOG_TRACE, fmt, true, file, line);
-}
-
-void DEBUG_NTRACE(const char *fmt, ...) {
-  bool colored = isatty(fileno(stderr));
-  LPRINTF(stderr, colored, false, LOG_TRACE, fmt, false, "", 0);
-}
-#endif
 
 /* level of the messages printed (to stderr) without a logger (NULL) */
 #define DEFAULT_LOGGER_LEVEL LOG_ERROR

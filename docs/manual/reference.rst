@@ -158,12 +158,10 @@ Logging library
    #define fatal_printf(FMT, ...)
    #define showmem(logger)
    #define TRACE(FMT, ...)
-   void NTRACE(const char *fmt, ...)\
+   void NTRACE(const char *fmt, ...)
         __attribute__ ((format (printf,1,2)));
    #define DEBUG_TRACE(FMT, ...)
-   void DEBUG_NTRACE(const char *fmt, ...)
-        __attribute__ ((format (printf,1,2)));
-   #define DEBUG_NTRACE(fmt, ...)
+   #define DEBUG_NTRACE(FMT, ...)
 
 **numutils.h**
 

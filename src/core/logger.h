@@ -59,8 +59,8 @@ void lnprintf(Logger *logger, LoggingLevel level, const char *fmt, ...)
 /* ---- debugging functionality ---- */
 
 /* TRACE, NTRACE, DEBUG_TRACE and DEBUG_NTRACE are upper case, also where
-   they are functions (NTRACE, DEBUG_NTRACE), because they behave like the
-   macros (TRACE, DEBUG_TRACE) whose lines they complete */
+   they are functions (NTRACE), because they behave like the macros (TRACE,
+   DEBUG_TRACE) whose lines they complete */
 
 /* - to print something during debugging, e.g. in a
      #ifdef GG_DEBUG_MODULE;
@@ -69,18 +69,18 @@ void lnprintf(Logger *logger, LoggingLevel level, const char *fmt, ...)
   _TRACE(__FILE__, __LINE__, FMT, ##__VA_ARGS__)
 
 /* like TRACE, but without line header, to complete the line */
-void NTRACE(const char *fmt, ...)\
+void NTRACE(const char *fmt, ...)
      __attribute__ ((format (printf,1,2)));
 
 #ifdef SHOW_TRACES
 /* to print something during debugging, when compiling with flag SHOW_TRACES;
-   uses settings for level LOG_TRACE */
+   as TRACE */
 #define DEBUG_TRACE(FMT, ...) \
-  _DEBUG_TRACE(__FILE__, __LINE__, FMT, ##__VA_ARGS__)
+  _TRACE(__FILE__, __LINE__, FMT, ##__VA_ARGS__)
 
-/* like DEBUG_TRACE, but without line header, to complete the line */
-void DEBUG_NTRACE(const char *fmt, ...)
-     __attribute__ ((format (printf,1,2)));
+/* like DEBUG_TRACE, but without line header, to complete the line; as
+   NTRACE */
+#define DEBUG_NTRACE(FMT, ...) NTRACE(FMT, ##__VA_ARGS__)
 #else
 /* without SHOW_TRACES, DEBUG_[N]TRACE are deleted from the code */
 #define DEBUG_TRACE(fmt, ...) ((void)0)
@@ -109,12 +109,7 @@ void _fatal_printf(const char *file, int line, const char *fmt, ...)
 
 void _showmem(Logger *logger, const char *file, int line);
 
-void _TRACE(const char *file, int line, const char *fmt, ...)\
+void _TRACE(const char *file, int line, const char *fmt, ...)
      __attribute__ ((format (printf,3,4)));
-
-#ifdef SHOW_TRACES
-void _DEBUG_TRACE(const char *file, int line, const char *fmt, ...)
-     __attribute__ ((format (printf,3,4)));
-#endif
 
 #endif
