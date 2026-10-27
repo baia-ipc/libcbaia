@@ -26,6 +26,8 @@ cell_caller_t* cell_caller_new(void) {
   cell_caller_t *self;
   XMALLOC(self, sizeof(cell_caller_t));
   self->counts = kh_init(counts);
+  if (self->counts == NULL)
+    fatal_printf("Failed allocating the counts of the barcodes\n");
   return self;
 }
 
